@@ -1,11 +1,11 @@
 import { Text, View } from 'react-native'
 
-const Report = () => {
+const Feedback = () => {
   return (
     <View>
-      <Text>Report</Text>
+      <Text>Feedback</Text>
     </View>
   )
 }
 
-export default Report
+export default Feedback
