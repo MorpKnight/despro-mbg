@@ -11,7 +11,7 @@ export default function App() {
         🚀 Temporary Home Page
       </Text>
       <Text className="text-2xl font-bold text-blue-200">Click Below to Navigate to Other Pages</Text>
-      <Link href="/report"> Report Page</Link>
+      <Link href="/feedback"> Feedback Page</Link>
     </View>
   );
 }
