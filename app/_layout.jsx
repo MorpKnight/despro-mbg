@@ -1,16 +1,11 @@
-import { StyleSheet, Text, View } from 'react-native'
-import { Stack } from 'expo-router'
+import { Stack } from 'expo-router';
 
-const RootLayout = () => {
+
+export default function RootLayout() {
+
     return (
-        <View className = "flex-1" >
-            <Stack />
-            <Text>RootLayout</Text>
-        </View>
-
-    )
+        <Stack>
+          
+        </Stack>
+    );
 }
-
-export default RootLayout
-
-const styles = StyleSheet.create({})

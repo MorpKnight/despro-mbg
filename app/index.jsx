@@ -10,8 +10,8 @@ export default function App() {
       <Text className="text-4xl font-extrabold text-yellow-300 underline">
         🚀 Temporary Home Page
       </Text>
-      <Text className="text-2xl font-bold text-blue-200">Click Below to Navigate to Other Pages</Text>
-      <Link href="/feedback"> Feedback Page</Link>
+      <Text className="text-2xl font-bold text-blue-200">Click Below to Navigate to Other Page</Text>
+      <Link href="/feedback"> Feedback </Link>
     </View>
   );
 }
