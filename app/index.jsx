@@ -12,6 +12,8 @@ export default function App() {
       </Text>
       <Text className="text-2xl font-bold text-blue-200">Click Below to Navigate to Other Page</Text>
       <Link href="/feedback"> Feedback </Link>
+      <Link href="/admin-emergency-report"> Admin - Emergency Report </Link>
+      <Link href="/school-emergency-report"> School - Emergency Report </Link>
     </View>
   );
 }
