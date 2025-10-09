@@ -14,6 +14,7 @@ export default function App() {
       <Link href="/feedback"> Feedback </Link>
       <Link href="/admin-emergency-report"> Admin - Emergency Report </Link>
       <Link href="/school-emergency-report"> School - Emergency Report </Link>
+      <Link href="/portal-masukan"> Portal Masukan </Link>
     </View>
   );
 }
