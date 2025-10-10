@@ -11,10 +11,10 @@ export default function App() {
         🚀 Temporary Home Page
       </Text>
       <Text className="text-2xl font-bold text-blue-200">Click Below to Navigate to Other Page</Text>
-      <Link href="/feedback"> Feedback </Link>
+      <Link href="/admin-feedback"> Admin - Feedback </Link>
       <Link href="/admin-emergency-report"> Admin - Emergency Report </Link>
       <Link href="/school-emergency-report"> School - Emergency Report </Link>
-      <Link href="/portal-masukan"> Portal Masukan </Link>
+      <Link href="/portal-feedback"> Portal Feedback </Link>
     </View>
   );
 }
