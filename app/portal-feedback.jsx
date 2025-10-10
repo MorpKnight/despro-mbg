@@ -52,7 +52,7 @@ export default function PortalMasukan() {
           <View className="w-full h-0.5 bg-gray-800 rounded-sm" />
         </View>
         <Text className="text-lg font-semibold text-gray-800 absolute left-1/2 transform -translate-x-1/2">
-          Portal Masukan
+          Portal Feedback
         </Text>
       </View>
 
