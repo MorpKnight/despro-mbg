@@ -1,0 +1,21 @@
+services:
+  expo-dev:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - "8081:8081"   # Metro bundler
+      - "19000:19000" # Expo Dev Tools
+      - "19001:19001" # Expo Dev Tools (secure)
+      - "19002:19002" # Expo Dev Tools (ng serve)
+      - "9229:9229"   # Node debugger
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+      - NODE_ENV=development
+      - DEBUG=*
+    stdin_open: true
+    tty: true
+    command: npx expo start --tunnel
