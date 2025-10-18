@@ -1,36 +1,60 @@
 {
   "expo": {
-    "name": "mbgapp",
-    "slug": "mbgapp",
+    "name": "despro-fe",
+    "slug": "despro-fe",
     "version": "1.0.0",
-    "scheme": "mbgapp",
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "experiments": {
-      "tsconfigPaths": true
-    },
-    "plugins": [
-      "expo-router"
-    ],
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "icon": "./assets/images/icon.png",
+    "scheme": "desprofe",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+        "typedRoutes": true,
+        "reactCompiler": false
+    },
+    "extra": {
+      "auth": {
+        "users": [
+          { "username": "super", "password": "super123", "role": "super admin" },
+          { "username": "sekolah", "password": "sekolah123", "role": "admin sekolah" },
+          { "username": "catering", "password": "catering123", "role": "admin catering" },
+          { "username": "siswa", "password": "siswa123", "role": "siswa" },
+          { "username": "dinkes", "password": "dinkes123", "role": "admin dinkes" }
+        ],
+        "sessionKey": "mbg_auth_session"
       }
     }
   }
