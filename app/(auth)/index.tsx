@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 import React, { useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Image, Platform, Text, View } from 'react-native';
 import Button from '../../components/ui/Button';
 import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
@@ -54,10 +54,18 @@ export default function AuthIndex() {
         {/* Left hero panel (hidden on very small widths via CSS, only effective on web) */}
         <View className="hidden md:flex flex-1 items-center justify-center bg-gradient-to-br from-secondary to-primary">
           <View className="px-10">
-            <View className="w-16 h-16 rounded-full bg-white/15 items-center justify-center mb-4">
-              <Text className="text-white font-extrabold text-lg">MBG</Text>
+            <View className="flex-row items-center mb-4">
+              <View className="w-16 h-16 rounded-full bg-white/15 items-center justify-center overflow-hidden">
+                <Image
+                  source={require("../../assets/images/logo.png")}
+                  style={{ width: 55, height: 55, alignSelf: "center" }}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text className="text-white text-4xl font-extrabold leading-tight ml-4">
+                MBGlance
+              </Text>
             </View>
-            <Text className="text-white text-4xl font-extrabold leading-tight">MBG Review & Track</Text>
             <Text className="text-white/80 mt-3 max-w-md">
               Kelola review dan tracking dengan cepat dan aman. Masuk untuk melanjutkan.
             </Text>
