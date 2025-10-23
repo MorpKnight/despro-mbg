@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Link, Redirect } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
-import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import CustomDrawerContent from '../../components/navigation/CustomDrawerContent';
 import { useAuth } from '../../hooks/useAuth';
@@ -10,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 export default function AppDrawerLayout() {
   const { user, loading } = useAuth();
   const isSuperAdmin = user?.role === 'super admin';
+  const isSiswa = user?.role === 'siswa';
   if (!loading && !user) {
     return <Redirect href="/(auth)" />;
   }
@@ -73,6 +73,7 @@ export default function AppDrawerLayout() {
   <Drawer.Screen name="student-attendance" options={{ title: 'Absensi Harian', drawerIcon: ({ color, size }) => (<Ionicons name="checkmark-done-outline" size={size} color={color} />) }} />
   <Drawer.Screen name="emergency-report" options={{ title: 'Laporan Darurat', drawerIcon: ({ color, size }) => (<Ionicons name="warning-outline" size={size} color={color} />) }} />
   <Drawer.Screen name="feedback-list" options={{ title: 'Umpan Balik Siswa', drawerIcon: ({ color, size }) => (<Ionicons name="chatbubbles-outline" size={size} color={color} />) }} />
+  <Drawer.Screen name="portal-feedback" options={{ title: 'Portal Feedback', drawerIcon: ({ color, size }) => (<Ionicons name="chatbox-outline" size={size} color={color} />), drawerItemStyle: isSiswa ? undefined : { display: 'none' } }} />
       <Drawer.Screen name="page5" options={{ title: 'Page 5', drawerIcon: ({ color, size }) => (<Ionicons name="calendar-outline" size={size} color={color} />) }} />
       <Drawer.Screen name="page6" options={{ title: 'Page 6', drawerIcon: ({ color, size }) => (<Ionicons name="people-outline" size={size} color={color} />) }} />
       <Drawer.Screen name="page7" options={{ title: 'Page 7', drawerIcon: ({ color, size }) => (<Ionicons name="school-outline" size={size} color={color} />) }} />
