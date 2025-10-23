@@ -55,7 +55,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
     'super admin': ['index', 'settings', 'admin-dashboard', 'sekolah-dashboard', 'catering-dashboard', 'dinkes-dashboard', 'page1', 'page2', 'student-attendance', 'emergency-report', 'feedback-list', 'page5', 'page6', 'page9', 'page10'],
     'admin sekolah': ['index', 'settings', 'sekolah-dashboard', 'student-attendance', 'emergency-report', 'feedback-list'],
     'admin catering': ['index', 'settings', 'catering-dashboard', 'page5', 'page6'],
-    'siswa': ['index', 'settings', 'page7', 'page8'],
+    'siswa': ['index', 'settings', 'page7', 'page8', 'portal-feedback'],
     'admin dinkes': ['index', 'settings', 'dinkes-dashboard', 'page9', 'page10'],
   };
   const allowed = user?.role ? rolePages[user.role] || ['index', 'settings'] : ['index', 'settings'];
