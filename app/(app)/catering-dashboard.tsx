@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,6 +12,7 @@ export default function CateringDashboard() {
   if (user?.role !== 'admin catering' && user?.role !== 'super admin') return <Redirect href="/" />;
   
   return (
+    <SafeAreaView className="flex-1 bg-[#f5f7fb]">
     <ScrollView className="flex-1 bg-neutral-gray">
       <View className="p-6">
         {/* Page Header */}
@@ -107,5 +109,6 @@ export default function CateringDashboard() {
         </Card>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }

@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Redirect } from 'expo-router';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -46,6 +47,7 @@ export default function FeedbackListPage() {
   };
 
   return (
+    <SafeAreaView className="flex-1 bg-[#f5f7fb]">
     <ScrollView className="flex-1 bg-neutral-gray">
       <View className="p-6">
         <View className="mb-4">
@@ -117,5 +119,6 @@ export default function FeedbackListPage() {
         )}
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthContext } from '../../context/AuthContext';
 
 export default function PortalFeedback() {
@@ -97,6 +98,7 @@ export default function PortalFeedback() {
   ];
 
   return (
+    <SafeAreaView className="flex-1 bg-[#f5f7fb]">
     <ScrollView className="flex-1 bg-gray-100">
       <View className="max-w-sm mx-auto p-5">
         {/* Form Kirim Masukan */}
@@ -239,5 +241,6 @@ export default function PortalFeedback() {
         </View>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }

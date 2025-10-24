@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Redirect } from 'expo-router';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from '../../hooks/useAuth';
-
 export default function StudentAttendancePage() {
   const { user } = useAuth();
   const [date, setDate] = React.useState(new Date('2025-10-18'));
@@ -37,6 +37,7 @@ export default function StudentAttendancePage() {
   const nextDay = () => setDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
 
   return (
+    <SafeAreaView className="flex-1 bg-[#f5f7fb]">
     <ScrollView className="flex-1 bg-neutral-gray">
       <View className="p-6">
         <View className="mb-4">
@@ -91,5 +92,6 @@ export default function StudentAttendancePage() {
         )}
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }

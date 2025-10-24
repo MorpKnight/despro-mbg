@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import Card from '../../components/ui/Card';
 
 const systemStatus = 'OPERASIONAL'; // or 'MENGALAMI GANGGUAN'
@@ -16,6 +17,7 @@ const errorLogs = [
 
 export default function SystemHealthPage() {
   return (
+    <SafeAreaView className="flex-1 bg-[#f5f7fb]">
     <ScrollView className="flex-1 bg-neutral-gray">
       <View className="p-6">
         <Text className="text-2xl font-bold mb-6">Kesehatan Sistem & Log</Text>
@@ -53,5 +55,6 @@ export default function SystemHealthPage() {
         </Card>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }

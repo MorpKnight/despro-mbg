@@ -1,6 +1,7 @@
 import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../hooks/useAuth";
 
 interface Attendance {
@@ -177,6 +178,7 @@ export default function SekolahDashboard() {
   const current: SchoolData = schoolData[selectedSchool] ?? defaultSchoolData;
 
   return (
+    <SafeAreaView className="flex-1 bg-[#f5f7fb]">
     <ScrollView className="flex-1 bg-[#f5f7fb] p-4">
       {/* School selector for super admin */}
       {user?.role === "super admin" && (
@@ -371,5 +373,6 @@ export default function SekolahDashboard() {
         </View>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
