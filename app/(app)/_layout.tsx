@@ -75,6 +75,7 @@ export default function AppDrawerLayout() {
   <Drawer.Screen name="feedback-list" options={{ title: 'Umpan Balik Siswa', drawerIcon: ({ color, size }) => (<Ionicons name="chatbubbles-outline" size={size} color={color} />) }} />
       <Drawer.Screen name="page5" options={{ title: 'Page 5', drawerIcon: ({ color, size }) => (<Ionicons name="calendar-outline" size={size} color={color} />) }} />
       <Drawer.Screen name="page6" options={{ title: 'Page 6', drawerIcon: ({ color, size }) => (<Ionicons name="people-outline" size={size} color={color} />) }} />
+  <Drawer.Screen name="catering-menu-qc" options={{ title: 'Input Menu Harian & QC', drawerIcon: ({ color, size }) => (<Ionicons name="create-outline" size={size} color={color} />) }} />
       <Drawer.Screen name="page7" options={{ title: 'Page 7', drawerIcon: ({ color, size }) => (<Ionicons name="school-outline" size={size} color={color} />) }} />
       <Drawer.Screen name="page8" options={{ title: 'Page 8', drawerIcon: ({ color, size }) => (<Ionicons name="restaurant-outline" size={size} color={color} />) }} />
       <Drawer.Screen name="page9" options={{ title: 'Page 9', drawerIcon: ({ color, size }) => (<Ionicons name="medkit-outline" size={size} color={color} />) }} />

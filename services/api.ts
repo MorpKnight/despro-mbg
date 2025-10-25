@@ -5,13 +5,31 @@ export interface ApiOptions extends RequestInit {
 const DEFAULT_BASE_URL = 'https://example.com/api';
 
 export async function api(path: string, options: ApiOptions = {}) {
-  const { baseURL = DEFAULT_BASE_URL, headers, ...rest } = options;
+  const { baseURL = DEFAULT_BASE_URL, headers = {}, body, ...rest } = options;
   const url = baseURL.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
+
+  // Detect FormData to avoid setting Content-Type manually (let fetch set boundary)
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
+  // Prepare headers
+  const finalHeaders: Record<string, string> = { ...(headers as any) };
+  if (!isFormData && !('Content-Type' in finalHeaders)) {
+    finalHeaders['Content-Type'] = 'application/json';
+  }
+
+  // Prepare body
+  let finalBody: any = body;
+  if (!isFormData && body && typeof body !== 'string') {
+    try {
+      finalBody = JSON.stringify(body);
+    } catch {
+      finalBody = body;
+    }
+  }
+
   const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(headers || {}),
-    },
+    headers: finalHeaders,
+    body: finalBody,
     ...rest,
   });
   if (!res.ok) {
