@@ -35,7 +35,7 @@ export default function CateringDashboard() {
           <Button
             title="Isi Menu Hari Ini"
             variant="primary"
-            onPress={() => router.push('/(app)/page5')}
+            onPress={() => router.push('/(app)/catering-menu-qc')}
           />
         </Card>
 

@@ -46,5 +46,17 @@ To learn more about developing your project with Expo, look at the following res
 
 Join our community of developers creating universal apps.
 
+## Domain features added
+
+- Catering QC (Admin Catering & Super Admin)
+   - Page: `/(app)/catering-menu-qc`
+   - Input menu harian, bahan baku, catatan QC, dan upload foto; saat offline data diantre.
+
+- Penanganan Laporan Darurat (Admin Dinkes & Super Admin)
+   - List: `/(app)/dinkes-emergency` (Drawer: Dinkes Dashboard → Kelola Laporan Darurat)
+   - Detail: `/(app)/dinkes-emergency/[id]`
+   - Ubah status: MENUNGGU/PROSES/SELESAI dan catat tindak lanjut. Saat offline perubahan diantre.
+
+
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
