@@ -1,7 +1,10 @@
+import { Image } from 'expo-image';
+import { launchImageLibraryAsync, MediaTypeOptions, requestMediaLibraryPermissionsAsync } from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+import EmojiRating from '../../components/features/feedback/EmojiRating';
 import { useAuthContext } from '../../context/AuthContext';
 
 export default function PortalFeedback() {
@@ -9,7 +12,9 @@ export default function PortalFeedback() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  // const [currentPage, setCurrentPage] = useState(1); // pagination UI is static for now
+  const [rating, setRating] = useState<number>(0);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   // Proteksi akses - hanya siswa yang bisa mengakses
   React.useEffect(() => {
@@ -41,10 +46,20 @@ export default function PortalFeedback() {
       Alert.alert('Error', 'Mohon lengkapi semua field');
       return;
     }
+    // For now log payload including rating and photo
+    console.log('[feedback] submit payload', {
+      category: selectedCategory,
+      title,
+      description,
+      rating,
+      photoUri,
+    });
     Alert.alert('Berhasil', 'Masukan berhasil dikirim!');
     setTitle('');
     setDescription('');
     setSelectedCategory('');
+    setRating(0);
+    setPhotoUri(null);
   };
 
   const handleDownload = () => {
@@ -57,6 +72,28 @@ export default function PortalFeedback() {
     { id: 'kontainer', label: 'Kontainer' },
     { id: 'lainnya', label: 'Lainnya' }
   ];
+
+  async function handlePickImage() {
+    // Request permission (mostly for native)
+    const perm = await requestMediaLibraryPermissionsAsync();
+    if (perm.status !== 'granted' && perm.canAskAgain === false) {
+      Alert.alert('Izin diperlukan', 'Akses galeri dibutuhkan untuk memilih foto.');
+      return;
+    }
+    try {
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 0.7,
+        selectionLimit: 1,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setPhotoUri(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.log('[feedback] image pick error', e);
+    }
+  }
 
   // Data dummy untuk semua masukan
   const allMasukan = [
@@ -141,6 +178,12 @@ export default function PortalFeedback() {
             />
           </View>
 
+          {/* Rating */}
+          <View className="mb-5">
+            <Text className="block mb-3 font-medium text-gray-600">Rating</Text>
+            <EmojiRating value={rating} onChange={setRating} />
+          </View>
+
           <View className="mb-5">
             <Text className="block mb-3 font-medium text-gray-600">Deskripsi</Text>
             <TextInput
@@ -150,6 +193,37 @@ export default function PortalFeedback() {
               value={description}
               onChangeText={setDescription}
             />
+          </View>
+
+          {/* Upload Photo */}
+          <View className="mb-5">
+            <Text className="block mb-3 font-medium text-gray-600">Lampirkan Foto (opsional)</Text>
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity
+                className="px-4 py-2 rounded-md"
+                style={{ backgroundColor: '#000000' }}
+                onPress={handlePickImage}
+              >
+                <Text className="text-white">Tambah Foto</Text>
+              </TouchableOpacity>
+              {photoUri && (
+                <TouchableOpacity
+                  className="px-3 py-2 border border-gray-300 rounded-md"
+                  onPress={() => setPhotoUri(null)}
+                >
+                  <Text className="text-gray-700">Hapus Gambar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {photoUri && (
+              <View className="mt-3">
+                <Image
+                  source={{ uri: photoUri }}
+                  contentFit="cover"
+                  className="w-24 h-24 rounded-md border border-gray-200"
+                />
+              </View>
+            )}
           </View>
 
           <TouchableOpacity

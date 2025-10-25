@@ -68,18 +68,16 @@ export default function AppDrawerLayout() {
           ),
         }}
       />
-      <Drawer.Screen name="page1" options={{ title: 'Page 1', drawerIcon: ({ color, size }) => (<Ionicons name="document-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="page2" options={{ title: 'Page 2', drawerIcon: ({ color, size }) => (<Ionicons name="document-text-outline" size={size} color={color} />) }} />
+      
   <Drawer.Screen name="student-attendance" options={{ title: 'Absensi Harian', drawerIcon: ({ color, size }) => (<Ionicons name="checkmark-done-outline" size={size} color={color} />) }} />
+  <Drawer.Screen name="attendance-scan" options={{ title: 'Scan Kehadiran', drawerIcon: ({ color, size }) => (<Ionicons name="qr-code-outline" size={size} color={color} />) }} />
+  <Drawer.Screen name="assisted-attendance" options={{ title: 'Bantuan Presensi', drawerIcon: ({ color, size }) => (<Ionicons name="hand-left-outline" size={size} color={color} />) }} />
   <Drawer.Screen name="emergency-report" options={{ title: 'Laporan Darurat', drawerIcon: ({ color, size }) => (<Ionicons name="warning-outline" size={size} color={color} />) }} />
   <Drawer.Screen name="feedback-list" options={{ title: 'Umpan Balik Siswa', drawerIcon: ({ color, size }) => (<Ionicons name="chatbubbles-outline" size={size} color={color} />) }} />
   <Drawer.Screen name="portal-feedback" options={{ title: 'Portal Feedback', drawerIcon: ({ color, size }) => (<Ionicons name="chatbox-outline" size={size} color={color} />), drawerItemStyle: isSiswa ? undefined : { display: 'none' } }} />
-      <Drawer.Screen name="page5" options={{ title: 'Page 5', drawerIcon: ({ color, size }) => (<Ionicons name="calendar-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="page6" options={{ title: 'Page 6', drawerIcon: ({ color, size }) => (<Ionicons name="people-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="page7" options={{ title: 'Page 7', drawerIcon: ({ color, size }) => (<Ionicons name="school-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="page8" options={{ title: 'Page 8', drawerIcon: ({ color, size }) => (<Ionicons name="restaurant-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="page9" options={{ title: 'Page 9', drawerIcon: ({ color, size }) => (<Ionicons name="medkit-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="page10" options={{ title: 'Page 10', drawerIcon: ({ color, size }) => (<Ionicons name="settings-outline" size={size} color={color} />) }} />
+  <Drawer.Screen name="catering-menu-qc" options={{ title: 'Input Menu Harian & QC', drawerIcon: ({ color, size }) => (<Ionicons name="create-outline" size={size} color={color} />) }} />
+      <Drawer.Screen name="dinkes-emergency" options={{ title: 'Kelola Laporan Darurat', drawerIcon: ({ color, size }) => (<Ionicons name="medkit-outline" size={size} color={color} />) }} />
+      
       
       {/* Role-specific dashboards */}
   <Drawer.Screen name="admin-dashboard" options={{ title: 'Admin Dashboard', drawerIcon: ({ color, size }) => (<Ionicons name="shield-checkmark-outline" size={size} color={color} />), drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' } }} />
