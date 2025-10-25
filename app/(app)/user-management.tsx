@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 
@@ -142,6 +143,7 @@ export default function UserManagementPage() {
   };
 
   return (
+    <SafeAreaView className="flex-1 bg-[#f5f7fb]">
     <ScrollView className="flex-1 bg-neutral-gray">
       <View className="p-6">
         <Text className="text-2xl font-bold mb-6">Manajemen Pengguna & Entitas</Text>
@@ -166,5 +168,6 @@ export default function UserManagementPage() {
         {renderModal()}
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }

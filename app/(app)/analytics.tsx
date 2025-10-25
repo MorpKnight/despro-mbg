@@ -1,12 +1,7 @@
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import Card from '../../components/ui/Card';
 
-// const dummySchools = [
-//   { name: 'SDN 1', region: 'Kota A', catering: 'Catering Sehat', score: 4.7 },
-//   { name: 'SMPN 2', region: 'Kota B', catering: 'Catering Lezat', score: 3.9 },
-//   { name: 'SMA 3', region: 'Kota A', catering: 'Catering Sehat', score: 4.2 },
-// ];
 const dummyMenus = [
   { name: 'Sop Ayam', score: 4.8 },
   { name: 'Nasi Putih', score: 3.2 },
@@ -14,62 +9,104 @@ const dummyMenus = [
 ];
 
 export default function AnalyticsPage() {
-  // Filter state
   const [dateRange, setDateRange] = React.useState('Oktober 2025');
   const [region, setRegion] = React.useState('Semua');
   const [catering, setCatering] = React.useState('Semua');
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
 
-  // Dummy chart data
-  // For real chart, use react-native-chart-kit or similar
-  // const chartData = [4.2, 4.5, 4.7, 4.3, 4.6, 4.8, 4.7];
+  const FilterRow = ({ title, options, selected, onSelect }: {
+    title: string;
+    options: string[];
+    selected: string;
+    onSelect: (value: string) => void;
+  }) => (
+    <SafeAreaView className="mb-2">
+      <Text className="font-semibold text-gray-700 mb-1">{title}</Text>
+      
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
+        {options.map((opt) => (
+          <TouchableOpacity key={opt} onPress={() => onSelect(opt)}>
+            <Text
+              className={`px-3 py-1 rounded-full mr-2 ${
+                selected === opt
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {opt}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
 
   return (
-    <ScrollView className="flex-1 bg-neutral-gray">
-      <View className="p-6">
-        <Text className="text-2xl font-bold mb-6">Analitik & Laporan Global</Text>
-        {/* Filter Global */}
-        <Card className="mb-4">
-          <View className="flex-row gap-2 mb-2">
-            <TouchableOpacity onPress={() => setDateRange('September 2025')}><Text className={`px-3 py-1 rounded-full ${dateRange === 'September 2025' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}>September 2025</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setDateRange('Oktober 2025')}><Text className={`px-3 py-1 rounded-full ${dateRange === 'Oktober 2025' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}>Oktober 2025</Text></TouchableOpacity>
-          </View>
-          <View className="flex-row gap-2 mb-2">
-            <TouchableOpacity onPress={() => setRegion('Semua')}><Text className={`px-3 py-1 rounded-full ${region === 'Semua' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}>Semua Wilayah</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setRegion('Kota A')}><Text className={`px-3 py-1 rounded-full ${region === 'Kota A' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}>Kota A</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setRegion('Kota B')}><Text className={`px-3 py-1 rounded-full ${region === 'Kota B' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}>Kota B</Text></TouchableOpacity>
-          </View>
-          <View className="flex-row gap-2">
-            <TouchableOpacity onPress={() => setCatering('Semua')}><Text className={`px-3 py-1 rounded-full ${catering === 'Semua' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}>Semua Katering</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setCatering('Catering Sehat')}><Text className={`px-3 py-1 rounded-full ${catering === 'Catering Sehat' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}>Catering Sehat</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setCatering('Catering Lezat')}><Text className={`px-3 py-1 rounded-full ${catering === 'Catering Lezat' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}>Catering Lezat</Text></TouchableOpacity>
+    <ScrollView className="flex-1 bg-[#f5f7fb]">
+      <View className="p-4">
+        <Text className="text-2xl font-bold mb-6 text-gray-800">
+          Analitik & Laporan Global
+        </Text>
+
+        {/* Filter Section */}
+        <Card className="mb-4 p-4">
+          <FilterRow
+            title="Periode"
+            options={['September 2025', 'Oktober 2025']}
+            selected={dateRange}
+            onSelect={setDateRange}
+          />
+          <FilterRow
+            title="Wilayah"
+            options={['Semua', 'Kota A', 'Kota B']}
+            selected={region}
+            onSelect={setRegion}
+          />
+          <FilterRow
+            title="Katering"
+            options={['Semua', 'Catering Sehat', 'Catering Lezat']}
+            selected={catering}
+            onSelect={setCatering}
+          />
+        </Card>
+
+        {/* Chart 1 */}
+        <Card className="mb-4 p-4">
+          <Text className="font-semibold mb-2 text-gray-800">
+            Tren Kepuasan Siswa
+          </Text>
+          <View className="h-40 bg-gray-100 rounded-xl items-center justify-center">
+            <Text className="text-blue-600">[Line Chart Dummy]</Text>
           </View>
         </Card>
-        {/* Grafik 1: Tren Kepuasan Siswa */}
-        <Card className="mb-4">
-          <Text className="font-semibold mb-2">Tren Kepuasan Siswa</Text>
-          {/* Dummy Line Chart */}
-          <View className="h-32 bg-gray-100 rounded-xl items-center justify-center">
-            <Text className="text-primary">[Line Chart Dummy]</Text>
+
+        {/* Chart 2 */}
+        <Card className="mb-4 p-4">
+          <Text className="font-semibold mb-2 text-gray-800">
+            Sekolah dengan Skor Tertinggi & Terendah
+          </Text>
+          <View className="h-40 bg-gray-100 rounded-xl items-center justify-center">
+            <Text className="text-blue-600">[Bar Chart Dummy]</Text>
           </View>
         </Card>
-        {/* Grafik 2: Bar Chart Perbandingan */}
-        <Card className="mb-4">
-          <Text className="font-semibold mb-2">Sekolah dengan Skor Tertinggi & Terendah</Text>
-          {/* Dummy Bar Chart */}
-          <View className="h-32 bg-gray-100 rounded-xl items-center justify-center">
-            <Text className="text-primary">[Bar Chart Dummy]</Text>
+
+        {/* Menu Ranking */}
+        <Card className="p-4">
+          <Text className="font-semibold mb-3 text-gray-800">
+            Menu Paling Disukai & Tidak Disukai
+          </Text>
+          <View className="flex-row justify-between mb-2">
+            <Text className="font-semibold flex-1">Menu Favorit</Text>
+            <Text className="font-semibold flex-1">Menu Kurang Favorit</Text>
           </View>
-        </Card>
-        {/* Tabel Peringkat Makanan */}
-        <Card>
-          <Text className="font-semibold mb-2">Menu Paling Disukai & Tidak Disukai</Text>
-          <View className="flex-row font-bold mb-2">
-            <Text className="flex-1">Menu Favorit</Text>
-            <Text className="flex-1">Menu Kurang Favorit</Text>
-          </View>
-          <View className="flex-row mb-2">
-            <Text className="flex-1">{dummyMenus[0].name} ({dummyMenus[0].score})</Text>
-            <Text className="flex-1">{dummyMenus[1].name} ({dummyMenus[1].score})</Text>
+          <View className="flex-row">
+            <Text className="flex-1 text-gray-700">
+              {dummyMenus[0].name} ({dummyMenus[0].score})
+            </Text>
+            <Text className="flex-1 text-gray-700">
+              {dummyMenus[1].name} ({dummyMenus[1].score})
+            </Text>
           </View>
         </Card>
       </View>

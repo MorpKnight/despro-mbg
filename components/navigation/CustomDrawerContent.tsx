@@ -10,10 +10,10 @@ import Button from '../ui/Button';
 
 // Menu structure: parent dashboards with their child pages
 const menuHierarchy: Record<string, string[]> = {
-  'admin-dashboard': ['page1', 'page2'],
-  'sekolah-dashboard': ['student-attendance', 'emergency-report', 'feedback-list'],
-  'catering-dashboard': ['catering-menu-qc', 'page5', 'page6'],
-  'dinkes-dashboard': ['page9', 'page10'],
+  'admin-dashboard': [],
+  'sekolah-dashboard': ['student-attendance', 'attendance-scan', 'assisted-attendance', 'emergency-report', 'feedback-list'],
+  'catering-dashboard': ['catering-menu-qc'],
+  'dinkes-dashboard': ['dinkes-emergency'],
 };
 
 // Helper functions
@@ -52,11 +52,11 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
 
   // Role-based menu config
   const rolePages: Record<string, string[]> = {
-    'super admin': ['index', 'settings', 'admin-dashboard', 'sekolah-dashboard', 'catering-dashboard', 'dinkes-dashboard', 'page1', 'page2', 'student-attendance', 'emergency-report', 'feedback-list', 'catering-menu-qc', 'page5', 'page6', 'page9', 'page10'],
-    'admin sekolah': ['index', 'settings', 'sekolah-dashboard', 'student-attendance', 'emergency-report', 'feedback-list'],
-    'admin catering': ['index', 'settings', 'catering-dashboard', 'catering-menu-qc', 'page5', 'page6'],
-    'siswa': ['index', 'settings', 'page7', 'page8'],
-    'admin dinkes': ['index', 'settings', 'dinkes-dashboard', 'page9', 'page10'],
+    'super admin': ['index', 'settings', 'admin-dashboard', 'sekolah-dashboard', 'catering-dashboard', 'dinkes-dashboard', 'student-attendance', 'attendance-scan', 'assisted-attendance', 'emergency-report', 'feedback-list', 'catering-menu-qc', 'dinkes-emergency'],
+    'admin sekolah': ['index', 'settings', 'sekolah-dashboard', 'student-attendance', 'attendance-scan', 'assisted-attendance', 'emergency-report', 'feedback-list'],
+    'admin catering': ['index', 'settings', 'catering-dashboard', 'catering-menu-qc'],
+    'siswa': ['index', 'settings', 'portal-feedback'],
+    'admin dinkes': ['index', 'settings', 'dinkes-dashboard', 'dinkes-emergency'],
   };
   const allowed = user?.role ? rolePages[user.role] || ['index', 'settings'] : ['index', 'settings'];
 

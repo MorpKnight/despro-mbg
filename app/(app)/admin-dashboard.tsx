@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import KPICard from '../../components/ui/KPICard';
@@ -9,20 +10,31 @@ import { useAuth } from '../../hooks/useAuth';
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  
+
   if (user?.role !== 'super admin') return <Redirect href="/" />;
-  
+
   return (
-    <ScrollView className="flex-1 bg-neutral-gray">
-      <View className="p-6">
+    <SafeAreaView
+      className="flex-1 bg-[#f5f7fb]"
+      edges={["top", "bottom", "left", "right"]}
+    >
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Page Header */}
         <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-1">Dashboard Super Admin</Text>
-          <Text className="text-gray-600">Selamat datang kembali, {user?.username}</Text>
+          <Text className="text-2xl font-bold text-gray-900 mb-1">
+            Dashboard Super Admin
+          </Text>
+          <Text className="text-gray-600">
+            Selamat datang kembali, {user?.username}
+          </Text>
         </View>
 
         {/* KPI Cards Row */}
-        <View className="flex-row gap-4 mb-6">
+        <View className="flex-row flex-wrap justify-between gap-4 mb-6">
           <KPICard
             icon="people"
             iconColor="#1976D2"
@@ -50,33 +62,51 @@ export default function AdminDashboard() {
 
         {/* System Status Card */}
         <Card className="mb-6">
-          <Text className="text-lg font-bold text-gray-900 mb-4">Status Sistem</Text>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center">
+          <Text className="text-lg font-bold text-gray-900 mb-4">
+            Status Sistem
+          </Text>
+
+          {/* Row 1 */}
+          <View className="flex-row items-center justify-between mb-4">
+            <View className="flex-row items-center flex-shrink">
               <View className="w-3 h-3 rounded-full bg-primary mr-3" />
               <View>
-                <Text className="font-semibold text-gray-900">Sinkronisasi Data</Text>
-                <Text className="text-sm text-gray-600">Normal - Terakhir sync 5 menit lalu</Text>
+                <Text className="font-semibold text-gray-900">
+                  Sinkronisasi Data
+                </Text>
+                <Text className="text-sm text-gray-600">
+                  Normal - Terakhir sync 5 menit lalu
+                </Text>
               </View>
             </View>
-            <Ionicons name="checkmark-circle" size={32} color="#4CAF50" />
+            <Ionicons name="checkmark-circle" size={28} color="#4CAF50" />
           </View>
-          <View className="h-px bg-gray-200 my-4" />
+
+          {/* Divider */}
+          <View className="h-px bg-gray-200 mb-4" />
+
+          {/* Row 2 */}
           <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center">
+            <View className="flex-row items-center flex-shrink">
               <View className="w-3 h-3 rounded-full bg-primary mr-3" />
               <View>
-                <Text className="font-semibold text-gray-900">Server Status</Text>
-                <Text className="text-sm text-gray-600">Online - Uptime 99.8%</Text>
+                <Text className="font-semibold text-gray-900">
+                  Server Status
+                </Text>
+                <Text className="text-sm text-gray-600">
+                  Online - Uptime 99.8%
+                </Text>
               </View>
             </View>
-            <Ionicons name="checkmark-circle" size={32} color="#4CAF50" />
+            <Ionicons name="checkmark-circle" size={28} color="#4CAF50" />
           </View>
         </Card>
 
         {/* Quick Actions Card */}
         <Card>
-          <Text className="text-lg font-bold text-gray-900 mb-4">Aksi Cepat</Text>
+          <Text className="text-lg font-bold text-gray-900 mb-4">
+            Aksi Cepat
+          </Text>
           <View className="gap-3">
             <Button
               title="Kelola Pengguna"
@@ -95,7 +125,7 @@ export default function AdminDashboard() {
             />
           </View>
         </Card>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
