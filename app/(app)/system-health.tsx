@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Card from '../../components/ui/Card';
+import { fetchHealthStatus, type HealthStatus } from '../../services/health';
 
-const systemStatus = 'OPERASIONAL'; // or 'MENGALAMI GANGGUAN'
 const syncStatus = [
   { school: 'SDN 1', lastSync: '5 menit yang lalu', status: 'success' },
   { school: 'SMPN 2', lastSync: 'Gagal pada 18 Okt 2025 10:00', status: 'failed' },
@@ -16,6 +16,36 @@ const errorLogs = [
 ];
 
 export default function SystemHealthPage() {
+  const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const status = await fetchHealthStatus();
+        if (mounted) {
+          setHealth(status);
+          setError(null);
+        }
+      } catch (err) {
+        console.warn('[system-health] failed to load', err);
+        if (mounted) {
+          setError('Tidak dapat terhubung ke server kesehatan.');
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const systemStatus = health?.status === 'ok' ? 'OPERASIONAL' : 'MENGALAMI GANGGUAN';
+  const dbStatus = health?.db_status === 'connected' ? 'Basis data terhubung' : 'Basis data terganggu';
+
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
     <ScrollView className="flex-1 bg-neutral-gray">
@@ -24,7 +54,16 @@ export default function SystemHealthPage() {
         {/* Status Global */}
         <Card className="mb-4">
           <Text className="text-lg font-semibold mb-2">Status Sistem Keseluruhan</Text>
-          <Text className={`text-3xl font-bold ${systemStatus === 'OPERASIONAL' ? 'text-primary' : 'text-accent-red'}`}>{systemStatus}</Text>
+          {loading ? (
+            <Text className="text-gray-600">Memeriksa status sistem…</Text>
+          ) : error ? (
+            <Text className="text-accent-red">{error}</Text>
+          ) : (
+            <>
+              <Text className={`text-3xl font-bold ${systemStatus === 'OPERASIONAL' ? 'text-primary' : 'text-accent-red'}`}>{systemStatus}</Text>
+              <Text className="text-sm text-gray-600 mt-1">{dbStatus}</Text>
+            </>
+          )}
         </Card>
         {/* Sinkronisasi per sekolah */}
         <Text className="text-lg font-semibold mb-2">Status Sinkronisasi Terakhir</Text>

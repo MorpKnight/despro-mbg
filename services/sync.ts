@@ -24,7 +24,7 @@ export async function syncOfflineData() {
     for (const item of queued) {
       try {
         // Send item to a generic sync endpoint; backend can route by item.type
-        await api('/sync', { method: 'POST', body: item as any });
+        await api('sync/', { method: 'POST', body: [item] });
         await removeSyncedItem(item.id);
         successCount += 1;
         console.log('[sync] synced item', item.id, item.type);

@@ -8,8 +8,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { EmergencyReport, ReportStatus, fetchEmergencyReports } from '../../services/emergency';
 
 function StatusBadge({ status }: { status: ReportStatus }) {
-  const style = status === 'MENUNGGU' ? { bg: '#FBC02D', text: '#000' } : status === 'PROSES' ? { bg: '#1976D2', text: '#FFF' } : { bg: '#4CAF50', text: '#FFF' };
-  const label = status === 'MENUNGGU' ? 'Menunggu' : status === 'PROSES' ? 'Diproses' : 'Selesai';
+  const normalized = status.toLowerCase() as ReportStatus;
+  const style = normalized === 'menunggu' ? { bg: '#FBC02D', text: '#000' } : normalized === 'proses' ? { bg: '#1976D2', text: '#FFF' } : { bg: '#4CAF50', text: '#FFF' };
+  const label = normalized === 'menunggu' ? 'Menunggu' : normalized === 'proses' ? 'Diproses' : 'Selesai';
   return (
     <View style={{ alignSelf: 'flex-start', backgroundColor: style.bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
       <Text style={{ color: style.text, fontSize: 12, fontWeight: '700' }}>{label}</Text>
@@ -32,7 +33,7 @@ export default function DinkesEmergencyListPage() {
     })();
   }, []);
 
-  const allowed = user?.role === 'admin dinkes' || user?.role === 'super admin';
+  const allowed = user?.role === 'admin_dinkes' || user?.role === 'super_admin';
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
@@ -64,6 +65,7 @@ export default function DinkesEmergencyListPage() {
                       <View className="flex-1 pr-3">
                         <Text className="font-semibold text-gray-900 mb-1">{new Date(r.date).toLocaleString('id-ID')}</Text>
                         <Text className="text-gray-800 mb-1">{r.title} • <Text className="font-semibold">{r.schoolName}</Text></Text>
+                        {r.schoolAddress && <Text className="text-gray-600 mb-1">{r.schoolAddress}</Text>}
                         <StatusBadge status={r.status} />
                       </View>
                       <View>

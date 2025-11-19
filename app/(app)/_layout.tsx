@@ -8,7 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 export default function AppDrawerLayout() {
   const { user, loading } = useAuth();
-  const isSuperAdmin = user?.role === 'super admin';
+  const isSuperAdmin = user?.role === 'super_admin';
   const isSiswa = user?.role === 'siswa';
   if (!loading && !user) {
     return <Redirect href="/(auth)" />;

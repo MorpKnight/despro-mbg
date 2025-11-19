@@ -1,60 +1,103 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Redirect } from 'expo-router';
-import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../hooks/useAuth';
+import { fetchFeedbackList, type FeedbackItem as ApiFeedbackItem } from '../../services/feedback';
 
-type Sentiment = 'positive' | 'neutral' | 'negative';
+function formatDisplayDate(iso: string) {
+  return new Date(iso).toLocaleString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
-interface FeedbackItem {
-  id: string;
-  date: string;
-  sentiment: Sentiment;
-  menu: string;
-  comment?: string;
-  photoUrl?: string;
-  emoji: string;
+function formatDateParam(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 export default function FeedbackListPage() {
   const { user } = useAuth();
-  const [onlyNegative, setOnlyNegative] = React.useState(false);
-  const [start, setStart] = React.useState<Date>(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000));
-  const [end, setEnd] = React.useState<Date>(new Date());
+  const allowed = user?.role === 'admin_sekolah' || user?.role === 'super_admin';
 
-  if (user?.role !== 'admin sekolah' && user?.role !== 'super admin')
-    return <Redirect href="/" />;
+  const [onlyNegative, setOnlyNegative] = useState(false);
+  const [start, setStart] = useState<Date>(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000));
+  const [end, setEnd] = useState<Date>(new Date());
+  const [feedback, setFeedback] = useState<ApiFeedbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const all: FeedbackItem[] = [
-    { id: 'f1', date: new Date().toISOString(), sentiment: 'positive', menu: 'Sop Ayam', comment: 'Mantap!', emoji: '😊' },
-    { id: 'f2', date: new Date().toISOString(), sentiment: 'negative', menu: 'Nasi Putih', comment: 'Agak keras', emoji: '🙁' },
-    { id: 'f3', date: new Date().toISOString(), sentiment: 'neutral', menu: 'Buah Semangka', emoji: '😐', photoUrl: 'https://picsum.photos/seed/mbg/120/80' },
-  ];
+  const shift = useCallback((which: 'start' | 'end', days: number) => {
+    if (which === 'start') {
+      setStart((previous) => {
+        const next = new Date(previous.getFullYear(), previous.getMonth(), previous.getDate() + days);
+        setEnd((currentEnd) => (next.getTime() > currentEnd.getTime() ? new Date(next) : currentEnd));
+        return next;
+      });
+    } else {
+      setEnd((previous) => {
+        const next = new Date(previous.getFullYear(), previous.getMonth(), previous.getDate() + days);
+        setStart((currentStart) => (next.getTime() < currentStart.getTime() ? new Date(next) : currentStart));
+        return next;
+      });
+    }
+  }, []);
 
-  const inRange = (iso: string) => {
-    const d = new Date(iso).getTime();
-    return d >= start.getTime() && d <= end.getTime();
-  };
+  const loadFeedback = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!allowed) return;
+    const silent = opts?.silent ?? false;
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchFeedbackList({
+        dateFrom: formatDateParam(start),
+        dateTo: formatDateParam(end),
+      });
+      setFeedback(data);
+    } catch (err: any) {
+      console.warn('[feedback-list] failed to load', err);
+      setFeedback([]);
+      setError('Gagal memuat daftar umpan balik.');
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [allowed, start, end]);
 
-  const list = all.filter((f) => inRange(f.date) && (!onlyNegative || f.sentiment === 'negative'));
+  useEffect(() => {
+    loadFeedback();
+  }, [loadFeedback]);
 
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadFeedback({ silent: true });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadFeedback]);
+
+  const visibleFeedback = useMemo(() => {
+    const startTimestamp = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+    const endTimestamp = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999).getTime();
+    return feedback.filter((item) => {
+      const created = new Date(item.createdAt).getTime();
+      if (Number.isNaN(created)) return !onlyNegative || item.rating <= 2;
+      if (created < startTimestamp || created > endTimestamp) return false;
+      if (onlyNegative && item.rating > 2) return false;
+      return true;
     });
+  }, [feedback, onlyNegative, start, end]);
 
-  const shift = (which: 'start' | 'end', days: number) => {
-    if (which === 'start')
-      setStart((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + days));
-    else setEnd((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + days));
-  };
+  if (!allowed) {
+    return <Redirect href="/" />;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
@@ -62,6 +105,7 @@ export default function FeedbackListPage() {
         className="flex-1"
         contentContainerClassName="pb-10 bg-neutral-gray"
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#1976D2" />}
       >
         <View className="p-6">
           <View className="mb-4">
@@ -70,10 +114,8 @@ export default function FeedbackListPage() {
             </Text>
           </View>
 
-          {/* Filters */}
           <Card className="mb-4">
             <View className="flex-col gap-3">
-              {/* Date Range */}
               <View>
                 <Text className="text-sm text-gray-600 mb-1">Rentang Tanggal</Text>
                 <View className="flex-row flex-wrap items-center justify-between gap-y-2">
@@ -111,10 +153,9 @@ export default function FeedbackListPage() {
                 </View>
               </View>
 
-              {/* Only Negative Filter */}
               <View className="flex-row items-center justify-start gap-2 mt-2">
                 <TouchableOpacity
-                  onPress={() => setOnlyNegative((v) => !v)}
+                  onPress={() => setOnlyNegative((previous) => !previous)}
                   className="flex-row items-center gap-1"
                 >
                   <Ionicons
@@ -133,8 +174,17 @@ export default function FeedbackListPage() {
             </View>
           </Card>
 
-          {/* Feedback List */}
-          {list.length === 0 ? (
+          {error && (
+            <Card className="mb-4 border border-accent-red bg-red-50">
+              <Text className="text-accent-red">{error}</Text>
+            </Card>
+          )}
+
+          {loading ? (
+            <Card>
+              <Text className="text-gray-600">Memuat daftar umpan balik…</Text>
+            </Card>
+          ) : visibleFeedback.length === 0 ? (
             <View className="items-center justify-center py-12">
               <Ionicons name="chatbubble-ellipses-outline" size={40} color="#9CA3AF" />
               <Text className="text-gray-500 mt-2 text-center">
@@ -143,29 +193,47 @@ export default function FeedbackListPage() {
             </View>
           ) : (
             <View className="gap-3">
-              {list.map((f) => (
-                <Card key={f.id} className="p-4">
-                  <View className="flex-row items-start gap-3">
-                    <Text className="text-2xl leading-none">{f.emoji}</Text>
-                    <View className="flex-1">
-                      <View className="flex-row items-center justify-between mb-1">
-                        <Text className="font-semibold text-gray-900">{f.menu}</Text>
-                        <Text className="text-xs text-gray-500">{fmt(f.date)}</Text>
-                      </View>
-                      {f.comment && (
-                        <Text className="italic text-gray-700">{f.comment}</Text>
-                      )}
-                      {f.photoUrl && (
-                        <View className="mt-2">
-                          <Image
-                            source={{ uri: f.photoUrl }}
-                            style={{ width: 120, height: 80, borderRadius: 8 }}
-                            contentFit="cover"
-                          />
-                        </View>
-                      )}
+              {visibleFeedback.map((item) => (
+                <Card key={item.id} className="p-4">
+                  <View className="flex-row items-start justify-between">
+                    <View className="flex-1 pr-3">
+                      <Text className="font-semibold text-gray-900">
+                        {item.student.fullName || item.student.username}
+                      </Text>
+                      <Text className="text-xs text-gray-500">ID: {item.student.username}</Text>
                     </View>
+                    <Text className="text-xs text-gray-500">{formatDisplayDate(item.createdAt)}</Text>
                   </View>
+
+                  <View className="flex-row items-center gap-1 mt-2">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Ionicons
+                        key={index}
+                        name={index < item.rating ? 'star' : 'star-outline'}
+                        size={16}
+                        color="#F59E0B"
+                      />
+                    ))}
+                    <Text className="text-xs text-gray-500 ml-1">{item.rating}/5</Text>
+                  </View>
+
+                  {item.comment && (
+                    <Text className="text-sm text-gray-700 mt-2">{item.comment}</Text>
+                  )}
+
+                  {item.menuId && (
+                    <Text className="text-xs text-gray-500 mt-1">Menu ID: {item.menuId}</Text>
+                  )}
+
+                  {item.photoUrl && (
+                    <View className="mt-3">
+                      <Image
+                        source={{ uri: item.photoUrl }}
+                        style={{ width: 140, height: 90, borderRadius: 10 }}
+                        contentFit="cover"
+                      />
+                    </View>
+                  )}
                 </Card>
               ))}
             </View>

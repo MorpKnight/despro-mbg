@@ -1,115 +1,204 @@
-import React from 'react';
-import { SafeAreaView, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import Card from '../../components/ui/Card';
+import { useAuth } from '../../hooks/useAuth';
+import {
+    fetchDinkesKpi,
+    fetchGlobalKpi,
+    fetchSatisfactionTrend,
+    type DinkesKpi,
+    type GlobalKpi,
+    type SatisfactionTrend,
+} from '../../services/analytics';
 
-const dummyMenus = [
-  { name: 'Sop Ayam', score: 4.8 },
-  { name: 'Nasi Putih', score: 3.2 },
-  { name: 'Buah Semangka', score: 4.5 },
-];
+const integerFormatter = new Intl.NumberFormat('id-ID');
+const decimalFormatter = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+
+function formatInteger(value?: number | null) {
+  return typeof value === 'number' ? integerFormatter.format(value) : '—';
+}
+
+function formatDecimal(value?: number | null) {
+  return typeof value === 'number' ? decimalFormatter.format(value) : '—';
+}
+
+function MetricRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row items-center justify-between py-1">
+      <Text className="text-sm text-gray-600">{label}</Text>
+      <Text className="text-sm font-semibold text-gray-900">{value}</Text>
+    </View>
+  );
+}
 
 export default function AnalyticsPage() {
-  const [dateRange, setDateRange] = React.useState('Oktober 2025');
-  const [region, setRegion] = React.useState('Semua');
-  const [catering, setCatering] = React.useState('Semua');
-  const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isDinkes = user?.role === 'admin_dinkes';
 
-  const FilterRow = ({ title, options, selected, onSelect }: {
-    title: string;
-    options: string[];
-    selected: string;
-    onSelect: (value: string) => void;
-  }) => (
-    <SafeAreaView className="mb-2">
-      <Text className="font-semibold text-gray-700 mb-1">{title}</Text>
-      
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
-        {options.map((opt) => (
-          <TouchableOpacity key={opt} onPress={() => onSelect(opt)}>
-            <Text
-              className={`px-3 py-1 rounded-full mr-2 ${
-                selected === opt
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700'
-              }`}
-            >
-              {opt}
+  const [globalKpi, setGlobalKpi] = useState<GlobalKpi | null>(null);
+  const [dinkesKpi, setDinkesKpi] = useState<DinkesKpi | null>(null);
+  const [trend, setTrend] = useState<SatisfactionTrend | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!isSuperAdmin && !isDinkes) {
+      setGlobalKpi(null);
+      setDinkesKpi(null);
+      setTrend(null);
+      setLoading(false);
+      setError(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    setLoading(true);
+    setError(null);
+
+    (async () => {
+      const [globalRes, dinkesRes, trendRes] = await Promise.allSettled([
+        isSuperAdmin ? fetchGlobalKpi() : Promise.resolve(null),
+        (isSuperAdmin || isDinkes) ? fetchDinkesKpi() : Promise.resolve(null),
+        (isSuperAdmin || isDinkes) ? fetchSatisfactionTrend() : Promise.resolve(null),
+      ]);
+
+      if (!active) return;
+
+      const failures: string[] = [];
+
+      if (globalRes.status === 'fulfilled') {
+        setGlobalKpi(globalRes.value as GlobalKpi | null);
+      } else {
+        setGlobalKpi(null);
+        if (isSuperAdmin) failures.push('ringkasan global');
+        console.warn('[analytics] gagal memuat KPI global', globalRes.reason);
+      }
+
+      if (dinkesRes.status === 'fulfilled') {
+        setDinkesKpi(dinkesRes.value as DinkesKpi | null);
+      } else {
+        setDinkesKpi(null);
+        if (isSuperAdmin || isDinkes) failures.push('KPI Dinkes');
+        console.warn('[analytics] gagal memuat KPI Dinkes', dinkesRes.reason);
+      }
+
+      if (trendRes.status === 'fulfilled') {
+        setTrend(trendRes.value as SatisfactionTrend | null);
+      } else {
+        setTrend(null);
+        if (isSuperAdmin || isDinkes) failures.push('tren kepuasan');
+        console.warn('[analytics] gagal memuat tren kepuasan', trendRes.reason);
+      }
+
+      setError(failures.length ? `Sebagian data gagal dimuat (${failures.join(', ')}).` : null);
+      setLoading(false);
+    })().catch((err) => {
+      console.error('[analytics] fetch error', err);
+      if (!active) return;
+      setGlobalKpi(null);
+      setDinkesKpi(null);
+      setTrend(null);
+      setError('Terjadi kesalahan saat memuat data analitik.');
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [isSuperAdmin, isDinkes]);
+
+  if (!isSuperAdmin && !isDinkes) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#f5f7fb]">
+        <ScrollView className="flex-1 bg-neutral-gray" contentContainerClassName="p-6">
+          <Card>
+            <Text className="text-lg font-semibold text-gray-900 mb-2">Akses Terbatas</Text>
+            <Text className="text-gray-600">
+              Fitur analitik global hanya tersedia untuk Super Admin dan Admin Dinas Kesehatan.
             </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
-  );
+          </Card>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <ScrollView className="flex-1 bg-[#f5f7fb]">
-      <View className="p-4">
-        <Text className="text-2xl font-bold mb-6 text-gray-800">
-          Analitik & Laporan Global
-        </Text>
+    <SafeAreaView className="flex-1 bg-[#f5f7fb]">
+      <ScrollView className="flex-1 bg-neutral-gray">
+        <View className="p-6">
+          <Text className="text-2xl font-bold text-gray-900 mb-1">Analitik &amp; Laporan</Text>
+          <Text className="text-gray-600 mb-4">Data terbaru dari sistem MBG</Text>
 
-        {/* Filter Section */}
-        <Card className="mb-4 p-4">
-          <FilterRow
-            title="Periode"
-            options={['September 2025', 'Oktober 2025']}
-            selected={dateRange}
-            onSelect={setDateRange}
-          />
-          <FilterRow
-            title="Wilayah"
-            options={['Semua', 'Kota A', 'Kota B']}
-            selected={region}
-            onSelect={setRegion}
-          />
-          <FilterRow
-            title="Katering"
-            options={['Semua', 'Catering Sehat', 'Catering Lezat']}
-            selected={catering}
-            onSelect={setCatering}
-          />
-        </Card>
+          {error && (
+            <Card className="mb-4 border border-accent-red bg-red-50">
+              <Text className="text-accent-red">{error}</Text>
+            </Card>
+          )}
 
-        {/* Chart 1 */}
-        <Card className="mb-4 p-4">
-          <Text className="font-semibold mb-2 text-gray-800">
-            Tren Kepuasan Siswa
-          </Text>
-          <View className="h-40 bg-gray-100 rounded-xl items-center justify-center">
-            <Text className="text-blue-600">[Line Chart Dummy]</Text>
-          </View>
-        </Card>
+          {isSuperAdmin && (
+            <Card className="mb-4">
+              <Text className="text-lg font-semibold text-gray-900 mb-3">Ringkasan Global</Text>
+              {loading && !globalKpi ? (
+                <Text className="text-gray-600">Memuat ringkasan global…</Text>
+              ) : (
+                <View className="gap-1">
+                  <MetricRow label="Total sekolah" value={formatInteger(globalKpi?.total_sekolah)} />
+                  <MetricRow label="Total mitra katering" value={formatInteger(globalKpi?.total_katering)} />
+                  <MetricRow label="Total siswa" value={formatInteger(globalKpi?.total_siswa)} />
+                  <MetricRow label="Laporan darurat aktif" value={formatInteger(globalKpi?.total_laporan_darurat_aktif)} />
+                </View>
+              )}
+            </Card>
+          )}
 
-        {/* Chart 2 */}
-        <Card className="mb-4 p-4">
-          <Text className="font-semibold mb-2 text-gray-800">
-            Sekolah dengan Skor Tertinggi & Terendah
-          </Text>
-          <View className="h-40 bg-gray-100 rounded-xl items-center justify-center">
-            <Text className="text-blue-600">[Bar Chart Dummy]</Text>
-          </View>
-        </Card>
+          {(isSuperAdmin || isDinkes) && (
+            <Card className="mb-4">
+              <Text className="text-lg font-semibold text-gray-900 mb-3">KPI Dinas Kesehatan</Text>
+              {loading && !dinkesKpi ? (
+                <Text className="text-gray-600">Memuat KPI Dinkes…</Text>
+              ) : dinkesKpi ? (
+                <View className="gap-1">
+                  <MetricRow label="Laporan diproses" value={formatInteger(dinkesKpi.total_laporan_diproses)} />
+                  <MetricRow label="Sekolah terpantau" value={formatInteger(dinkesKpi.total_sekolah_terpantau)} />
+                  <MetricRow
+                    label="Rata-rata rating global"
+                    value={typeof dinkesKpi.rata_rata_rating_global === 'number'
+                      ? `${formatDecimal(dinkesKpi.rata_rata_rating_global)} / 5`
+                      : '—'}
+                  />
+                </View>
+              ) : (
+                <Text className="text-gray-500">Data KPI tidak tersedia.</Text>
+              )}
+            </Card>
+          )}
 
-        {/* Menu Ranking */}
-        <Card className="p-4">
-          <Text className="font-semibold mb-3 text-gray-800">
-            Menu Paling Disukai & Tidak Disukai
-          </Text>
-          <View className="flex-row justify-between mb-2">
-            <Text className="font-semibold flex-1">Menu Favorit</Text>
-            <Text className="font-semibold flex-1">Menu Kurang Favorit</Text>
-          </View>
-          <View className="flex-row">
-            <Text className="flex-1 text-gray-700">
-              {dummyMenus[0].name} ({dummyMenus[0].score})
-            </Text>
-            <Text className="flex-1 text-gray-700">
-              {dummyMenus[1].name} ({dummyMenus[1].score})
-            </Text>
-          </View>
-        </Card>
-      </View>
-    </ScrollView>
+          {(isSuperAdmin || isDinkes) && (
+            <Card className="mb-6">
+              <Text className="text-lg font-semibold text-gray-900 mb-3">Tren Kepuasan Siswa</Text>
+              {loading && !trend ? (
+                <Text className="text-gray-600">Memuat tren kepuasan…</Text>
+              ) : trend && trend.data.length > 0 ? (
+                <View className="gap-2">
+                  {trend.data.map((point) => (
+                    <View key={point.label} className="flex-row items-center justify-between border-b border-gray-100 pb-2">
+                      <Text className="text-sm text-gray-600">{point.label}</Text>
+                      <Text className="text-sm font-semibold text-gray-900">{formatDecimal(point.value)}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text className="text-gray-500">Belum ada data tren kepuasan.</Text>
+              )}
+            </Card>
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

@@ -1,89 +1,160 @@
 import { api } from './api';
 
-export type ReportStatus = 'MENUNGGU' | 'PROSES' | 'SELESAI';
+export type ReportStatus = 'menunggu' | 'proses' | 'selesai';
+
+export interface EmergencyFollowUp {
+  at: string;
+  note: string;
+  userName?: string;
+  userRole?: string;
+}
 
 export interface EmergencyReport {
   id: string;
-  date: string; // ISO date
-  schoolName: string;
-  location?: string;
-  title: string; // short summary
-  description?: string;
-  studentsAffected?: number;
-  symptoms?: string[];
-  suspectedFood?: string;
+  date: string;
   status: ReportStatus;
-  followUps?: { at: string; note: string }[];
+  title: string;
+  description?: string | null;
+  symptoms?: string[];
+  studentsAffected?: number | null;
+  studentsAffectedDescription?: string | null;
+  suspectedFood?: string | null;
+  schoolId?: string;
+  schoolName: string;
+  schoolAddress?: string | null;
+  reportedBy?: string | null;
+  followUps: EmergencyFollowUp[];
 }
 
-const MOCK: EmergencyReport[] = [
-  {
-    id: 'r1',
-    date: '2025-10-24T08:30:00Z',
-    schoolName: 'SDN Melati 03',
-    location: 'Tanah Sareal, Bogor',
-    title: 'Dugaan Keracunan Makanan',
-    description: 'Beberapa siswa mengeluh mual dan pusing setelah makan siang.',
-    studentsAffected: 7,
-    symptoms: ['mual', 'pusing'],
-    suspectedFood: 'Ayam teriyaki',
-    status: 'PROSES',
-    followUps: [
-      { at: '2025-10-24T09:15:00Z', note: 'Koordinasi dengan puskesmas setempat.' },
-    ],
-  },
-  {
-    id: 'r2',
-    date: '2025-10-22T10:00:00Z',
-    schoolName: 'SDN Cibuluh 01',
-    title: 'Alergi Kacang - 1 siswa',
-    studentsAffected: 1,
-    symptoms: ['gatal', 'bengkak ringan'],
-    suspectedFood: 'Saus kacang',
-    status: 'SELESAI',
-    followUps: [
-      { at: '2025-10-22T10:20:00Z', note: 'Pemberian antihistamin. Edukasi alergi.' },
-    ],
-  },
-  {
-    id: 'r3',
-    date: '2025-10-20T07:20:00Z',
-    schoolName: 'SDN Cipaku 02',
-    title: 'Keluhan Mual Setelah Makan',
-    studentsAffected: 3,
-    status: 'MENUNGGU',
-  },
-];
+type RawEmergencyReport = {
+  id: string;
+  status: string;
+  title: string;
+  description?: string | null;
+  gejala?: unknown;
+  students_affected_count?: number | null;
+  students_affected_description?: string | null;
+  suspected_menu?: string | null;
+  created_at: string;
+  updated_at: string;
+  school?: {
+    id: string;
+    name: string;
+    alamat?: string | null;
+  } | null;
+  reported_by?: {
+    full_name?: string | null;
+    role?: string | null;
+  } | null;
+  follow_ups?: {
+    id: string;
+    created_at: string;
+    deskripsi: string;
+    user?: {
+      full_name?: string | null;
+      role?: string | null;
+    } | null;
+  }[];
+};
+
+function coerceSymptoms(gejala: unknown): string[] | undefined {
+  if (!gejala) return undefined;
+  if (Array.isArray(gejala)) {
+    return gejala
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object' && 'label' in item) {
+          return String((item as { label: unknown }).label);
+        }
+        return typeof item === 'object' ? JSON.stringify(item) : String(item);
+      })
+      .filter(Boolean);
+  }
+  if (typeof gejala === 'string') {
+    return gejala.split(/[,;\n]/).map((part) => part.trim()).filter(Boolean);
+  }
+  try {
+    const parsed = JSON.parse(String(gejala));
+    return coerceSymptoms(parsed);
+  } catch {
+    return [String(gejala)];
+  }
+}
+
+function normalizeStatus(value: string | undefined | null): ReportStatus {
+  const normalized = (value || '').toLowerCase();
+  if (normalized === 'proses' || normalized === 'selesai') return normalized;
+  return 'menunggu';
+}
+
+function humanizeRole(value: string | undefined | null): string | undefined {
+  if (!value) return undefined;
+  return value
+    .split('_')
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function mapEmergencyReport(raw: RawEmergencyReport): EmergencyReport {
+  return {
+    id: raw.id,
+    status: normalizeStatus(raw.status),
+    title: raw.title,
+    description: raw.description ?? null,
+    symptoms: coerceSymptoms(raw.gejala),
+    studentsAffected: raw.students_affected_count ?? null,
+    studentsAffectedDescription: raw.students_affected_description ?? null,
+    suspectedFood: raw.suspected_menu ?? null,
+    date: raw.created_at,
+    schoolId: raw.school?.id,
+    schoolName: raw.school?.name ?? 'Sekolah tidak dikenal',
+    schoolAddress: raw.school?.alamat ?? null,
+    reportedBy: raw.reported_by?.full_name ?? null,
+    followUps:
+      raw.follow_ups?.map((fu) => ({
+        at: fu.created_at,
+        note: fu.deskripsi,
+        userName: fu.user?.full_name ?? undefined,
+        userRole: humanizeRole(fu.user?.role ?? undefined),
+      })) ?? [],
+  };
+}
 
 export async function fetchEmergencyReports(): Promise<EmergencyReport[]> {
-  try {
-    const data = await api('/emergency-reports', { method: 'GET' });
-    return data as EmergencyReport[];
-  } catch {
-    return MOCK;
-  }
+  const data = await api('emergency/reports', { method: 'GET' });
+  return (Array.isArray(data) ? data : [])
+    .map((item) => mapEmergencyReport(item as RawEmergencyReport));
 }
 
 export async function fetchEmergencyReport(id: string): Promise<EmergencyReport | null> {
   try {
-    const data = await api(`/emergency-reports/${id}`, { method: 'GET' });
-    return data as EmergencyReport;
-  } catch {
-    return MOCK.find(r => r.id === id) || null;
+    const data = await api(`emergency/reports/${id}`, { method: 'GET' });
+    return mapEmergencyReport(data as RawEmergencyReport);
+  } catch (err) {
+    console.error('[emergency] fetch report failed', err);
+    return null;
   }
 }
 
-export async function updateEmergencyStatus(id: string, status: ReportStatus, note?: string) {
+export async function updateEmergencyStatus(
+  id: string,
+  status: ReportStatus,
+  note?: string,
+): Promise<EmergencyReport | null> {
   try {
-    await api(`/emergency-reports/${id}`, { method: 'PATCH', body: { status, note } as any });
-    return true;
-  } catch {
-    // Queue offline update
+    const data = await api(`emergency/reports/${id}/followup`, {
+      method: 'POST',
+      body: { status, deskripsi: note || 'Status update' },
+    });
+    return mapEmergencyReport(data as RawEmergencyReport);
+  } catch (err) {
+    console.warn('[emergency] update failed, queueing', err);
     const { storage } = await import('./storage');
     const key = 'emergency_updates_queue';
     const existing = (await storage.get<any[]>(key)) || [];
     existing.push({ id, status, note, at: new Date().toISOString() });
     await storage.set(key, existing);
-    return false;
+    return null;
   }
 }

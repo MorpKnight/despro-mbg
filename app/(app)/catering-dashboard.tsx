@@ -9,7 +9,7 @@ export default function CateringDashboard() {
   const { user } = useAuth();
   const router = useRouter();
   
-  if (user?.role !== 'admin catering' && user?.role !== 'super admin') return <Redirect href="/" />;
+  if (user?.role !== 'admin_catering' && user?.role !== 'super_admin') return <Redirect href="/" />;
   
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">

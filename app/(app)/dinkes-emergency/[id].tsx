@@ -8,12 +8,18 @@ import TextInput from '../../../components/ui/TextInput';
 import { useAuth } from '../../../hooks/useAuth';
 import { EmergencyReport, ReportStatus, fetchEmergencyReport, updateEmergencyStatus } from '../../../services/emergency';
 
-function StatusPicker({ value, onChange }: { value: ReportStatus; onChange: (s: ReportStatus) => void }) {
-  const options: ReportStatus[] = ['MENUNGGU', 'PROSES', 'SELESAI'];
+function StatusPicker({ value, onChange, disabled }: { value: ReportStatus; onChange: (s: ReportStatus) => void; disabled?: boolean }) {
+  const options: ReportStatus[] = ['menunggu', 'proses', 'selesai'];
   return (
     <View className="flex-row gap-2">
       {options.map((opt) => (
-        <Button key={opt} title={opt === 'MENUNGGU' ? 'Menunggu' : opt === 'PROSES' ? 'Diproses' : 'Selesai'} variant={value === opt ? 'primary' : 'secondary'} onPress={() => onChange(opt)} />
+        <Button
+          key={opt}
+          title={opt === 'menunggu' ? 'Menunggu' : opt === 'proses' ? 'Diproses' : 'Selesai'}
+          variant={value === opt ? 'primary' : 'secondary'}
+          onPress={() => onChange(opt)}
+          disabled={disabled}
+        />
       ))}
     </View>
   );
@@ -25,7 +31,7 @@ export default function DinkesEmergencyDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState<EmergencyReport | null>(null);
-  const [status, setStatus] = useState<ReportStatus>('MENUNGGU');
+  const [status, setStatus] = useState<ReportStatus>('menunggu');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -39,19 +45,26 @@ export default function DinkesEmergencyDetailPage() {
     })();
   }, [id]);
 
-  const allowed = user?.role === 'admin dinkes' || user?.role === 'super admin';
+  const canEdit = user?.role === 'admin_dinkes' || user?.role === 'super_admin';
+  const allowed = canEdit || user?.role === 'admin_sekolah';
 
   async function onSave() {
     if (!report) return;
-    if (status === 'SELESAI' && !note.trim()) {
+    if (status === 'selesai' && !note.trim()) {
       Alert.alert('Catatan dibutuhkan', 'Mohon isi catatan tindak lanjut saat menandai selesai.');
       return;
     }
     setSaving(true);
-    const ok = await updateEmergencyStatus(report.id, status, note.trim() || undefined);
+    const updated = await updateEmergencyStatus(report.id, status, note.trim() || undefined);
     setSaving(false);
-    if (ok) Alert.alert('Tersimpan', 'Perubahan status tersimpan.');
-    else Alert.alert('Disimpan offline', 'Perubahan diantre dan akan disinkron saat online.');
+    if (updated) {
+      setReport(updated);
+      setStatus(updated.status);
+      setNote('');
+      Alert.alert('Tersimpan', 'Perubahan status tersimpan.');
+    } else {
+      Alert.alert('Disimpan offline', 'Perubahan diantre dan akan disinkron saat online.');
+    }
   }
 
   return (
@@ -69,23 +82,44 @@ export default function DinkesEmergencyDetailPage() {
             <Card>
               <Text className="text-xl font-bold text-gray-900 mb-1">{report.title}</Text>
               <Text className="text-gray-700 mb-2">{new Date(report.date).toLocaleString('id-ID')} • {report.schoolName}</Text>
-              {report.location && <Text className="text-gray-600 mb-1">Lokasi: {report.location}</Text>}
-              {typeof report.studentsAffected === 'number' && <Text className="text-gray-600 mb-1">Korban terdampak: {report.studentsAffected}</Text>}
-              {report.symptoms && report.symptoms.length > 0 && <Text className="text-gray-600 mb-1">Gejala: {report.symptoms.join(', ')}</Text>}
-              {report.suspectedFood && <Text className="text-gray-600 mb-1">Diduga dari: {report.suspectedFood}</Text>}
+              {report.schoolAddress && <Text className="text-gray-600 mb-1">Alamat: {report.schoolAddress}</Text>}
+              {report.reportedBy && <Text className="text-gray-600 mb-1">Dilaporkan oleh: {report.reportedBy}</Text>}
+              {typeof report.studentsAffected === 'number' && (
+                <Text className="text-gray-600 mb-1">
+                  Siswa terdampak: {report.studentsAffected}
+                  {report.studentsAffectedDescription ? ` • ${report.studentsAffectedDescription}` : ''}
+                </Text>
+              )}
+              {!report.studentsAffected && report.studentsAffectedDescription && (
+                <Text className="text-gray-600 mb-1">Rincian dampak: {report.studentsAffectedDescription}</Text>
+              )}
+              {report.symptoms && report.symptoms.length > 0 && (
+                <Text className="text-gray-600 mb-1">Gejala: {report.symptoms.join(', ')}</Text>
+              )}
+              {report.suspectedFood && (
+                <Text className="text-gray-600 mb-1">Menu terduga (ID): {report.suspectedFood}</Text>
+              )}
               {report.description && <Text className="text-gray-700 mt-2">{report.description}</Text>}
             </Card>
 
             <Card>
               <Text className="text-lg font-bold text-gray-900 mb-3">Status Penanganan</Text>
-              <StatusPicker value={status} onChange={setStatus} />
+              {canEdit ? (
+                <StatusPicker value={status} onChange={setStatus} />
+              ) : (
+                <Text className="text-base text-gray-800">
+                  {status === 'menunggu' ? 'Menunggu penanganan Dinkes' : status === 'proses' ? 'Sedang ditangani Dinkes' : 'Sudah ditindaklanjuti'}
+                </Text>
+              )}
             </Card>
 
-            <Card>
-              <Text className="text-lg font-bold text-gray-900 mb-3">Catatan Tindak Lanjut</Text>
-              <TextInput multiline numberOfLines={4} value={note} onChangeText={setNote} placeholder="Rangkuman pemeriksaan, rujukan, edukasi, dll." />
-              <Button title={saving ? 'Menyimpan…' : 'Simpan Perubahan'} onPress={onSave} loading={saving} className="mt-3" />
-            </Card>
+            {canEdit && (
+              <Card>
+                <Text className="text-lg font-bold text-gray-900 mb-3">Catatan Tindak Lanjut</Text>
+                <TextInput multiline numberOfLines={4} value={note} onChangeText={setNote} placeholder="Rangkuman pemeriksaan, rujukan, edukasi, dll." />
+                <Button title={saving ? 'Menyimpan…' : 'Simpan Perubahan'} onPress={onSave} loading={saving} className="mt-3" />
+              </Card>
+            )}
 
             {report.followUps && report.followUps.length > 0 && (
               <Card>
@@ -94,6 +128,9 @@ export default function DinkesEmergencyDetailPage() {
                   <View key={idx} className="mb-2">
                     <Text className="text-gray-800 font-semibold">{new Date(f.at).toLocaleString('id-ID')}</Text>
                     <Text className="text-gray-700">{f.note}</Text>
+                    {f.userName && (
+                      <Text className="text-xs text-gray-500">{f.userName}{f.userRole ? ` • ${f.userRole}` : ''}</Text>
+                    )}
                   </View>
                 ))}
               </Card>
