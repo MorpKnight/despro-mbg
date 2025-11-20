@@ -1,10 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { ChipGroup } from '../../components/ui/Chip';
 import KPICard from '../../components/ui/KPICard';
+import Skeleton from '../../components/ui/Skeleton';
+import { StatusPill } from '../../components/ui/StatusPill';
 import { useAuth } from '../../hooks/useAuth';
 import {
     fetchDinkesKpi,
@@ -27,15 +31,26 @@ function formatDecimal(value?: number | null) {
 
 export default function DinkesDashboard() {
   const { user } = useAuth();
+  const router = useRouter();
   const [kpi, setKpi] = useState<DinkesKpi | null>(null);
   const [reports, setReports] = useState<EmergencyReport[]>([]);
   const [trend, setTrend] = useState<SatisfactionTrend | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const areas = [
+    { id: 'a1', name: 'Bogor Utara' },
+    { id: 'a2', name: 'Bogor Selatan' },
+    { id: 'a3', name: 'Bogor Timur' },
+    { id: 'a4', name: 'Bogor Barat' },
+    { id: 'a5', name: 'Bogor Tengah' },
+  ];
+  const [selectedArea, setSelectedArea] = useState(areas[0].id);
+
   useEffect(() => {
     let active = true;
     (async () => {
+      setLoading(true);
       const [kpiRes, reportsRes, trendRes] = await Promise.allSettled([
         fetchDinkesKpi(),
         fetchEmergencyReports(),
@@ -85,7 +100,7 @@ export default function DinkesDashboard() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [selectedArea]);
 
   if (user?.role !== 'admin_dinkes' && user?.role !== 'super_admin') return <Redirect href="/" />;
 
@@ -122,6 +137,14 @@ export default function DinkesDashboard() {
     ? `${formatDecimal(kpi.rata_rata_rating_global)} / 5`
     : '—';
 
+  if (loading && !kpi && !trend && reports.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color="#1976D2" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <ScrollView className="flex-1 bg-neutral-gray">
@@ -130,6 +153,19 @@ export default function DinkesDashboard() {
             <Text className="text-2xl font-bold text-gray-900 mb-1">Dashboard Dinas Kesehatan</Text>
             <Text className="text-gray-600">Monitoring kesehatan &amp; keamanan pangan sekolah</Text>
           </View>
+
+          {/* Super Admin Selector */}
+          {user?.role === 'super_admin' && (
+            <View className="mb-6">
+              <Text className="text-base font-semibold text-gray-800 mb-3">Pilih Wilayah</Text>
+              <ChipGroup
+                scrollable
+                options={areas.map((area) => ({ label: area.name, value: area.id }))}
+                value={selectedArea}
+                onChange={(value) => setSelectedArea(value)}
+              />
+            </View>
+          )}
 
           {error && (
             <Card className="mb-4 border border-accent-red bg-red-50">
@@ -142,16 +178,16 @@ export default function DinkesDashboard() {
               <View className="w-20 h-20 rounded-full bg-accent-red items-center justify-center mb-4">
                 <Ionicons name="warning" size={48} color="#FFFFFF" />
               </View>
-              <Text className="text-sm text-gray-600 mb-2">Laporan darurat aktif</Text>
+              <Text className="text-sm text-gray-700 mb-2">Laporan darurat aktif</Text>
               <Text className="text-6xl font-extrabold text-accent-red mb-3">
                 {loading && reports.length === 0 ? '…' : formatInteger(openReports.length)}
               </Text>
-              <Text className="text-gray-700 font-semibold mb-1">
+              <Text className="text-gray-800 font-semibold mb-1 text-center">
                 {loading && reports.length === 0
                   ? 'Memuat detail kasus…'
                   : `${formatInteger(waitingCount)} menunggu • ${formatInteger(processingCount)} diproses`}
               </Text>
-              <Text className="text-xs text-gray-600 text-center px-4">
+              <Text className="text-xs text-gray-700 text-center px-4">
                 Tuntas minggu ini: {formatInteger(resolvedCount)} laporan
               </Text>
             </View>
@@ -182,18 +218,31 @@ export default function DinkesDashboard() {
           </View>
 
           <Card className="mb-6">
-            <Text className="text-lg font-bold text-gray-900 mb-4">Sekolah dengan Kasus Aktif Terbanyak</Text>
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-lg font-bold text-gray-900">Sekolah dengan Kasus Aktif</Text>
+              <Button
+                title="Lihat Semua"
+                variant="outline"
+                size="sm"
+                onPress={() => router.push('/(app)/dinkes-emergency')}
+              />
+            </View>
+
             {loading && reports.length === 0 ? (
-              <Text className="text-gray-600">Memuat data sekolah…</Text>
+              <View className="gap-3">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <Skeleton key={idx} height={56} rounded={12} />
+                ))}
+              </View>
             ) : topSchools.length === 0 ? (
-              <Text className="text-gray-500">Tidak ada sekolah dengan kasus aktif.</Text>
+              <Text className="text-gray-600">Tidak ada sekolah dengan kasus aktif.</Text>
             ) : (
               <View className="gap-4">
                 {topSchools.map((school, idx) => (
                   <View key={`${school.name}-${idx}`} className="flex-row items-center justify-between">
                     <View className="flex-1 pr-4">
                       <Text className="font-semibold text-gray-900">{school.name}</Text>
-                      {school.address && <Text className="text-xs text-gray-500">{school.address}</Text>}
+                      {school.address && <Text className="text-xs text-gray-600">{school.address}</Text>}
                     </View>
                     <View className="items-end">
                       <Text className="text-2xl font-bold text-accent-red">{formatInteger(school.count)}</Text>
@@ -208,25 +257,28 @@ export default function DinkesDashboard() {
           <Card className="mb-6">
             <Text className="text-lg font-bold text-gray-900 mb-4">Laporan Terbaru</Text>
             {loading && reports.length === 0 ? (
-              <Text className="text-gray-600">Mengambil daftar laporan…</Text>
+              <View className="gap-3">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <Skeleton key={idx} height={64} rounded={12} />
+                ))}
+              </View>
             ) : recentReports.length === 0 ? (
-              <Text className="text-gray-500">Belum ada laporan darurat yang tercatat.</Text>
+              <Text className="text-gray-600">Belum ada laporan darurat yang tercatat.</Text>
             ) : (
               <View className="gap-3">
                 {recentReports.map((report) => (
                   <View key={report.id} className="border-b border-gray-200 pb-3">
-                    <Text className="text-sm text-gray-500">
-                      {new Date(report.date).toLocaleString('id-ID')}
-                    </Text>
-                    <Text className="text-sm font-semibold text-gray-900">{report.schoolName}</Text>
-                    <Text className="text-sm text-gray-700">{report.title}</Text>
-                    <Text className="text-xs uppercase tracking-wide text-primary mt-1">
-                      {report.status === 'menunggu'
-                        ? 'MENUNGGU'
-                        : report.status === 'proses'
-                        ? 'DIPROSES'
-                        : 'SELESAI'}
-                    </Text>
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-sm text-gray-600">
+                        {new Date(report.date).toLocaleString('id-ID')}
+                      </Text>
+                      <StatusPill
+                        label={report.status === 'menunggu' ? 'Menunggu' : report.status === 'proses' ? 'Diproses' : 'Selesai'}
+                        tone={report.status === 'selesai' ? 'success' : report.status === 'proses' ? 'warning' : 'danger'}
+                      />
+                    </View>
+                    <Text className="text-sm font-semibold text-gray-900 mt-1">{report.schoolName}</Text>
+                    <Text className="text-sm text-gray-800">{report.title}</Text>
                   </View>
                 ))}
               </View>

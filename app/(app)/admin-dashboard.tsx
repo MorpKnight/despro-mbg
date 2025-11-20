@@ -3,10 +3,14 @@ import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+import Grid from '../../components/layout/Grid';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import KPICard from '../../components/ui/KPICard';
+import Skeleton from '../../components/ui/Skeleton';
+import { StatusPill } from '../../components/ui/StatusPill';
 import { useAuth } from '../../hooks/useAuth';
+import { useResponsive } from '../../hooks/useResponsive';
 import { fetchGlobalKpi, type GlobalKpi } from '../../services/analytics';
 import { fetchHealthStatus, type HealthStatus } from '../../services/health';
 
@@ -15,6 +19,7 @@ const numberFormatter = new Intl.NumberFormat('id-ID');
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
+  const { isDesktop, isMobile } = useResponsive();
   const [globalKpi, setGlobalKpi] = useState<GlobalKpi | null>(null);
   const [kpiLoading, setKpiLoading] = useState(true);
   const [kpiError, setKpiError] = useState<string | null>(null);
@@ -73,27 +78,27 @@ export default function AdminDashboard() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-[#f5f7fb]"
+      className="flex-1 bg-gray-50"
       edges={["top", "bottom", "left", "right"]}
     >
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+        contentContainerStyle={{ padding: isMobile ? 16 : 32, paddingBottom: isMobile ? 24 : 48 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Page Header */}
-        <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-1">
+        <View className={isMobile ? "mb-6" : "mb-8"}>
+          <Text className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold text-gray-900 mb-2`}>
             Dashboard Super Admin
           </Text>
-          <Text className="text-gray-600">
+          <Text className={`${isMobile ? 'text-base' : 'text-lg'} text-gray-600`}>
             Selamat datang kembali, {user?.username}
           </Text>
         </View>
 
         {/* KPI Cards */}
-        <View className="mb-6">
-          <View className="flex-row flex-wrap justify-between gap-4">
+        <View className={isMobile ? "mb-6" : "mb-8"}>
+          <Grid mobileColumns={1} tabletColumns={2} desktopColumns={2} gap={isMobile ? 3 : 4}>
             <KPICard
               icon="school"
               iconColor="#1976D2"
@@ -122,69 +127,78 @@ export default function AdminDashboard() {
               value={kpiLoading ? '…' : formatNumber(globalKpi?.total_laporan_darurat_aktif)}
               subtitle="Perlu tindak lanjut"
             />
-          </View>
+          </Grid>
           {kpiError && (
-            <Text className="text-sm text-accent-red mt-3">{kpiError}</Text>
+            <Text className="text-sm text-red-600 mt-4 px-2">{kpiError}</Text>
           )}
         </View>
 
         {/* System Status Card */}
-        <Card className="mb-6">
-          <Text className="text-lg font-bold text-gray-900 mb-4">
+        <Card variant="elevated" className={isMobile ? "mb-6" : "mb-8"}>
+          <Text className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 mb-6`}>
             Status Sistem
           </Text>
           {healthLoading ? (
-            <Text className="text-gray-600">Memeriksa status sistem…</Text>
+            <View className="gap-3">
+              <Skeleton height={32} rounded={12} />
+              <Skeleton height={32} rounded={12} />
+            </View>
           ) : healthError ? (
-            <Text className="text-accent-red">{healthError}</Text>
+            <Text className="text-red-600 text-base">{healthError}</Text>
           ) : (
             <>
-              <View className="flex-row items-center justify-between mb-4">
-                <View className="flex-row items-center flex-shrink">
-                  <View className={`w-3 h-3 rounded-full ${apiOk ? 'bg-primary' : 'bg-accent-red'} mr-3`} />
-                  <View>
-                    <Text className="font-semibold text-gray-900">API Status</Text>
-                    <Text className="text-sm text-gray-600">{apiOk ? 'Online dan responsif' : 'Gangguan terdeteksi'}</Text>
-                  </View>
+              <View className={`flex-row items-center justify-between ${isMobile ? 'mb-5' : 'mb-6'}`}>
+                <View className="flex-1 pr-4">
+                  <Text className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>API Status</Text>
+                  <Text className="text-sm text-gray-700 mt-0.5">{apiOk ? 'Online dan responsif' : 'Gangguan terdeteksi'}</Text>
                 </View>
-                <Ionicons name={apiOk ? 'checkmark-circle' : 'alert-circle'} size={28} color={apiOk ? '#4CAF50' : '#E53935'} />
+                <StatusPill
+                  label={apiOk ? 'Online' : 'Gangguan'}
+                  tone={apiOk ? 'success' : 'danger'}
+                />
               </View>
 
-              <View className="h-px bg-gray-200 mb-4" />
+              <View className="h-px bg-gray-200 my-5" />
 
               <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center flex-shrink">
-                  <View className={`w-3 h-3 rounded-full ${dbOk ? 'bg-primary' : 'bg-accent-red'} mr-3`} />
-                  <View>
-                    <Text className="font-semibold text-gray-900">Koneksi Basis Data</Text>
-                    <Text className="text-sm text-gray-600">{dbOk ? 'Terhubung dan sehat' : 'Koneksi basis data bermasalah'}</Text>
-                  </View>
+                <View className="flex-1 pr-4">
+                  <Text className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>Koneksi Basis Data</Text>
+                  <Text className="text-sm text-gray-700 mt-0.5">{dbOk ? 'Terhubung dan sehat' : 'Koneksi basis data bermasalah'}</Text>
                 </View>
-                <Ionicons name={dbOk ? 'checkmark-circle' : 'alert-circle'} size={28} color={dbOk ? '#4CAF50' : '#E53935'} />
+                <StatusPill
+                  label={dbOk ? 'Terhubung' : 'Gangguan'}
+                  tone={dbOk ? 'info' : 'danger'}
+                />
               </View>
             </>
           )}
         </Card>
 
         {/* Quick Actions Card */}
-        <Card>
-          <Text className="text-lg font-bold text-gray-900 mb-4">
+        <Card variant="elevated">
+          <Text className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 mb-6`}>
             Aksi Cepat
           </Text>
-          <View className="gap-3">
+          <View className="gap-4">
             <Button
               title="Kelola Pengguna"
               variant="primary"
+              icon={<Ionicons name="people" size={20} color="white" />}
+              fullWidth
               onPress={() => router.push('/(app)/user-management')}
             />
             <Button
               title="Buka Laporan Lengkap"
-              variant="secondary"
+              variant="outline"
+              icon={<Ionicons name="analytics" size={20} color="#1976D2" />}
+              fullWidth
               onPress={() => router.push('/(app)/analytics')}
             />
             <Button
               title="Lihat Kesehatan Sistem"
-              variant="secondary"
+              variant="ghost"
+              icon={<Ionicons name="fitness" size={20} color="#1976D2" />}
+              fullWidth
               onPress={() => router.push('/(app)/system-health')}
             />
           </View>

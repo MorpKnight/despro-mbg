@@ -24,11 +24,11 @@ const getParentOf = (childName: string) => Object.keys(menuHierarchy).find((pare
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
   const version = Constants?.expoConfig?.version ?? (Constants as any)?.manifest?.version ?? '0.0.0';
   const { user, signOut } = useAuth();
-  
+
   // Determine which section should be expanded based on current route
   const currentRoute = props.state.routes[props.state.index]?.name;
   const currentParent = getParentOf(currentRoute);
-  
+
   // Auto-expand the section if we're on a child page, or if we're on a parent dashboard itself
   const autoExpandedSections = [];
   if (currentParent) {
@@ -36,27 +36,31 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   } else if (isParent(currentRoute)) {
     autoExpandedSections.push(currentRoute);
   }
-  
+
   const [expandedSections, setExpandedSections] = useState<string[]>(autoExpandedSections);
 
   // Update expanded sections when route changes
   React.useEffect(() => {
     if (currentParent) {
-      setExpandedSections([currentParent]);
+      setExpandedSections((prev) => prev.includes(currentParent) ? prev : [...prev, currentParent]);
     } else if (isParent(currentRoute)) {
-      setExpandedSections([currentRoute]);
-    } else {
-      setExpandedSections([]);
+      setExpandedSections((prev) => prev.includes(currentRoute) ? prev : [...prev, currentRoute]);
     }
   }, [currentRoute, currentParent]);
 
+  const toggleSection = (section: string) => {
+    setExpandedSections((prev) =>
+      prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]
+    );
+  };
+
   // Role-based menu config
   const rolePages: Record<string, string[]> = {
-    'super admin': ['index', 'settings', 'admin-dashboard', 'sekolah-dashboard', 'catering-dashboard', 'dinkes-dashboard', 'student-attendance', 'attendance-scan', 'assisted-attendance', 'emergency-report', 'feedback-list', 'catering-menu-qc', 'dinkes-emergency'],
-    'admin sekolah': ['index', 'settings', 'sekolah-dashboard', 'student-attendance', 'attendance-scan', 'assisted-attendance', 'emergency-report', 'feedback-list'],
-    'admin catering': ['index', 'settings', 'catering-dashboard', 'catering-menu-qc'],
+    'super_admin': ['index', 'settings', 'admin-dashboard', 'sekolah-dashboard', 'catering-dashboard', 'dinkes-dashboard', 'student-attendance', 'attendance-scan', 'assisted-attendance', 'emergency-report', 'feedback-list', 'catering-menu-qc', 'dinkes-emergency', 'user-management', 'system-health', 'analytics'],
+    'admin_sekolah': ['index', 'settings', 'sekolah-dashboard', 'student-attendance', 'attendance-scan', 'assisted-attendance', 'emergency-report', 'feedback-list'],
+    'admin_catering': ['index', 'settings', 'catering-dashboard', 'catering-menu-qc'],
     'siswa': ['index', 'settings', 'portal-feedback'],
-    'admin dinkes': ['index', 'settings', 'dinkes-dashboard', 'dinkes-emergency'],
+    'admin_dinkes': ['index', 'settings', 'dinkes-dashboard', 'dinkes-emergency', 'analytics'],
   };
   const allowed = user?.role ? rolePages[user.role] || ['index', 'settings'] : ['index', 'settings'];
 
@@ -82,49 +86,54 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
         {props.state.routes.map((route, index) => {
           if (!allowed.includes(route.name)) return null;
-          
+
           // Skip child items - they will be rendered under their parent
           if (isChild(route.name)) {
             const parent = getParentOf(route.name);
             // Only skip if parent is also in allowed list
             if (parent && allowed.includes(parent)) return null;
           }
-          
+
           const descriptor = props.descriptors[route.key];
           if (!descriptor) return null;
-          
+
           const focused = index === props.state.index;
           const { title, drawerLabel, drawerIcon } = descriptor.options;
-          
+
           // Handle drawerLabel which can be string or function
           let labelText: string = route.name;
           if (drawerLabel !== undefined) {
-            labelText = typeof drawerLabel === 'function' 
+            labelText = typeof drawerLabel === 'function'
               ? String(drawerLabel({ color: focused ? '#1976D2' : '#374151', focused }))
               : String(drawerLabel);
           } else if (title !== undefined) {
             labelText = String(title);
           }
-          
+
           const isParentItem = isParent(route.name);
           const isExpanded = expandedSections.includes(route.name);
           const children = isParentItem ? menuHierarchy[route.name] : [];
-          
+
           return (
             <View key={route.key}>
               {/* Parent or regular item */}
               <Pressable
                 onPress={() => {
-                  // Always navigate to the page (both parent and regular items)
-                  props.navigation.navigate(route.name);
+                  if (isParentItem) {
+                    toggleSection(route.name);
+                    // Navigate to parent page as well
+                    props.navigation.navigate(route.name);
+                  } else {
+                    props.navigation.navigate(route.name);
+                  }
                 }}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  marginVertical: 6,
+                  marginVertical: 4,
                   marginHorizontal: 12,
-                  paddingVertical: 10,
-                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
                   borderRadius: 12,
                   backgroundColor: focused ? 'rgba(25,118,210,0.08)' : 'transparent',
                 }}
@@ -134,7 +143,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
                   style={{
                     marginLeft: 12,
                     fontSize: 16,
-                    fontWeight: focused ? '600' : '400',
+                    fontWeight: focused ? '600' : '500',
                     color: focused ? '#1976D2' : '#374151',
                     flex: 1,
                   }}
@@ -149,62 +158,64 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
                   />
                 )}
               </Pressable>
-              
+
               {/* Child items (only render if parent is expanded) */}
-              {isParentItem && isExpanded && children.map((childName) => {
-                if (!allowed.includes(childName)) return null;
-                
-                const childRoute = props.state.routes.find((r) => r.name === childName);
-                if (!childRoute) return null;
-                
-                const childDescriptor = props.descriptors[childRoute.key];
-                if (!childDescriptor) return null;
-                
-                const childIndex = props.state.routes.indexOf(childRoute);
-                const childFocused = childIndex === props.state.index;
-                const { title: childTitle, drawerLabel: childDrawerLabel, drawerIcon: childDrawerIcon } = childDescriptor.options;
-                
-                let childLabelText: string = childName;
-                if (childDrawerLabel !== undefined) {
-                  childLabelText = typeof childDrawerLabel === 'function' 
-                    ? String(childDrawerLabel({ color: childFocused ? '#1976D2' : '#374151', focused: childFocused }))
-                    : String(childDrawerLabel);
-                } else if (childTitle !== undefined) {
-                  childLabelText = String(childTitle);
-                }
-                
-                return (
-                  <Pressable
-                    key={childRoute.key}
-                    onPress={() => {
-                      props.navigation.navigate(childName);
-                    }}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginVertical: 4,
-                      marginHorizontal: 12,
-                      marginLeft: 40, // Indent child items
-                      paddingVertical: 8,
-                      paddingHorizontal: 12,
-                      borderRadius: 12,
-                      backgroundColor: childFocused ? 'rgba(25,118,210,0.08)' : 'transparent',
-                    }}
-                  >
-                    {childDrawerIcon?.({ color: childFocused ? '#1976D2' : '#9CA3AF', size: 20, focused: childFocused })}
-                    <Text
-                      style={{
-                        marginLeft: 12,
-                        fontSize: 15,
-                        fontWeight: childFocused ? '600' : '400',
-                        color: childFocused ? '#1976D2' : '#6B7280',
-                      }}
-                    >
-                      {childLabelText}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+              {isParentItem && isExpanded && (
+                <View style={{ marginLeft: 20, borderLeftWidth: 2, borderLeftColor: '#E5E7EB', paddingLeft: 8, marginBottom: 8 }}>
+                  {children.map((childName) => {
+                    if (!allowed.includes(childName)) return null;
+
+                    const childRoute = props.state.routes.find((r) => r.name === childName);
+                    if (!childRoute) return null;
+
+                    const childDescriptor = props.descriptors[childRoute.key];
+                    if (!childDescriptor) return null;
+
+                    const childIndex = props.state.routes.indexOf(childRoute);
+                    const childFocused = childIndex === props.state.index;
+                    const { title: childTitle, drawerLabel: childDrawerLabel, drawerIcon: childDrawerIcon } = childDescriptor.options;
+
+                    let childLabelText: string = childName;
+                    if (childDrawerLabel !== undefined) {
+                      childLabelText = typeof childDrawerLabel === 'function'
+                        ? String(childDrawerLabel({ color: childFocused ? '#1976D2' : '#374151', focused: childFocused }))
+                        : String(childDrawerLabel);
+                    } else if (childTitle !== undefined) {
+                      childLabelText = String(childTitle);
+                    }
+
+                    return (
+                      <Pressable
+                        key={childRoute.key}
+                        onPress={() => {
+                          props.navigation.navigate(childName);
+                        }}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          marginVertical: 2,
+                          paddingVertical: 8,
+                          paddingHorizontal: 12,
+                          borderRadius: 8,
+                          backgroundColor: childFocused ? 'rgba(25,118,210,0.08)' : 'transparent',
+                        }}
+                      >
+                        {childDrawerIcon?.({ color: childFocused ? '#1976D2' : '#6B7280', size: 18, focused: childFocused })}
+                        <Text
+                          style={{
+                            marginLeft: 10,
+                            fontSize: 14,
+                            fontWeight: childFocused ? '600' : '400',
+                            color: childFocused ? '#1976D2' : '#4B5563',
+                          }}
+                        >
+                          {childLabelText}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
             </View>
           );
         })}

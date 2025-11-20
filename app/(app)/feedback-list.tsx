@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Card from '../../components/ui/Card';
+import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchFeedbackList, type FeedbackItem as ApiFeedbackItem } from '../../services/feedback';
 
@@ -181,9 +182,11 @@ export default function FeedbackListPage() {
           )}
 
           {loading ? (
-            <Card>
-              <Text className="text-gray-600">Memuat daftar umpan balik…</Text>
-            </Card>
+            <View className="gap-3">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <Skeleton key={idx} height={120} rounded={16} />
+              ))}
+            </View>
           ) : visibleFeedback.length === 0 ? (
             <View className="items-center justify-center py-12">
               <Ionicons name="chatbubble-ellipses-outline" size={40} color="#9CA3AF" />

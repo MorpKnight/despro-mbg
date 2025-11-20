@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Card from '../../components/ui/Card';
+import { ChipGroup } from '../../components/ui/Chip';
+import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../hooks/useAuth';
 import {
     fetchDinkesKpi,
@@ -42,6 +44,7 @@ export default function AnalyticsPage() {
   const [trend, setTrend] = useState<SatisfactionTrend | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [trendRange, setTrendRange] = useState<'7' | '30' | '90'>('30');
 
   useEffect(() => {
     let active = true;
@@ -127,12 +130,18 @@ export default function AnalyticsPage() {
     );
   }
 
+  const visibleTrend = useMemo(() => {
+    if (!trend?.data) return [];
+    const count = Number(trendRange);
+    return trend.data.slice(-count);
+  }, [trend?.data, trendRange]);
+
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <ScrollView className="flex-1 bg-neutral-gray">
         <View className="p-6">
           <Text className="text-2xl font-bold text-gray-900 mb-1">Analitik &amp; Laporan</Text>
-          <Text className="text-gray-600 mb-4">Data terbaru dari sistem MBG</Text>
+          <Text className="text-gray-700 mb-4">Data terbaru dari sistem MBG</Text>
 
           {error && (
             <Card className="mb-4 border border-accent-red bg-red-50">
@@ -144,9 +153,13 @@ export default function AnalyticsPage() {
             <Card className="mb-4">
               <Text className="text-lg font-semibold text-gray-900 mb-3">Ringkasan Global</Text>
               {loading && !globalKpi ? (
-                <Text className="text-gray-600">Memuat ringkasan global…</Text>
+                <View className="gap-3">
+                  {Array.from({ length: 4 }).map((_, idx) => (
+                    <Skeleton key={idx} height={18} rounded={8} />
+                  ))}
+                </View>
               ) : (
-                <View className="gap-1">
+                <View className="gap-2">
                   <MetricRow label="Total sekolah" value={formatInteger(globalKpi?.total_sekolah)} />
                   <MetricRow label="Total mitra katering" value={formatInteger(globalKpi?.total_katering)} />
                   <MetricRow label="Total siswa" value={formatInteger(globalKpi?.total_siswa)} />
@@ -180,20 +193,35 @@ export default function AnalyticsPage() {
 
           {(isSuperAdmin || isDinkes) && (
             <Card className="mb-6">
-              <Text className="text-lg font-semibold text-gray-900 mb-3">Tren Kepuasan Siswa</Text>
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-lg font-semibold text-gray-900">Tren Kepuasan Siswa</Text>
+                <ChipGroup
+                  options={[
+                    { label: '7 hari', value: '7' },
+                    { label: '30 hari', value: '30' },
+                    { label: '90 hari', value: '90' },
+                  ]}
+                  value={trendRange}
+                  onChange={(val) => setTrendRange(val as '7' | '30' | '90')}
+                />
+              </View>
               {loading && !trend ? (
-                <Text className="text-gray-600">Memuat tren kepuasan…</Text>
-              ) : trend && trend.data.length > 0 ? (
                 <View className="gap-2">
-                  {trend.data.map((point) => (
+                  {Array.from({ length: 4 }).map((_, idx) => (
+                    <Skeleton key={idx} height={20} rounded={6} />
+                  ))}
+                </View>
+              ) : visibleTrend.length > 0 ? (
+                <View className="gap-3">
+                  {visibleTrend.map((point) => (
                     <View key={point.label} className="flex-row items-center justify-between border-b border-gray-100 pb-2">
-                      <Text className="text-sm text-gray-600">{point.label}</Text>
+                      <Text className="text-sm text-gray-700">{point.label}</Text>
                       <Text className="text-sm font-semibold text-gray-900">{formatDecimal(point.value)}</Text>
                     </View>
                   ))}
                 </View>
               ) : (
-                <Text className="text-gray-500">Belum ada data tren kepuasan.</Text>
+                <Text className="text-gray-600">Belum ada data tren kepuasan.</Text>
               )}
             </Card>
           )}

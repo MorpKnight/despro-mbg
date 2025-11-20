@@ -1,11 +1,43 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { loadSession, signIn, signOut, type Role as LocalRole } from '../services/auth';
+import { fetchMyProfile, type Profile } from '../services/profile';
 import { subscribeSession, type Session } from '../services/session';
 
 export type Role = LocalRole;
 export interface User {
+  id: string;
   username: string;
   role: Role;
+  fullName: string | null;
+  accountStatus: string;
+  schoolId: string | null;
+  cateringId: string | null;
+  healthOfficeArea: string | null;
+  sekolah: Profile['sekolah'];
+  catering: Profile['catering'];
+}
+
+function profileToUser(profile: Profile): User {
+  return {
+    id: profile.id,
+    username: profile.username,
+    role: profile.role,
+    fullName: profile.fullName,
+    accountStatus: profile.accountStatus,
+    schoolId: profile.schoolId,
+    cateringId: profile.cateringId,
+    healthOfficeArea: profile.healthOfficeArea,
+    sekolah: profile.sekolah,
+    catering: profile.catering,
+  };
 }
 
 interface AuthState {
@@ -13,6 +45,7 @@ interface AuthState {
   loading: boolean;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -20,33 +53,67 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const isMounted = useRef(true);
+
+  useEffect(() => (
+    () => {
+      isMounted.current = false;
+    }
+  ), []);
+
+  const refreshProfile = useCallback(async () => {
+    const profile = await fetchMyProfile();
+    if (isMounted.current) {
+      setUser(profileToUser(profile));
+    }
+  }, []);
 
   useEffect(() => {
-    let active = true;
     (async () => {
       try {
         const session = await loadSession();
-        if (active && session) setUser({ username: session.username, role: session.role });
+        if (!session) {
+          if (isMounted.current) {
+            setUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+        await refreshProfile();
       } catch (err) {
-        console.warn('[auth] gagal memuat sesi awal', err);
+        console.warn('[auth] bootstrap gagal', err);
+        if (isMounted.current) {
+          setUser(null);
+        }
       } finally {
-        if (active) setLoading(false);
+        if (isMounted.current) setLoading(false);
       }
     })();
 
     const unsubscribe = subscribeSession((session: Session | null) => {
-      if (!active) return;
-      setUser(session ? { username: session.username, role: session.role } : null);
       if (!session) {
-        setLoading(false);
+        if (isMounted.current) {
+          setUser(null);
+          setLoading(false);
+        }
+        return;
       }
+      if (isMounted.current) {
+        setLoading(true);
+      }
+      refreshProfile()
+        .catch((err) => {
+          console.warn('[auth] refresh profile failed', err);
+        })
+        .finally(() => {
+          if (isMounted.current) setLoading(false);
+        });
     });
 
     return () => {
-      active = false;
       unsubscribe();
     };
-  }, []);
+  }, [refreshProfile]);
 
   const value = useMemo<AuthState>(
     () => ({
@@ -54,14 +121,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       signIn: async (username: string, password: string) => {
         const session = await signIn(username, password);
-        setUser({ username: session.username, role: session.role });
+        try {
+          await refreshProfile();
+        } catch (err) {
+          console.warn('[auth] gagal mengambil profil sesudah login', err);
+          setUser({
+            id: 'unknown',
+            username: session.username,
+            role: session.role,
+            fullName: null,
+            accountStatus: session.account_status,
+            schoolId: null,
+            cateringId: null,
+            healthOfficeArea: null,
+            sekolah: null,
+            catering: null,
+          });
+        }
       },
       signOut: async () => {
         await signOut();
         setUser(null);
       },
+      refreshProfile: async () => {
+        try {
+          await refreshProfile();
+        } catch (err) {
+          console.warn('[auth] manual refresh failed', err);
+          throw err;
+        }
+      },
     }),
-    [user, loading]
+    [user, loading, refreshProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

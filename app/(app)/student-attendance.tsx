@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, Redirect } from 'expo-router';
-import { default as React, default as React, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../hooks/useAuth';
 import {
     fetchAttendanceList,
@@ -279,9 +280,11 @@ export default function StudentAttendancePage() {
           )}
 
           {loading ? (
-            <Card>
-              <Text className="text-gray-600">Memuat data absensi…</Text>
-            </Card>
+            <View className="gap-3">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <Skeleton key={idx} height={96} rounded={18} />
+              ))}
+            </View>
           ) : records.length === 0 ? (
             <View className="items-center justify-center py-12">
               <Ionicons name="calendar-outline" size={40} color="#9CA3AF" />

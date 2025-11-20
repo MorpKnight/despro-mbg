@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { getSession, setSession, type Session } from './session';
 
 export interface ApiOptions extends Omit<RequestInit, 'body'> {
@@ -6,7 +7,14 @@ export interface ApiOptions extends Omit<RequestInit, 'body'> {
   auth?: boolean;
 }
 
-const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:8000/api/v1';
+const extraConfig = (Constants?.expoConfig as any)?.extra || (Constants as any)?.manifest?.extra || {};
+const extraApiUrl = typeof extraConfig?.apiUrl === 'string' ? extraConfig.apiUrl : undefined;
+const nestedApiUrl = typeof extraConfig?.api?.baseUrl === 'string' ? extraConfig.api.baseUrl : undefined;
+
+const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL
+  || extraApiUrl
+  || nestedApiUrl
+  || 'http://10.0.2.2:8000/api/v1';
 
 let refreshPromise: Promise<Session | null> | null = null;
 

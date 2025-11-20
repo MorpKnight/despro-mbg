@@ -1,0 +1,55 @@
+import { api } from './api';
+
+export interface CateringListItem {
+  id: string;
+  name: string;
+  alamat?: string | null;
+  provinsi?: string | null;
+  kotaKabupaten?: string | null;
+  kecamatan?: string | null;
+  kelurahan?: string | null;
+  contactPhone?: string | null;
+}
+
+interface RawCatering {
+  id?: string;
+  name?: string;
+  alamat?: string | null;
+  provinsi?: string | null;
+  kota_kabupaten?: string | null;
+  kecamatan?: string | null;
+  kelurahan?: string | null;
+  contact_phone?: string | null;
+}
+
+export interface FetchCateringsParams {
+  skip?: number;
+  limit?: number;
+  search?: string;
+}
+
+function mapCatering(raw: RawCatering): CateringListItem | null {
+  if (!raw.id || !raw.name) return null;
+  return {
+    id: raw.id,
+    name: raw.name,
+    alamat: raw.alamat ?? null,
+    provinsi: raw.provinsi ?? null,
+    kotaKabupaten: raw.kota_kabupaten ?? null,
+    kecamatan: raw.kecamatan ?? null,
+    kelurahan: raw.kelurahan ?? null,
+    contactPhone: raw.contact_phone ?? null,
+  };
+}
+
+export async function fetchCaterings(params: FetchCateringsParams = {}): Promise<CateringListItem[]> {
+  const searchParams = new URLSearchParams();
+  if (typeof params.skip === 'number') searchParams.set('skip', String(params.skip));
+  if (typeof params.limit === 'number') searchParams.set('limit', String(params.limit));
+  if (params.search) searchParams.set('search', params.search);
+  const path = `caterings${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const data = await api(path, { method: 'GET' });
+  return (Array.isArray(data) ? data : [])
+    .map((item) => mapCatering(item as RawCatering))
+    .filter((item): item is CateringListItem => Boolean(item));
+}
