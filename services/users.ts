@@ -11,9 +11,11 @@ export interface User {
     accountStatus: UserAccountStatus;
     schoolId: string | null;
     cateringId: string | null;
+    healthOfficeAreaId: string | null;
     healthOfficeArea: string | null;
     nfcTag: string | null;
     createdAt: string;
+    updatedAt: string;
 
     // Expanded relations (optional, depending on backend response)
     sekolah?: { id: string; name: string } | null;
@@ -28,9 +30,11 @@ interface RawUser {
     account_status: UserAccountStatus;
     school_id: string | null;
     catering_id: string | null;
+    health_office_area_id: string | null;
     health_office_area: string | null;
     nfc_tag: string | null;
     created_at: string;
+    updated_at: string;
     sekolah?: { id: string; name: string } | null;
     catering?: { id: string; name: string } | null;
 }
@@ -40,9 +44,11 @@ export interface CreateUserPayload {
     password: string;
     full_name?: string;
     role: UserRole;
+    account_status?: UserAccountStatus;
     school_id?: string;
     catering_id?: string;
     health_office_area?: string;
+    health_office_area_id?: string;
 }
 
 export interface UpdateUserPayload {
@@ -54,6 +60,7 @@ export interface UpdateUserPayload {
     school_id?: string | null;
     catering_id?: string | null;
     health_office_area?: string | null;
+    health_office_area_id?: string | null;
 }
 
 export interface FetchUsersParams {
@@ -72,9 +79,11 @@ function mapUser(raw: RawUser): User {
         accountStatus: raw.account_status,
         schoolId: raw.school_id,
         cateringId: raw.catering_id,
+        healthOfficeAreaId: raw.health_office_area_id,
         healthOfficeArea: raw.health_office_area,
         nfcTag: raw.nfc_tag,
         createdAt: raw.created_at,
+        updatedAt: raw.updated_at,
         sekolah: raw.sekolah,
         catering: raw.catering,
     };
@@ -87,7 +96,7 @@ export async function fetchUsers(params: FetchUsersParams = {}): Promise<User[]>
     if (params.search) searchParams.set('search', params.search);
     if (params.role) searchParams.set('role', params.role);
 
-    const path = `admin/users${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    const path = `admin/users/${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
     const data = await api(path, { method: 'GET' });
 
     return (Array.isArray(data) ? data : [])
@@ -95,7 +104,7 @@ export async function fetchUsers(params: FetchUsersParams = {}): Promise<User[]>
 }
 
 export async function createUser(payload: CreateUserPayload): Promise<User> {
-    const data = await api('admin/users', {
+    const data = await api('admin/users/', {
         method: 'POST',
         body: payload,
     });

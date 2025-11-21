@@ -8,19 +8,22 @@ import Card from '../../components/ui/Card';
 import Dropdown, { DropdownOption } from '../../components/ui/Dropdown';
 import { useResponsive } from '../../hooks/useResponsive';
 import { fetchCaterings, type CateringListItem } from '../../services/caterings';
+import { fetchHealthOfficeAreas, type HealthOfficeAreaListItem } from '../../services/healthAreas';
 import { fetchSchools, type SchoolListItem } from '../../services/schools';
 import {
-  createUser,
-  deleteUser,
-  fetchUsers,
-  updateUser,
-  type CreateUserPayload,
-  type UpdateUserPayload,
-  type User,
-  type UserRole
+    createUser,
+    deleteUser,
+    fetchUsers,
+    updateUser,
+    type CreateUserPayload,
+    type UpdateUserPayload,
+    type User,
+    type UserAccountStatus,
+    type UserRole,
 } from '../../services/users';
 
 type RoleFilter = 'all' | UserRole;
+type StatusFilter = 'all' | UserAccountStatus;
 
 const roleOptions: DropdownOption[] = [
   { label: 'Super Admin', value: 'super_admin' },
@@ -28,6 +31,18 @@ const roleOptions: DropdownOption[] = [
   { label: 'Admin Catering', value: 'admin_catering' },
   { label: 'Admin Dinkes', value: 'admin_dinkes' },
   { label: 'Siswa', value: 'siswa' },
+];
+
+const accountStatusOptions: DropdownOption[] = [
+  { label: 'Menunggu Konfirmasi', value: 'pending_confirmation' },
+  { label: 'Aktif', value: 'active' },
+  { label: 'Tidak Aktif', value: 'inactive' },
+  { label: 'Ditangguhkan', value: 'suspended' },
+];
+
+const statusFilterOptions: DropdownOption[] = [
+  { label: 'Semua Status', value: 'all' },
+  ...accountStatusOptions,
 ];
 
 const roleTabs: { key: RoleFilter; label: string }[] = [
@@ -48,6 +63,7 @@ export default function UserManagementPage() {
   const { isDesktop } = useResponsive();
   const [activeTab, setActiveTab] = useState<RoleFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   // Data State
   const [users, setUsers] = useState<User[]>([]);
@@ -57,6 +73,7 @@ export default function UserManagementPage() {
   // Dropdown Data
   const [schools, setSchools] = useState<SchoolListItem[]>([]);
   const [caterings, setCaterings] = useState<CateringListItem[]>([]);
+  const [healthAreas, setHealthAreas] = useState<HealthOfficeAreaListItem[]>([]);
 
   // Modal State
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -66,14 +83,16 @@ export default function UserManagementPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [usersData, schoolsData, cateringsData] = await Promise.all([
+      const [usersData, schoolsData, cateringsData, areasData] = await Promise.all([
         fetchUsers(),
         fetchSchools(),
-        fetchCaterings()
+        fetchCaterings(),
+        fetchHealthOfficeAreas(),
       ]);
       setUsers(usersData);
       setSchools(schoolsData);
       setCaterings(cateringsData);
+      setHealthAreas(areasData);
     } catch (error) {
       Alert.alert('Error', 'Gagal memuat data pengguna');
       console.error(error);
@@ -100,6 +119,11 @@ export default function UserManagementPage() {
       filtered = filtered.filter(user => user.role === activeTab);
     }
 
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(user => user.accountStatus === statusFilter);
+    }
+
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -110,7 +134,7 @@ export default function UserManagementPage() {
     }
 
     return filtered;
-  }, [activeTab, searchQuery, users]);
+  }, [activeTab, statusFilter, searchQuery, users]);
 
   const handleEdit = (user: User) => {
     setSelectedUser({ ...user });
@@ -118,7 +142,7 @@ export default function UserManagementPage() {
   };
 
   const handleCreate = () => {
-    setSelectedUser({ role: 'siswa' }); // Default role
+    setSelectedUser({ role: 'siswa', accountStatus: 'pending_confirmation' as UserAccountStatus });
     setIsModalVisible(true);
   };
 
@@ -138,9 +162,11 @@ export default function UserManagementPage() {
           username: selectedUser.username,
           full_name: selectedUser.fullName || undefined,
           role: selectedUser.role,
-          school_id: selectedUser.schoolId,
-          catering_id: selectedUser.cateringId,
-          health_office_area: selectedUser.healthOfficeArea,
+          account_status: selectedUser.accountStatus,
+          school_id: selectedUser.schoolId ?? null,
+          catering_id: selectedUser.cateringId ?? null,
+          health_office_area: selectedUser.healthOfficeArea || undefined,
+          health_office_area_id: selectedUser.healthOfficeAreaId ?? null,
         };
         if (selectedUser.password) {
           payload.password = selectedUser.password;
@@ -161,9 +187,11 @@ export default function UserManagementPage() {
           password: selectedUser.password,
           full_name: selectedUser.fullName || undefined,
           role: selectedUser.role,
+          account_status: selectedUser.accountStatus,
           school_id: selectedUser.schoolId || undefined,
           catering_id: selectedUser.cateringId || undefined,
           health_office_area: selectedUser.healthOfficeArea || undefined,
+          health_office_area_id: selectedUser.healthOfficeAreaId || undefined,
         };
 
         await createUser(payload);
@@ -212,6 +240,10 @@ export default function UserManagementPage() {
 
   const schoolOptions = useMemo(() => schools.map(s => ({ label: s.name, value: s.id })), [schools]);
   const cateringOptions = useMemo(() => caterings.map(c => ({ label: c.name, value: c.id })), [caterings]);
+  const healthAreaOptions = useMemo(
+    () => healthAreas.map((area) => ({ label: area.name, value: area.id })),
+    [healthAreas],
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -266,8 +298,8 @@ export default function UserManagementPage() {
           </ScrollView>
 
           {/* Search & Add */}
-          <View className={`flex-row gap-4 mb-6 ${isDesktop ? 'items-center' : 'flex-wrap'}`}>
-            <View className={`${isDesktop ? 'flex-1 max-w-md' : 'flex-1'} flex-row items-center bg-white border-2 border-gray-200 rounded-xl px-4 h-14 shadow-sm`}>
+          <View className={`gap-4 mb-6 ${isDesktop ? 'flex-row items-center' : 'flex-col'}`}>
+            <View className={`${isDesktop ? 'flex-1' : 'w-full'} flex-row items-center bg-white border-2 border-gray-200 rounded-xl px-4 h-14 shadow-sm`}>
               <Ionicons name="search" size={22} color="#9CA3AF" />
               <TextInput
                 className="flex-1 ml-3 text-base text-gray-900"
@@ -275,6 +307,14 @@ export default function UserManagementPage() {
                 placeholderTextColor="#9CA3AF"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+              />
+            </View>
+            <View className={isDesktop ? 'w-60' : 'w-full'}>
+              <Dropdown
+                label="Filter Status"
+                options={statusFilterOptions}
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as StatusFilter)}
               />
             </View>
             <Button
@@ -444,6 +484,14 @@ export default function UserManagementPage() {
                   placeholder="Pilih role"
                 />
 
+                <Dropdown
+                  label="Status Akun"
+                  options={accountStatusOptions}
+                  value={selectedUser?.accountStatus}
+                  onValueChange={(status) => setSelectedUser(prev => ({ ...prev!, accountStatus: status as UserAccountStatus }))}
+                  placeholder="Pilih status akun"
+                />
+
                 {/* Conditional fields */}
                 {(selectedUser?.role === 'admin_sekolah' || selectedUser?.role === 'siswa') && (
                   <Dropdown
@@ -466,17 +514,33 @@ export default function UserManagementPage() {
                 )}
 
                 {selectedUser?.role === 'admin_dinkes' && (
-                  <View>
-                    <Text className="text-sm font-semibold text-gray-700 mb-2">
-                      Wilayah
-                    </Text>
-                    <TextInput
-                      className="border-2 border-gray-200 rounded-xl p-4 text-base bg-white"
-                      value={selectedUser?.healthOfficeArea || ''}
-                      onChangeText={(t) => setSelectedUser(prev => ({ ...prev!, healthOfficeArea: t }))}
-                      placeholder="Wilayah Kerja"
-                      placeholderTextColor="#9CA3AF"
+                  <View className="gap-3">
+                    <Dropdown
+                      label="Wilayah Kesehatan"
+                      options={healthAreaOptions}
+                      value={selectedUser?.healthOfficeAreaId ?? undefined}
+                      onValueChange={(val) => {
+                        const found = healthAreas.find((area) => area.id === val);
+                        setSelectedUser((prev) => ({
+                          ...prev!,
+                          healthOfficeAreaId: val ?? null,
+                          healthOfficeArea: found?.name ?? (prev?.healthOfficeArea ?? ''),
+                        }));
+                      }}
+                      placeholder="Pilih Wilayah"
                     />
+                    <View>
+                      <Text className="text-sm font-semibold text-gray-700 mb-2">
+                        Wilayah Baru / Catatan
+                      </Text>
+                      <TextInput
+                        className="border-2 border-gray-200 rounded-xl p-4 text-base bg-white"
+                        value={selectedUser?.healthOfficeArea || ''}
+                        onChangeText={(t) => setSelectedUser(prev => ({ ...prev!, healthOfficeArea: t, healthOfficeAreaId: null }))}
+                        placeholder="Masukkan nama wilayah"
+                        placeholderTextColor="#9CA3AF"
+                      />
+                    </View>
                   </View>
                 )}
               </View>

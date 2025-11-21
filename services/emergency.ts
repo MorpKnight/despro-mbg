@@ -121,8 +121,17 @@ function mapEmergencyReport(raw: RawEmergencyReport): EmergencyReport {
   };
 }
 
-export async function fetchEmergencyReports(): Promise<EmergencyReport[]> {
-  const data = await api('emergency/reports', { method: 'GET' });
+export interface EmergencyReportParams {
+  status?: ReportStatus;
+  schoolId?: string;
+}
+
+export async function fetchEmergencyReports(params: EmergencyReportParams = {}): Promise<EmergencyReport[]> {
+  const search = new URLSearchParams();
+  if (params.status) search.set('status', params.status);
+  if (params.schoolId) search.set('school_id', params.schoolId);
+  const path = `emergency/reports${search.toString() ? `?${search.toString()}` : ''}`;
+  const data = await api(path, { method: 'GET' });
   return (Array.isArray(data) ? data : [])
     .map((item) => mapEmergencyReport(item as RawEmergencyReport));
 }

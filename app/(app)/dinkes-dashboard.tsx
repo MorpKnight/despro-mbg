@@ -2,24 +2,54 @@ import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import { ChipGroup } from '../../components/ui/Chip';
-import KPICard from '../../components/ui/KPICard';
+import { Chip } from '../../components/ui/Chip';
 import Skeleton from '../../components/ui/Skeleton';
 import { StatusPill } from '../../components/ui/StatusPill';
+import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
 import {
+    fetchDinkesAreas,
     fetchDinkesKpi,
     fetchSatisfactionTrend,
     type DinkesKpi,
     type SatisfactionTrend,
 } from '../../services/analytics';
-import { fetchEmergencyReports, type EmergencyReport } from '../../services/emergency';
+import { fetchEmergencyReports, type EmergencyReport, type ReportStatus } from '../../services/emergency';
 
 const integerFormatter = new Intl.NumberFormat('id-ID');
 const decimalFormatter = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+
+const ALL_AREAS = 'ALL_AREAS';
+const DEFAULT_AREAS = ['Bogor Utara', 'Bogor Selatan', 'Bogor Timur', 'Bogor Barat', 'Bogor Tengah'];
+const STATUS_FILTERS: { label: string; value: 'all' | ReportStatus }[] = [
+  { label: 'Semua', value: 'all' },
+  { label: 'Menunggu', value: 'menunggu' },
+  { label: 'Diproses', value: 'proses' },
+  { label: 'Selesai', value: 'selesai' },
+];
+
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  caption?: string;
+}
+
+function StatCard({ icon, label, value, caption }: StatCardProps) {
+  return (
+    <View className="flex-1 min-w-[150px] rounded-2xl border border-gray-200 bg-white px-4 py-3">
+      <View className="flex-row items-center gap-2 mb-2">
+        <View className="w-9 h-9 rounded-full bg-blue-50 items-center justify-center">{icon}</View>
+        <Text className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</Text>
+      </View>
+      <Text className="text-2xl font-bold text-gray-900 mb-1">{value}</Text>
+      {caption ? <Text className="text-sm text-gray-500">{caption}</Text> : null}
+    </View>
+  );
+}
 
 function formatInteger(value?: number | null) {
   return typeof value === 'number' ? integerFormatter.format(value) : '—';
@@ -37,15 +67,95 @@ export default function DinkesDashboard() {
   const [trend, setTrend] = useState<SatisfactionTrend | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [areaError, setAreaError] = useState<string | null>(null);
+  const [areaLoading, setAreaLoading] = useState(false);
+  const [availableAreas, setAvailableAreas] = useState<string[]>([]);
+  const [selectedArea, setSelectedArea] = useState<string>(ALL_AREAS);
+  const [reportSearchInput, setReportSearchInput] = useState('');
+  const [debouncedReportSearch, setDebouncedReportSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | ReportStatus>('all');
 
-  const areas = [
-    { id: 'a1', name: 'Bogor Utara' },
-    { id: 'a2', name: 'Bogor Selatan' },
-    { id: 'a3', name: 'Bogor Timur' },
-    { id: 'a4', name: 'Bogor Barat' },
-    { id: 'a5', name: 'Bogor Tengah' },
-  ];
-  const [selectedArea, setSelectedArea] = useState(areas[0].id);
+  useEffect(() => {
+    if (user?.role !== 'super_admin' && user?.role !== 'admin_dinkes') {
+      setAvailableAreas([]);
+      setAreaLoading(false);
+      setAreaError(null);
+      return;
+    }
+
+    if (user?.role === 'admin_dinkes') {
+      setAreaLoading(false);
+      setAreaError(null);
+      setAvailableAreas(user.healthOfficeArea ? [user.healthOfficeArea] : DEFAULT_AREAS);
+      return;
+    }
+
+    let active = true;
+    setAreaLoading(true);
+    setAreaError(null);
+
+    fetchDinkesAreas()
+      .then((areas) => {
+        if (!active) return;
+        const sanitized = Array.from(
+          new Set(
+            (areas ?? [])
+              .map((area) => area.trim())
+              .filter((area) => area.length > 0),
+          ),
+        );
+
+        if (sanitized.length === 0) {
+          if (user?.role === 'admin_dinkes' && user?.healthOfficeArea) {
+            setAvailableAreas([user.healthOfficeArea]);
+            setAreaError('Wilayah kerja Anda belum terdaftar di sistem.');
+          } else {
+            setAvailableAreas(DEFAULT_AREAS);
+            setAreaError('Wilayah kerja belum tersedia, gunakan daftar bawaan.');
+          }
+        } else {
+          setAvailableAreas(sanitized);
+        }
+      })
+      .catch((err) => {
+        if (!active) return;
+        console.warn('[dinkes-dashboard] gagal memuat daftar wilayah', err);
+        const fallback = user?.role === 'admin_dinkes' && user?.healthOfficeArea
+          ? [user.healthOfficeArea]
+          : DEFAULT_AREAS;
+        setAvailableAreas(fallback);
+        setAreaError('Wilayah kerja tidak dapat dimuat, gunakan daftar bawaan.');
+      })
+      .finally(() => {
+        if (active) {
+          setAreaLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user?.role, user?.healthOfficeArea]);
+
+  useEffect(() => {
+    if (user?.role === 'admin_dinkes') {
+      setSelectedArea(user.healthOfficeArea ?? ALL_AREAS);
+    } else if (user?.role === 'super_admin') {
+      setSelectedArea(ALL_AREAS);
+    }
+  }, [user?.role, user?.healthOfficeArea]);
+
+  const areaOptions = useMemo(() => {
+    const base = availableAreas.length ? availableAreas : DEFAULT_AREAS;
+    const extras = user?.healthOfficeArea ? [user.healthOfficeArea] : [];
+    return Array.from(new Set([...base, ...extras].filter((area) => area && area.trim().length > 0)));
+  }, [availableAreas, user?.healthOfficeArea]);
+
+  useEffect(() => {
+    if (selectedArea === ALL_AREAS) return;
+    if (areaOptions.includes(selectedArea)) return;
+    setSelectedArea(areaOptions[0] ?? ALL_AREAS);
+  }, [areaOptions, selectedArea]);
 
   useEffect(() => {
     let active = true;
@@ -100,14 +210,41 @@ export default function DinkesDashboard() {
     return () => {
       active = false;
     };
-  }, [selectedArea]);
+  }, []);
 
-  if (user?.role !== 'admin_dinkes' && user?.role !== 'super_admin') return <Redirect href="/" />;
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedReportSearch(reportSearchInput.trim().toLowerCase());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [reportSearchInput]);
 
-  const openReports = useMemo(() => reports.filter((r) => r.status !== 'selesai'), [reports]);
-  const waitingCount = useMemo(() => reports.filter((r) => r.status === 'menunggu').length, [reports]);
-  const processingCount = useMemo(() => reports.filter((r) => r.status === 'proses').length, [reports]);
-  const resolvedCount = useMemo(() => reports.filter((r) => r.status === 'selesai').length, [reports]);
+  const unauthorized = user?.role !== 'admin_dinkes' && user?.role !== 'super_admin';
+
+  const filteredReports = useMemo(() => {
+    const keyword = debouncedReportSearch;
+    const normalizedArea = selectedArea === ALL_AREAS ? null : selectedArea.toLowerCase();
+    return reports.filter((report) => {
+      if (statusFilter !== 'all' && report.status !== statusFilter) return false;
+      if (keyword) {
+        const haystack = `${report.schoolName} ${report.title} ${report.description ?? ''}`.toLowerCase();
+        if (!haystack.includes(keyword)) return false;
+      }
+      if (!normalizedArea) return true;
+      const address = report.schoolAddress?.toLowerCase() ?? '';
+      const schoolName = report.schoolName.toLowerCase();
+      return address.includes(normalizedArea) || schoolName.includes(normalizedArea);
+    });
+  }, [reports, debouncedReportSearch, selectedArea, statusFilter]);
+
+  const openReports = useMemo(() => filteredReports.filter((r) => r.status !== 'selesai'), [filteredReports]);
+  const waitingCount = useMemo(() => filteredReports.filter((r) => r.status === 'menunggu').length, [filteredReports]);
+  const processingCount = useMemo(() => filteredReports.filter((r) => r.status === 'proses').length, [filteredReports]);
+  const resolvedCount = useMemo(() => filteredReports.filter((r) => r.status === 'selesai').length, [filteredReports]);
+  const resolvedThisWeek = useMemo(() => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return filteredReports.filter((report) => report.status === 'selesai' && +new Date(report.date) >= weekAgo).length;
+  }, [filteredReports]);
 
   const topSchools = useMemo(() => {
     const summary = new Map<string, { name: string; address?: string | null; count: number }>();
@@ -128,14 +265,17 @@ export default function DinkesDashboard() {
   }, [openReports]);
 
   const recentReports = useMemo(
-    () => [...reports].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 3),
-    [reports],
+    () => [...filteredReports].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 3),
+    [filteredReports],
   );
 
   const trendPoints = trend?.data ?? [];
   const ratingDisplay = typeof kpi?.rata_rata_rating_global === 'number'
     ? `${formatDecimal(kpi.rata_rata_rating_global)} / 5`
     : '—';
+  const selectedAreaLabel = selectedArea === ALL_AREAS ? 'Seluruh kota' : selectedArea;
+
+  if (unauthorized) return <Redirect href="/" />;
 
   if (loading && !kpi && !trend && reports.length === 0) {
     return (
@@ -154,18 +294,67 @@ export default function DinkesDashboard() {
             <Text className="text-gray-600">Monitoring kesehatan &amp; keamanan pangan sekolah</Text>
           </View>
 
-          {/* Super Admin Selector */}
-          {user?.role === 'super_admin' && (
-            <View className="mb-6">
-              <Text className="text-base font-semibold text-gray-800 mb-3">Pilih Wilayah</Text>
-              <ChipGroup
-                scrollable
-                options={areas.map((area) => ({ label: area.name, value: area.id }))}
-                value={selectedArea}
-                onChange={(value) => setSelectedArea(value)}
-              />
+          <Card className="mb-6">
+            <View className="gap-4">
+              {user?.role === 'super_admin' ? (
+                <View>
+                  <View className="flex-row items-center justify-between mb-3">
+                    <Text className="text-base font-semibold text-gray-900">Filter Wilayah</Text>
+                    <Text className="text-xs text-gray-500">
+                      {selectedArea === ALL_AREAS ? 'Seluruh kota' : `Fokus ${selectedArea}`}
+                    </Text>
+                  </View>
+                  <View className="flex-row flex-wrap gap-2">
+                    {[ALL_AREAS, ...areaOptions].map((area) => (
+                      <Chip
+                        key={area}
+                        label={area === ALL_AREAS ? 'Semua Wilayah' : area}
+                        active={selectedArea === area}
+                        onPress={() => setSelectedArea(area)}
+                        disabled={areaLoading && area !== selectedArea}
+                      />
+                    ))}
+                  </View>
+                  {areaError ? <Text className="text-xs text-red-500 mt-2">{areaError}</Text> : null}
+                </View>
+              ) : (
+                <View className="px-4 py-3 rounded-2xl bg-blue-50 border border-blue-100">
+                  <Text className="text-xs font-semibold text-blue-600 uppercase mb-1">Wilayah kerja</Text>
+                  <Text className="text-base font-semibold text-gray-900">{selectedAreaLabel}</Text>
+                  <Text className="text-xs text-gray-600">Laporan difilter berdasarkan wilayah Anda</Text>
+                </View>
+              )}
+
+              <View className="gap-3">
+                <View>
+                  <Text className="text-sm font-semibold text-gray-800 mb-2">Cari laporan</Text>
+                  <TextInput
+                    value={reportSearchInput}
+                    onChangeText={setReportSearchInput}
+                    placeholder="Cari sekolah atau kasus…"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                  />
+                </View>
+                <View>
+                  <Text className="text-sm font-semibold text-gray-800 mb-2">Status laporan</Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {STATUS_FILTERS.map((status) => (
+                      <Chip
+                        key={status.value}
+                        label={status.label}
+                        active={statusFilter === status.value}
+                        onPress={() => setStatusFilter(status.value)}
+                      />
+                    ))}
+                  </View>
+                </View>
+                <Text className="text-xs text-gray-500">
+                  Menampilkan {filteredReports.length} dari {reports.length} laporan darurat
+                </Text>
+              </View>
             </View>
-          )}
+          </Card>
 
           {error && (
             <Card className="mb-4 border border-accent-red bg-red-50">
@@ -188,32 +377,35 @@ export default function DinkesDashboard() {
                   : `${formatInteger(waitingCount)} menunggu • ${formatInteger(processingCount)} diproses`}
               </Text>
               <Text className="text-xs text-gray-700 text-center px-4">
-                Tuntas minggu ini: {formatInteger(resolvedCount)} laporan
+                Tuntas minggu ini: {formatInteger(resolvedThisWeek)} laporan
               </Text>
             </View>
           </Card>
 
           <View className="flex-row flex-wrap gap-4 mb-6">
-            <KPICard
-              icon="school"
-              iconColor="#1976D2"
-              title="Sekolah terpantau"
+            <StatCard
+              icon={<Ionicons name="alert-circle" size={18} color="#DC2626" />}
+              label="Kasus aktif"
+              value={loading && reports.length === 0 ? '…' : formatInteger(openReports.length)}
+              caption={`${formatInteger(waitingCount)} menunggu • ${formatInteger(processingCount)} diproses`}
+            />
+            <StatCard
+              icon={<Ionicons name="checkmark-done" size={18} color="#16A34A" />}
+              label="Selesai (7 hari)"
+              value={loading && reports.length === 0 ? '…' : formatInteger(resolvedThisWeek)}
+              caption={`${formatInteger(resolvedCount)} tuntas total`}
+            />
+            <StatCard
+              icon={<Ionicons name="school" size={18} color="#2563EB" />}
+              label="Sekolah terpantau"
               value={loading && !kpi ? '…' : formatInteger(kpi?.total_sekolah_terpantau)}
-              subtitle="Dalam pemantauan aktif"
+              caption="Dalam pemantauan aktif"
             />
-            <KPICard
-              icon="people"
-              iconColor="#4CAF50"
-              title="Laporan diproses"
-              value={loading && !kpi ? '…' : formatInteger(kpi?.total_laporan_diproses)}
-              subtitle="30 hari terakhir"
-            />
-            <KPICard
-              icon="happy"
-              iconColor="#FBC02D"
-              title="Rating global"
+            <StatCard
+              icon={<Ionicons name="happy" size={18} color="#F59E0B" />}
+              label="Rating global"
               value={loading && !kpi ? '…' : ratingDisplay}
-              subtitle="Rata-rata kepuasan siswa"
+              caption="Rata-rata kepuasan siswa"
             />
           </View>
 
@@ -235,7 +427,7 @@ export default function DinkesDashboard() {
                 ))}
               </View>
             ) : topSchools.length === 0 ? (
-              <Text className="text-gray-600">Tidak ada sekolah dengan kasus aktif.</Text>
+              <Text className="text-gray-600">Tidak ada sekolah dengan kasus aktif pada filter ini.</Text>
             ) : (
               <View className="gap-4">
                 {topSchools.map((school, idx) => (
@@ -263,7 +455,7 @@ export default function DinkesDashboard() {
                 ))}
               </View>
             ) : recentReports.length === 0 ? (
-              <Text className="text-gray-600">Belum ada laporan darurat yang tercatat.</Text>
+              <Text className="text-gray-600">Belum ada laporan darurat yang cocok dengan filter ini.</Text>
             ) : (
               <View className="gap-3">
                 {recentReports.map((report) => (

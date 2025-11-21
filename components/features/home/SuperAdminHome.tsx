@@ -1,22 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Grid from '../../components/layout/Grid';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import KPICard from '../../components/ui/KPICard';
-import Skeleton from '../../components/ui/Skeleton';
-import { StatusPill } from '../../components/ui/StatusPill';
-import TextInput from '../../components/ui/TextInput';
-import { useAuth } from '../../hooks/useAuth';
-import { useResponsive } from '../../hooks/useResponsive';
-import { fetchGlobalKpi, type GlobalKpi } from '../../services/analytics';
-import { fetchCaterings, type CateringListItem } from '../../services/caterings';
-import { fetchHealthStatus, type HealthStatus } from '../../services/health';
-import { fetchSchools, type SchoolListItem } from '../../services/schools';
-import { fetchUsers, type User } from '../../services/users';
+import Grid from '../../../components/layout/Grid';
+import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
+import KPICard from '../../../components/ui/KPICard';
+import Skeleton from '../../../components/ui/Skeleton';
+import { StatusPill } from '../../../components/ui/StatusPill';
+import TextInput from '../../../components/ui/TextInput';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { fetchGlobalKpi, type GlobalKpi } from '../../../services/analytics';
+import { fetchCaterings, type CateringListItem } from '../../../services/caterings';
+import { fetchHealthStatus, type HealthStatus } from '../../../services/health';
+import { fetchSchools, type SchoolListItem } from '../../../services/schools';
+import { fetchUsers, type User } from '../../../services/users';
 
 const numberFormatter = new Intl.NumberFormat('id-ID');
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -37,10 +36,13 @@ interface SearchResultItem {
   icon: IconName;
 }
 
-export default function AdminDashboard() {
-  const { user } = useAuth();
-  const router = useRouter();
+interface Props {
+  username?: string | null;
+}
+
+export function SuperAdminHome({ username }: Props) {
   const { isMobile } = useResponsive();
+  const router = useRouter();
   const [globalKpi, setGlobalKpi] = useState<GlobalKpi | null>(null);
   const [kpiLoading, setKpiLoading] = useState(true);
   const [kpiError, setKpiError] = useState<string | null>(null);
@@ -68,7 +70,7 @@ export default function AdminDashboard() {
         setGlobalKpi(kpiResult.value);
         setKpiError(null);
       } else {
-        console.warn('[admin-dashboard] global KPI error', kpiResult.reason);
+        console.warn('[super-admin-home] global KPI error', kpiResult.reason);
         setKpiError('Gagal memuat ringkasan KPI.');
       }
       setKpiLoading(false);
@@ -77,12 +79,12 @@ export default function AdminDashboard() {
         setHealth(healthResult.value);
         setHealthError(null);
       } else {
-        console.warn('[admin-dashboard] health status error', healthResult.reason);
+        console.warn('[super-admin-home] health status error', healthResult.reason);
         setHealthError('Status sistem tidak tersedia.');
       }
       setHealthLoading(false);
     })().catch((err) => {
-      console.error('[admin-dashboard] init failed', err);
+      console.error('[super-admin-home] init failed', err);
       if (!active) return;
       setKpiError('Terjadi kesalahan saat memuat data.');
       setHealthError('Terjadi kesalahan saat memuat status sistem.');
@@ -137,10 +139,10 @@ export default function AdminDashboard() {
           }));
         } else {
           const users = await fetchUsers({ limit: 20, role: 'admin_dinkes', search: debouncedSearch });
-          results = users.map((admin: User) => ({
-            id: admin.id,
-            title: admin.fullName || admin.username,
-            subtitle: admin.healthOfficeArea || 'Wilayah belum ditentukan',
+          results = users.map((user: User) => ({
+            id: user.id,
+            title: user.fullName || user.username,
+            subtitle: user.healthOfficeArea || 'Wilayah belum ditentukan',
             badge: 'Dinkes',
             icon: 'medkit',
           }));
@@ -150,7 +152,7 @@ export default function AdminDashboard() {
         setSearchResults(results);
         setSearchError(null);
       } catch (err) {
-        console.error('[admin-dashboard] entity search failed', err);
+        console.error('[super-admin-home] entity search failed', err);
         if (!active) return;
         setSearchError('Gagal memuat data hasil pencarian. Coba lagi.');
         setSearchResults([]);
@@ -172,12 +174,10 @@ export default function AdminDashboard() {
   const apiOk = health?.status === 'ok';
   const dbOk = health?.db_status === 'connected';
 
-  if (user?.role !== 'super_admin') return <Redirect href="/" />;
-
   return (
     <SafeAreaView
       className="flex-1 bg-gray-50"
-      edges={["top", "bottom", "left", "right"]}
+      edges={['top', 'bottom', 'left', 'right']}
     >
       <ScrollView
         className="flex-1"
@@ -185,17 +185,17 @@ export default function AdminDashboard() {
         showsVerticalScrollIndicator={false}
       >
         {/* Page Header */}
-        <View className={isMobile ? "mb-6" : "mb-8"}>
-          <Text className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold text-gray-900 mb-2`}>
+        <View className={isMobile ? 'mb-6' : 'mb-8'}>
+          <Text className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold text-gray-900 mb-1`}>
             Dashboard Super Admin
           </Text>
-          <Text className={`${isMobile ? 'text-base' : 'text-lg'} text-gray-600`}>
-            Selamat datang kembali, {user?.username}
+          <Text className={`${isMobile ? 'text-sm' : 'text-base'} text-gray-600`}>
+            Selamat datang kembali{username ? `, ${username}` : ''}
           </Text>
         </View>
 
         {/* KPI Cards */}
-        <View className={isMobile ? "mb-6" : "mb-8"}>
+        <View className={isMobile ? 'mb-6' : 'mb-8'}>
           <Grid mobileColumns={1} tabletColumns={2} desktopColumns={2} gap={isMobile ? 3 : 4}>
             <KPICard
               icon="school"
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
         </View>
 
         {/* System Status Card */}
-        <Card variant="elevated" className={isMobile ? "mb-6" : "mb-8"}>
+        <Card variant="elevated" className={isMobile ? 'mb-6' : 'mb-8'}>
           <Text className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 mb-6`}>
             Status Sistem
           </Text>
@@ -278,12 +278,12 @@ export default function AdminDashboard() {
             Cari Sekolah, Katering, atau Dinkes
           </Text>
           <Text className="text-sm text-gray-600 mb-4">
-            Filter cepat berdasarkan nama untuk mempercepat navigasi.
+            Ketik minimal 2 karakter untuk menemukan entitas dengan cepat.
           </Text>
           <TextInput
             value={searchInput}
             onChangeText={setSearchInput}
-            placeholder="Cari minimal 2 karakter..."
+            placeholder="Cari berdasarkan nama..."
             autoCorrect={false}
             autoCapitalize="none"
           />
@@ -313,6 +313,7 @@ export default function AdminDashboard() {
               </Text>
             ) : searchLoading ? (
               <View className="gap-3">
+                <Skeleton height={56} rounded={14} />
                 <Skeleton height={56} rounded={14} />
                 <Skeleton height={56} rounded={14} />
               </View>

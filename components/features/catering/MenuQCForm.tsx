@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import { Chip } from '../../../components/ui/Chip';
 import { OfflineBadge } from '../../../components/ui/OfflineBadge';
 import TextInput from '../../../components/ui/TextInput';
 import { useOffline } from '../../../hooks/useOffline';
@@ -43,7 +44,32 @@ export interface MenuQCEntry {
 }
 
 const todayStr = () => formatDate(new Date());
+const tomorrowStr = () => formatDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
 const EMPTY_INGREDIENT: Ingredient = { name: '', quantity: '', unit: '' };
+const COMMON_UNITS = ['kg', 'gram', 'pcs', 'paket', 'ml', 'liter'];
+const MAX_PHOTOS = 5;
+
+interface SectionProps {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}
+
+function Section({ icon, title, subtitle, children }: SectionProps) {
+  return (
+    <Card>
+      <View className="flex-row items-center gap-3 mb-4">
+        <View className="w-12 h-12 rounded-full bg-blue-50 items-center justify-center">{icon}</View>
+        <View className="flex-1">
+          <Text className="text-base font-semibold text-gray-900">{title}</Text>
+          {subtitle ? <Text className="text-sm text-gray-500">{subtitle}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </Card>
+  );
+}
 
 export default function MenuQCForm() {
   const { isOnline } = useOffline();
@@ -57,11 +83,23 @@ export default function MenuQCForm() {
   const [pickerExpanded, setPickerExpanded] = useState(Platform.OS === 'ios');
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  const dateShortcuts = useMemo(
+    () => [
+      { label: 'Hari ini', value: todayStr() },
+      { label: 'Besok', value: tomorrowStr() },
+      { label: 'Lusa', value: formatDate(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)) },
+    ],
+    []
+  );
+
   const isValid = useMemo(() => {
     if (!date || !menuName) return false;
     if (!/\d{4}-\d{2}-\d{2}/.test(date)) return false;
     return true;
   }, [date, menuName]);
+
+  const canAddMorePhotos = photos.length < MAX_PHOTOS;
+  const photosRemaining = MAX_PHOTOS - photos.length;
 
   useEffect(() => {
     if (!submitting) {
@@ -110,6 +148,10 @@ export default function MenuQCForm() {
   }
 
   async function pickImage() {
+    if (!canAddMorePhotos) {
+      Alert.alert('Batas foto tercapai', `Maksimal ${MAX_PHOTOS} foto per menu.`);
+      return;
+    }
     const res = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: false, quality: 0.5 });
     if (!res.canceled) {
       const asset = res.assets[0];
@@ -123,6 +165,32 @@ export default function MenuQCForm() {
         optimizedUri = optimized.uri;
       } catch (error) {
         console.warn('[menu-qc] gagal kompres gambar', error);
+      }
+      setPhotos((prev) => [
+        ...prev,
+        { uri: optimizedUri, name: asset.fileName || `photo_${prev.length + 1}.jpg`, type: asset.mimeType || 'image/jpeg' },
+      ]);
+    }
+  }
+
+  async function captureImage() {
+    if (!canAddMorePhotos) {
+      Alert.alert('Batas foto tercapai', `Maksimal ${MAX_PHOTOS} foto per menu.`);
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({ quality: 0.5 });
+    if (!res.canceled) {
+      const asset = res.assets[0];
+      let optimizedUri = asset.uri;
+      try {
+        const optimized = await manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1280 } }],
+          { compress: 0.6, format: SaveFormat.JPEG },
+        );
+        optimizedUri = optimized.uri;
+      } catch (error) {
+        console.warn('[menu-qc] gagal kompres gambar kamera', error);
       }
       setPhotos((prev) => [
         ...prev,
@@ -215,12 +283,21 @@ export default function MenuQCForm() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Card>
-        <Text className="text-lg font-bold mb-2">Input Menu Harian & QC</Text>
-        <Text className="text-gray-600 mb-4">Isi detail menu, bahan baku, tanggal produksi, dan unggah dokumentasi pendukung (opsional).</Text>
-        <OfflineBadge isOnline={isOnline} className="mb-3" />
+        <Text className="text-xl font-bold text-gray-900">Input Menu Harian & QC</Text>
+        <Text className="text-gray-600 mt-1">Isi detail menu, bahan baku, dan dokumentasi untuk memastikan kepatuhan MBG.</Text>
+        <View className="flex-row items-center justify-between mt-4">
+          <OfflineBadge isOnline={isOnline} />
+          <Text className="text-xs text-gray-500">Terakhir diperbarui {new Date().toLocaleTimeString('id-ID')}</Text>
+        </View>
+      </Card>
 
+      <Section
+        icon={<Ionicons name="calendar" size={22} color="#2563EB" />}
+        title="Detail Menu"
+        subtitle="Pilih tanggal produksi dan beri nama menu utama."
+      >
         <View className="mb-3">
           <Text className="mb-1 text-gray-800">Tanggal Produksi</Text>
           <TouchableOpacity
@@ -236,7 +313,7 @@ export default function MenuQCForm() {
                 year: 'numeric',
               })}
             </Text>
-            <Ionicons name="calendar" size={20} color="#1976D2" />
+            <Ionicons name="chevron-down" size={18} color="#6B7280" />
           </TouchableOpacity>
           {pickerExpanded && (
             <View className="mt-2">
@@ -248,71 +325,149 @@ export default function MenuQCForm() {
               />
             </View>
           )}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2 flex-row">
+            {dateShortcuts.map((shortcut) => (
+              <Chip
+                key={shortcut.value}
+                label={shortcut.label}
+                active={date === shortcut.value}
+                onPress={() => setDate(shortcut.value)}
+                className="mr-2"
+              />
+            ))}
+          </ScrollView>
         </View>
 
-        <View className="mb-3">
+        <View>
           <Text className="mb-1 text-gray-800">Nama Menu</Text>
           <TextInput value={menuName} onChangeText={setMenuName} placeholder="Contoh: Nasi Ayam Teriyaki" />
+          <Text className="text-xs text-gray-500 mt-1">Pastikan nama menu sesuai dengan yang akan tampil di portal orang tua.</Text>
+        </View>
+      </Section>
+
+      <Section
+        icon={<Ionicons name="list" size={22} color="#0D9488" />}
+        title="Bahan Baku"
+        subtitle="Catat seluruh bahan dengan kuantitas dan satuan."
+      >
+        {ingredients.map((ing, idx) => (
+          <View key={idx} className="mb-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-3">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-sm font-semibold text-gray-800">Bahan #{idx + 1}</Text>
+              {ingredients.length > 1 && (
+                <TouchableOpacity
+                  onPress={() => removeIngredient(idx)}
+                  className="px-2 py-1 rounded-full bg-red-50"
+                  accessibilityLabel="Hapus bahan"
+                >
+                  <View className="flex-row items-center gap-1">
+                    <Ionicons name="trash" size={14} color="#DC2626" />
+                    <Text className="text-xs font-semibold text-red-600">Hapus</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
+            <View className="flex-row gap-2 mb-2">
+              <View style={{ flex: 2 }}>
+                <TextInput value={ing.name} onChangeText={(t) => updateIngredient(idx, { name: t })} placeholder="Nama bahan" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextInput
+                  value={ing.quantity}
+                  onChangeText={(t) => updateIngredient(idx, { quantity: t })}
+                  placeholder="Qty"
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextInput value={ing.unit} onChangeText={(t) => updateIngredient(idx, { unit: t })} placeholder="Satuan" />
+              </View>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
+              {COMMON_UNITS.map((unit) => (
+                <Chip
+                  key={`${idx}-${unit}`}
+                  label={unit}
+                  active={ing.unit.trim().toLowerCase() === unit}
+                  onPress={() => updateIngredient(idx, { unit })}
+                  className="mx-1"
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ))}
+        <Button title="Tambah bahan" variant="secondary" onPress={addIngredient} />
+      </Section>
+
+      <Section
+        icon={<Ionicons name="document-text" size={22} color="#F97316" />}
+        title="Catatan & Dokumentasi"
+        subtitle="Tambahkan catatan QC serta dokumentasi visual."
+      >
+        <View className="mb-4">
+          <Text className="mb-1 text-gray-800">Catatan (opsional)</Text>
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Catatan QC, suhu penyajian, catatan alergi, dll."
+            multiline
+            numberOfLines={4}
+          />
         </View>
 
-        <View className="mb-3">
-          <Text className="mb-2 text-gray-800">Bahan Baku</Text>
-          {ingredients.map((ing, idx) => (
-            <View key={idx} className="mb-2">
-              <View className="flex-row gap-2">
-                <View style={{ flex: 2 }}>
-                  <TextInput value={ing.name} onChangeText={(t) => updateIngredient(idx, { name: t })} placeholder="Nama bahan" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <TextInput value={ing.quantity} onChangeText={(t) => updateIngredient(idx, { quantity: t })} placeholder="Qty" keyboardType="numeric" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <TextInput value={ing.unit} onChangeText={(t) => updateIngredient(idx, { unit: t })} placeholder="Satuan" />
-                </View>
-              </View>
-              {ingredients.length > 1 && (
-                <View className="mt-1">
-                  <Button title="Hapus bahan" variant="secondary" onPress={() => removeIngredient(idx)} />
+        <Text className="mb-2 text-gray-800">Dokumentasi Foto</Text>
+        <Text className="text-xs text-gray-500 mb-3">Anda dapat menambahkan hingga {MAX_PHOTOS} foto (sisa {photosRemaining}).</Text>
+        <View className="flex-row flex-wrap gap-3 mb-3">
+          {photos.map((p, idx) => (
+            <View key={idx} className="relative">
+              <Image
+                source={{ uri: p.uri }}
+                style={{ width: 96, height: 96, borderRadius: 14, backgroundColor: '#e5e7eb' }}
+              />
+              <TouchableOpacity
+                className="absolute -top-2 -right-2 bg-black/70 rounded-full p-1"
+                onPress={() => removePhoto(idx)}
+                accessibilityRole="button"
+              >
+                <Ionicons name="close" size={14} color="#fff" />
+              </TouchableOpacity>
+              {submitting && (
+                <View className="absolute inset-0 bg-black/30 rounded-2xl items-center justify-center">
+                  <ActivityIndicator color="#fff" />
                 </View>
               )}
             </View>
           ))}
-          <Button title="Tambah bahan" variant="secondary" onPress={addIngredient} className="mt-1" />
+          {photos.length === 0 && (
+            <View className="w-full border border-dashed border-gray-300 rounded-2xl p-4 items-center">
+              <Ionicons name="image" size={28} color="#9CA3AF" />
+              <Text className="text-sm text-gray-500 mt-1">Belum ada foto</Text>
+            </View>
+          )}
         </View>
-
-        <View className="mb-3">
-          <Text className="mb-1 text-gray-800">Catatan (opsional)</Text>
-          <TextInput value={notes} onChangeText={setNotes} placeholder="Catatan QC, suhu penyajian, dll." multiline numberOfLines={3} />
+        <View className="flex-row gap-2">
+          <Button title="Ambil Foto" variant="secondary" onPress={captureImage} disabled={!canAddMorePhotos} className="flex-1" />
+          <Button title="Pilih dari Galeri" variant="secondary" onPress={pickImage} disabled={!canAddMorePhotos} className="flex-1" />
         </View>
+      </Section>
 
-        <View className="mb-3">
-          <Text className="mb-2 text-gray-800">Dokumentasi (foto, opsional)</Text>
-          <View className="flex-row flex-wrap gap-2 mb-2">
-            {photos.map((p, idx) => (
-              <View key={idx} className="relative">
-                <Image
-                  source={{ uri: p.uri }}
-                  style={{ width: 86, height: 86, borderRadius: 10, backgroundColor: '#e5e7eb' }}
-                />
-                <TouchableOpacity
-                  className="absolute -top-2 -right-2 bg-black/70 rounded-full p-1"
-                  onPress={() => removePhoto(idx)}
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="close" size={16} color="#fff" />
-                </TouchableOpacity>
-                {submitting && (
-                  <View className="absolute inset-0 bg-black/40 rounded-2xl items-center justify-center">
-                    <ActivityIndicator color="#fff" />
-                  </View>
-                )}
-              </View>
-            ))}
+      <Card variant="elevated" className="mb-6">
+        <View className="flex-row items-center justify-between mb-4">
+          <View>
+            <Text className="text-lg font-semibold text-gray-900">Kirim Laporan</Text>
+            <Text className="text-sm text-gray-500">Pastikan seluruh data sudah tepat sebelum menyimpan.</Text>
           </View>
-          <Button title="Pilih foto" variant="secondary" onPress={pickImage} />
+          <Ionicons name="cloud-upload-outline" size={24} color="#2563EB" />
         </View>
-
-        <Button title={submitting ? 'Menyimpan…' : 'Simpan'} onPress={submit} loading={submitting} disabled={!isValid || submitting} className="mt-2" />
+        <Button
+          title={submitting ? 'Menyimpan…' : 'Simpan Menu & QC'}
+          onPress={submit}
+          loading={submitting}
+          disabled={!isValid || submitting}
+        />
+        {!isValid && (
+          <Text className="text-xs text-red-500 mt-2">Isi tanggal dan nama menu untuk mengaktifkan tombol simpan.</Text>
+        )}
         {submitting && (
           <View className="mt-3">
             <View className="h-2 bg-gray-100 rounded-full overflow-hidden">

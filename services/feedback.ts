@@ -40,6 +40,7 @@ export interface FeedbackListParams {
   dateFrom?: string;
   dateTo?: string;
   rating?: FeedbackRating;
+  schoolId?: string;
 }
 
 export interface SubmitFeedbackPayload {
@@ -80,6 +81,7 @@ export async function fetchFeedbackList(params: FeedbackListParams = {}): Promis
   if (params.dateFrom) search.set('date_from', params.dateFrom);
   if (params.dateTo) search.set('date_to', params.dateTo);
   if (typeof params.rating === 'number') search.set('rating', String(params.rating));
+  if (params.schoolId) search.set('school_id', params.schoolId);
   const path = `feedback/${search.toString() ? `?${search.toString()}` : ''}`;
   const data = await api(path, { method: 'GET' });
   const list = Array.isArray(data) ? data : [];

@@ -54,3 +54,8 @@ export async function fetchSatisfactionTrend(): Promise<SatisfactionTrend> {
   const data = await api('analytics/trends/satisfaction', { method: 'GET' });
   return data as SatisfactionTrend;
 }
+
+export async function fetchDinkesAreas(): Promise<string[]> {
+  const data = await api('analytics/dinkes/areas', { method: 'GET' });
+  return Array.isArray(data) ? (data as string[]).filter((area) => typeof area === 'string' && area.trim().length > 0) : [];
+}
