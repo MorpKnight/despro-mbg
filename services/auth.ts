@@ -1,27 +1,41 @@
-import Constants from 'expo-constants';
-import { storage } from './storage';
+import { api } from './api';
+import { getSession, setSession, type Role, type Session } from './session';
 
-export type Role = 'super admin' | 'admin sekolah' | 'admin catering' | 'siswa' | 'admin dinkes';
-export interface Session {
-  username: string;
-  role: Role;
-}
+export async function signIn(username: string, password: string): Promise<Session> {
+  const res = await api('auth/login', {
+    method: 'POST',
+    body: { username, password },
+    auth: false,
+  });
 
-const EXTRA = (Constants?.expoConfig as any)?.extra || (Constants as any)?.manifest?.extra;
-const AUTH = (EXTRA?.auth || { users: [], sessionKey: 'mbg_auth_session' }) as { users: {username:string;password:string;role:Role}[]; sessionKey: string };
+  const session: Session = {
+    username,
+    role: res.role as Role,
+    access_token: res.access_token,
+    refresh_token: res.refresh_token,
+    account_status: res.account_status,
+  };
 
-export async function signInLocal(username: string, password: string): Promise<Session> {
-  const user = (AUTH.users as {username:string;password:string;role:Role}[]).find(u => u.username === username && u.password === password);
-  if (!user) throw new Error('Invalid credentials');
-  const session: Session = { username: user.username, role: user.role };
-  await storage.set(AUTH.sessionKey, session);
+  await setSession(session);
   return session;
 }
 
-export async function signOutLocal() {
-  await storage.remove(AUTH.sessionKey);
+export async function signOut(): Promise<void> {
+  try {
+    await api('auth/logout', { method: 'POST' });
+  } catch (err) {
+    console.warn('[auth] logout failed', err);
+  } finally {
+    await setSession(null);
+  }
 }
 
 export async function loadSession(): Promise<Session | null> {
-  return storage.get<Session>(AUTH.sessionKey);
+  return getSession();
 }
+
+export async function updateStoredSession(session: Session | null): Promise<void> {
+  await setSession(session);
+}
+
+export type { Role, Session } from './session';
