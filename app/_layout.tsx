@@ -9,6 +9,7 @@ import { OfflineProvider } from '../context/OfflineContext';
 import { PreferencesProvider } from '../context/PreferencesContext';
 import { SnackbarProvider } from '../context/SnackbarContext';
 import '../global.css';
+import { QueryProvider } from '../lib/react-query';
 import { suppressWebWarnings } from '../utils/debug-web-warnings';
 
 function NavigationThemeBoundary({ children }: PropsWithChildren) {
@@ -29,9 +30,11 @@ export default function RootLayout() {
       <AuthProvider>
         <OfflineProvider>
           <SnackbarProvider>
-            <NavigationThemeBoundary>
-              <Stack screenOptions={{ headerShown: false }} />
-            </NavigationThemeBoundary>
+            <QueryProvider>
+              <NavigationThemeBoundary>
+                <Stack screenOptions={{ headerShown: false }} />
+              </NavigationThemeBoundary>
+            </QueryProvider>
           </SnackbarProvider>
         </OfflineProvider>
       </AuthProvider>

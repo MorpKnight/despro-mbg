@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
@@ -12,6 +13,11 @@ import { fetchSchools, type SchoolListItem } from '../../services/schools';
 
 const ALL_LOCATIONS = 'ALL_LOCATIONS';
 const SCHOOL_PAGE_SIZE = 6;
+
+type UserSchoolProfile = Partial<SchoolListItem> & {
+  id?: string | null;
+  name?: string | null;
+};
 
 interface StatCardProps {
   icon: string;
@@ -79,39 +85,48 @@ export default function SekolahDashboard() {
   const isSuperAdmin = user?.role === 'super_admin';
   const isSchoolAdmin = user?.role === 'admin_sekolah';
 
-  const [schools, setSchools] = useState<SchoolListItem[]>([]);
-  const [schoolsLoading, setSchoolsLoading] = useState(false);
-  const [schoolsError, setSchoolsError] = useState<string | null>(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
   const [schoolSearchInput, setSchoolSearchInput] = useState('');
   const [debouncedSchoolSearch, setDebouncedSchoolSearch] = useState('');
   const [locationFilter, setLocationFilter] = useState<string>(ALL_LOCATIONS);
   const [schoolPage, setSchoolPage] = useState(0);
 
-  const [attendance, setAttendance] = useState<AttendanceSummary | null>(null);
-  const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const [attendanceError, setAttendanceError] = useState<string | null>(null);
-  const [attendanceFetchedAt, setAttendanceFetchedAt] = useState<string | null>(null);
-
-  const [reports, setReports] = useState<EmergencyReport[]>([]);
-  const [reportsLoading, setReportsLoading] = useState(false);
-  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
-  const [feedbackLoading, setFeedbackLoading] = useState(false);
-  const [dataError, setDataError] = useState<string | null>(null);
-
   const adminSchoolFromProfile = useMemo<SchoolListItem | null>(() => {
     if (!isSchoolAdmin || !user?.sekolah) return null;
+    const profile = user.sekolah as UserSchoolProfile;
     return {
-      id: user.schoolId ?? user.sekolah.id,
-      name: user.sekolah.name ?? 'Sekolah Tanpa Nama',
-      alamat: user.sekolah.alamat ?? undefined,
-      provinsi: user.sekolah.provinsi ?? undefined,
-      kotaKabupaten: user.sekolah.kotaKabupaten ?? undefined,
-      kecamatan: user.sekolah.kecamatan ?? undefined,
-      kelurahan: user.sekolah.kelurahan ?? undefined,
-      contactPhone: user.sekolah.contactPhone ?? undefined,
+      id: user.schoolId ?? profile.id ?? 'unknown-school',
+      name: profile.name ?? 'Sekolah Tanpa Nama',
+      alamat: profile.alamat ?? null,
+      provinsi: profile.provinsi ?? null,
+      kotaKabupaten: profile.kotaKabupaten ?? null,
+      kecamatan: profile.kecamatan ?? null,
+      kelurahan: profile.kelurahan ?? null,
+      contactPhone: profile.contactPhone ?? null,
+      healthOfficeAreaId: profile.healthOfficeAreaId ?? null,
+      healthOfficeArea: profile.healthOfficeArea ?? null,
     };
   }, [isSchoolAdmin, user?.schoolId, user?.sekolah]);
+
+  const schoolsQuery = useQuery<SchoolListItem[]>(
+    {
+      queryKey: ['schools', debouncedSchoolSearch],
+      queryFn: () => fetchSchools({ limit: 100, search: debouncedSchoolSearch || undefined }),
+      enabled: isSuperAdmin,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+    }
+  );
+
+  useEffect(() => {
+    if (schoolsQuery.isError) {
+      console.warn('[sekolah-dashboard] gagal memuat sekolah', schoolsQuery.error);
+    }
+  }, [schoolsQuery.isError, schoolsQuery.error]);
+
+  const schools = useMemo<SchoolListItem[]>(() => (schoolsQuery.data ?? []) as SchoolListItem[], [schoolsQuery.data]);
+  const schoolsLoading = isSuperAdmin ? schoolsQuery.isPending : false;
+  const schoolsError = schoolsQuery.isError ? 'Tidak dapat memuat daftar sekolah.' : null;
 
   const selectedSchoolMeta = useMemo<SchoolListItem | null>(() => {
     if (isSuperAdmin) {
@@ -128,41 +143,73 @@ export default function SekolahDashboard() {
   }, [schoolSearchInput]);
 
   useEffect(() => {
-    if (!isSuperAdmin) return;
-    let active = true;
-    setSchoolsLoading(true);
-    setSchoolsError(null);
-
-    fetchSchools({ limit: 100, search: debouncedSchoolSearch || undefined })
-      .then((list) => {
-        if (!active) return;
-        setSchools(list);
-      })
-      .catch((err) => {
-        console.warn('[sekolah-dashboard] gagal memuat sekolah', err);
-        if (!active) return;
-        setSchoolsError('Tidak dapat memuat daftar sekolah.');
-        setSchools([]);
-      })
-      .finally(() => {
-        if (active) setSchoolsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [debouncedSchoolSearch, isSuperAdmin]);
-
-  useEffect(() => {
     if (!isSchoolAdmin) return;
     setSelectedSchoolId((prev) => prev ?? (user?.schoolId ?? user?.sekolah?.id ?? null));
   }, [isSchoolAdmin, user?.schoolId, user?.sekolah?.id]);
 
+  const adminSchoolId = user?.schoolId ?? user?.sekolah?.id ?? null;
+  const resolvedSchoolId = isSuperAdmin ? selectedSchoolId : selectedSchoolId ?? adminSchoolId;
+
   const shouldFetchData = useMemo(() => {
-    if (isSuperAdmin) return Boolean(selectedSchoolId);
-    if (isSchoolAdmin) return Boolean(user?.schoolId ?? user?.sekolah?.id);
-    return false;
-  }, [isSchoolAdmin, isSuperAdmin, selectedSchoolId, user?.schoolId, user?.sekolah?.id]);
+    if (!isSuperAdmin && !isSchoolAdmin) return false;
+    return Boolean(resolvedSchoolId);
+  }, [isSchoolAdmin, isSuperAdmin, resolvedSchoolId]);
+
+  const attendanceQuery = useQuery<AttendanceSummary>(
+    {
+      queryKey: ['attendance-summary', resolvedSchoolId],
+      queryFn: () => fetchAttendanceSummary({ schoolId: resolvedSchoolId ?? undefined }),
+      enabled: shouldFetchData && Boolean(resolvedSchoolId),
+      staleTime: 30 * 1000,
+      gcTime: 5 * 60 * 1000,
+    }
+  );
+  useEffect(() => {
+    if (attendanceQuery.isError) {
+      console.warn('[sekolah-dashboard] gagal memuat ringkasan presensi', attendanceQuery.error);
+    }
+  }, [attendanceQuery.isError, attendanceQuery.error]);
+  const attendance: AttendanceSummary | null = attendanceQuery.data ?? null;
+  const attendanceLoading = shouldFetchData ? attendanceQuery.isPending : false;
+  const attendanceError = attendanceQuery.isError ? 'Tidak dapat memuat ringkasan presensi.' : null;
+  const attendanceFetchedAt = attendance && attendanceQuery.dataUpdatedAt
+    ? new Date(attendanceQuery.dataUpdatedAt).toISOString()
+    : null;
+
+  const reportsQuery = useQuery<EmergencyReport[]>(
+    {
+      queryKey: ['emergency-reports', resolvedSchoolId],
+      queryFn: () => fetchEmergencyReports({ schoolId: resolvedSchoolId ?? undefined }),
+      enabled: shouldFetchData && Boolean(resolvedSchoolId),
+      staleTime: 30 * 1000,
+      gcTime: 5 * 60 * 1000,
+    }
+  );
+  useEffect(() => {
+    if (reportsQuery.isError) {
+      console.warn('[sekolah-dashboard] gagal memuat laporan darurat', reportsQuery.error);
+    }
+  }, [reportsQuery.isError, reportsQuery.error]);
+  const reports = useMemo<EmergencyReport[]>(() => (reportsQuery.data ?? []) as EmergencyReport[], [reportsQuery.data]);
+  const reportsLoading = shouldFetchData ? reportsQuery.isPending : false;
+
+  const feedbackQuery = useQuery<FeedbackItem[]>(
+    {
+      queryKey: ['feedback-list', resolvedSchoolId],
+      queryFn: () => fetchFeedbackList({ schoolId: resolvedSchoolId ?? undefined }),
+      enabled: shouldFetchData && Boolean(resolvedSchoolId),
+      staleTime: 30 * 1000,
+      gcTime: 5 * 60 * 1000,
+    }
+  );
+  useEffect(() => {
+    if (feedbackQuery.isError) {
+      console.warn('[sekolah-dashboard] gagal memuat feedback', feedbackQuery.error);
+    }
+  }, [feedbackQuery.isError, feedbackQuery.error]);
+  const feedbackItems = useMemo<FeedbackItem[]>(() => (feedbackQuery.data ?? []) as FeedbackItem[], [feedbackQuery.data]);
+  const feedbackLoading = shouldFetchData ? feedbackQuery.isPending : false;
+  const dataError = reportsQuery.isError || feedbackQuery.isError ? 'Sebagian data tidak dapat dimuat.' : null;
 
   const locationOptions = useMemo(() => {
     const uniques = Array.from(
@@ -215,82 +262,6 @@ export default function SekolahDashboard() {
       return prev;
     });
   }, [totalSchoolPages]);
-
-  useEffect(() => {
-    if (!shouldFetchData) {
-      setAttendance(null);
-      setAttendanceFetchedAt(null);
-      return;
-    }
-    let active = true;
-    setAttendanceLoading(true);
-    setAttendanceError(null);
-
-    fetchAttendanceSummary({ schoolId: selectedSchoolId ?? undefined })
-      .then((summary) => {
-        if (!active) return;
-        setAttendance(summary);
-        setAttendanceFetchedAt(new Date().toISOString());
-      })
-      .catch((err) => {
-        console.warn('[sekolah-dashboard] gagal memuat ringkasan presensi', err);
-        if (!active) return;
-        setAttendance(null);
-        setAttendanceError('Tidak dapat memuat ringkasan presensi.');
-      })
-      .finally(() => {
-        if (active) setAttendanceLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [selectedSchoolId, shouldFetchData]);
-
-  useEffect(() => {
-    if (!shouldFetchData) {
-      setReports([]);
-      setFeedbackItems([]);
-      return;
-    }
-
-    let active = true;
-    setReportsLoading(true);
-    setFeedbackLoading(true);
-    setDataError(null);
-
-    Promise.allSettled([
-      fetchEmergencyReports({ schoolId: selectedSchoolId ?? undefined }),
-      fetchFeedbackList({ schoolId: selectedSchoolId ?? undefined }),
-    ])
-      .then(([reportsResult, feedbackResult]) => {
-        if (!active) return;
-        if (reportsResult.status === 'fulfilled') {
-          setReports(reportsResult.value);
-        } else {
-          console.warn('[sekolah-dashboard] gagal memuat laporan darurat', reportsResult.reason);
-          setReports([]);
-          setDataError('Sebagian data tidak dapat dimuat.');
-        }
-
-        if (feedbackResult.status === 'fulfilled') {
-          setFeedbackItems(feedbackResult.value);
-        } else {
-          console.warn('[sekolah-dashboard] gagal memuat feedback', feedbackResult.reason);
-          setFeedbackItems([]);
-          setDataError('Sebagian data tidak dapat dimuat.');
-        }
-      })
-      .finally(() => {
-        if (!active) return;
-        setReportsLoading(false);
-        setFeedbackLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [selectedSchoolId, shouldFetchData]);
 
   if (!isSuperAdmin && !isSchoolAdmin) {
     return <Redirect href="/" />;
