@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { zodResolver } from '@hookform/resolvers/zod';
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useMemo, useState } from 'react';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import {
     ActivityIndicator,
     Alert,
@@ -21,31 +23,13 @@ import TextInput from '../../../components/ui/TextInput';
 import { useOffline } from '../../../hooks/useOffline';
 import { useSnackbar } from '../../../hooks/useSnackbar';
 import { formatDate } from '../../../lib/utils';
+import type { IngredientInput, MenuQCEntry, MenuQCFormValues, MenuQCIngredientPayload } from '../../../schemas/menuQc';
+import { MenuQCEntrySchema, MenuQCFormSchema } from '../../../schemas/menuQc';
 import { api } from '../../../services/api';
-
-export interface Ingredient {
-  name: string;
-  quantity: string;
-  unit: string;
-}
-
-interface IngredientPayload {
-  name: string;
-  quantity: number;
-  unit: string;
-}
-
-export interface MenuQCEntry {
-  date: string; // YYYY-MM-DD
-  menuName: string;
-  ingredients: IngredientPayload[];
-  notes?: string;
-  photos: { uri: string; name?: string; type?: string }[];
-}
 
 const todayStr = () => formatDate(new Date());
 const tomorrowStr = () => formatDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
-const EMPTY_INGREDIENT: Ingredient = { name: '', quantity: '', unit: '' };
+const EMPTY_INGREDIENT: IngredientInput = { name: '', quantity: '', unit: '' };
 const COMMON_UNITS = ['kg', 'gram', 'pcs', 'paket', 'ml', 'liter'];
 const MAX_PHOTOS = 5;
 
@@ -74,10 +58,26 @@ function Section({ icon, title, subtitle, children }: SectionProps) {
 export default function MenuQCForm() {
   const { isOnline } = useOffline();
   const { showSnackbar } = useSnackbar();
-  const [date, setDate] = useState<string>(todayStr());
-  const [menuName, setMenuName] = useState('');
-  const [notes, setNotes] = useState('');
-  const [ingredients, setIngredients] = useState<Ingredient[]>([EMPTY_INGREDIENT]);
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+  } = useForm<MenuQCFormValues>({
+    resolver: zodResolver(MenuQCFormSchema),
+    defaultValues: {
+      date: todayStr(),
+      menuName: '',
+      notes: '',
+      ingredients: [{ ...EMPTY_INGREDIENT }],
+    },
+    mode: 'onChange',
+  });
+  const { fields: ingredientFields, append, remove: removeIngredientField } = useFieldArray({ control, name: 'ingredients' });
+  const date = watch('date');
+  const ingredients = watch('ingredients');
   const [photos, setPhotos] = useState<MenuQCEntry['photos']>([]);
   const [submitting, setSubmitting] = useState(false);
   const [pickerExpanded, setPickerExpanded] = useState(Platform.OS === 'ios');
@@ -91,12 +91,6 @@ export default function MenuQCForm() {
     ],
     []
   );
-
-  const isValid = useMemo(() => {
-    if (!date || !menuName) return false;
-    if (!/\d{4}-\d{2}-\d{2}/.test(date)) return false;
-    return true;
-  }, [date, menuName]);
 
   const canAddMorePhotos = photos.length < MAX_PHOTOS;
   const photosRemaining = MAX_PHOTOS - photos.length;
@@ -113,21 +107,23 @@ export default function MenuQCForm() {
     return () => clearInterval(timer);
   }, [submitting]);
 
-  function updateIngredient(i: number, patch: Partial<Ingredient>) {
-    setIngredients((prev) => prev.map((ing, idx) => (idx === i ? { ...ing, ...patch } : ing)));
+  function updateIngredient(i: number, patch: Partial<IngredientInput>) {
+    const current = ingredients?.[i] ?? EMPTY_INGREDIENT;
+    setValue(`ingredients.${i}`, { ...current, ...patch }, { shouldDirty: true, shouldValidate: true });
   }
 
   function addIngredient() {
-    setIngredients((prev) => [...prev, { ...EMPTY_INGREDIENT }]);
+    append({ ...EMPTY_INGREDIENT });
   }
 
   function removeIngredient(i: number) {
-    setIngredients((prev) => prev.filter((_, idx) => idx !== i));
+    if (ingredientFields.length <= 1) return;
+    removeIngredientField(i);
   }
 
   const handleDateChange = (_event: DateTimePickerEvent, selected?: Date) => {
     if (selected) {
-      setDate(formatDate(selected));
+      setValue('date', formatDate(selected), { shouldValidate: true });
     }
     if (Platform.OS !== 'ios') {
       setPickerExpanded(false);
@@ -135,7 +131,7 @@ export default function MenuQCForm() {
   };
 
   const openDatePicker = () => {
-    const current = new Date(date);
+    const current = date ? new Date(date) : new Date();
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({ value: current, mode: 'date', onChange: handleDateChange });
     } else {
@@ -199,29 +195,13 @@ export default function MenuQCForm() {
     }
   }
 
-  async function submit() {
-    if (!isValid) {
-      Alert.alert('Form belum lengkap', 'Mohon isi tanggal dan nama menu minimal.');
-      return;
-    }
+  const submit = handleSubmit(async (values) => {
+    if (submitting) return;
 
-    const trimmed = ingredients
-      .map((item) => ({
-        name: item.name.trim(),
-        quantityText: item.quantity.trim(),
-        unit: item.unit.trim(),
-      }))
-      .filter((item) => item.name || item.unit || item.quantityText !== '');
-
-    if (trimmed.length === 0) {
-      Alert.alert('Bahan belum diisi', 'Tambahkan minimal satu bahan beserta kuantitas dan satuannya.');
-      return;
-    }
-
-    const preparedIngredients: IngredientPayload[] = trimmed.map((item) => ({
-      name: item.name,
-      unit: item.unit,
-      quantity: Number(item.quantityText),
+    const preparedIngredients: MenuQCIngredientPayload[] = values.ingredients.map((item) => ({
+      name: item.name.trim(),
+      unit: item.unit.trim(),
+      quantity: Number(item.quantity),
     }));
 
     const invalidIngredient = preparedIngredients.find(
@@ -235,13 +215,13 @@ export default function MenuQCForm() {
       return;
     }
 
-    const payload: MenuQCEntry = {
-      date,
-      menuName: menuName.trim(),
-      notes: notes.trim() || undefined,
+    const payload: MenuQCEntry = MenuQCEntrySchema.parse({
+      date: values.date,
+      menuName: values.menuName.trim(),
+      notes: values.notes?.trim() ? values.notes.trim() : undefined,
       ingredients: preparedIngredients,
       photos,
-    };
+    });
 
     setSubmitting(true);
     try {
@@ -262,10 +242,12 @@ export default function MenuQCForm() {
       await api('menus/', { method: 'POST', body: form });
       setUploadProgress(1);
       showSnackbar({ message: 'Menu harian & QC berhasil dikirim.', variant: 'success' });
-      // Reset form
-      setMenuName('');
-      setNotes('');
-      setIngredients([{ ...EMPTY_INGREDIENT }]);
+      reset({
+        date: values.date,
+        menuName: '',
+        notes: '',
+        ingredients: [{ ...EMPTY_INGREDIENT }],
+      });
       setPhotos([]);
     } catch {
       // Offline or error -> queue locally
@@ -280,7 +262,7 @@ export default function MenuQCForm() {
     } finally {
       setSubmitting(false);
     }
-  }
+  });
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
@@ -331,16 +313,24 @@ export default function MenuQCForm() {
                 key={shortcut.value}
                 label={shortcut.label}
                 active={date === shortcut.value}
-                onPress={() => setDate(shortcut.value)}
+                onPress={() => setValue('date', shortcut.value, { shouldValidate: true })}
                 className="mr-2"
               />
             ))}
           </ScrollView>
+          {errors.date ? <Text className="text-xs text-red-500 mt-2">{errors.date.message}</Text> : null}
         </View>
 
         <View>
           <Text className="mb-1 text-gray-800">Nama Menu</Text>
-          <TextInput value={menuName} onChangeText={setMenuName} placeholder="Contoh: Nasi Ayam Teriyaki" />
+          <Controller
+            control={control}
+            name="menuName"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <TextInput value={value} onChangeText={onChange} onBlur={onBlur} placeholder="Contoh: Nasi Ayam Teriyaki" />
+            )}
+          />
+          {errors.menuName ? <Text className="text-xs text-red-500 mt-1">{errors.menuName.message}</Text> : null}
           <Text className="text-xs text-gray-500 mt-1">Pastikan nama menu sesuai dengan yang akan tampil di portal orang tua.</Text>
         </View>
       </Section>
@@ -350,52 +340,78 @@ export default function MenuQCForm() {
         title="Bahan Baku"
         subtitle="Catat seluruh bahan dengan kuantitas dan satuan."
       >
-        {ingredients.map((ing, idx) => (
-          <View key={idx} className="mb-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-3">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-sm font-semibold text-gray-800">Bahan #{idx + 1}</Text>
-              {ingredients.length > 1 && (
-                <TouchableOpacity
-                  onPress={() => removeIngredient(idx)}
-                  className="px-2 py-1 rounded-full bg-red-50"
-                  accessibilityLabel="Hapus bahan"
-                >
-                  <View className="flex-row items-center gap-1">
-                    <Ionicons name="trash" size={14} color="#DC2626" />
-                    <Text className="text-xs font-semibold text-red-600">Hapus</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
+        {ingredientFields.map((field, idx) => {
+          const ingErrors = errors.ingredients?.[idx];
+          const current = ingredients?.[idx] ?? EMPTY_INGREDIENT;
+          return (
+            <View key={field.id} className="mb-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-3">
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-sm font-semibold text-gray-800">Bahan #{idx + 1}</Text>
+                {ingredientFields.length > 1 && (
+                  <TouchableOpacity
+                    onPress={() => removeIngredient(idx)}
+                    className="px-2 py-1 rounded-full bg-red-50"
+                    accessibilityLabel="Hapus bahan"
+                  >
+                    <View className="flex-row items-center gap-1">
+                      <Ionicons name="trash" size={14} color="#DC2626" />
+                      <Text className="text-xs font-semibold text-red-600">Hapus</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View className="flex-row gap-2 mb-2">
+                <View style={{ flex: 2 }}>
+                  <Controller
+                    control={control}
+                    name={`ingredients.${idx}.name` as const}
+                    render={({ field: { value, onChange, onBlur } }) => (
+                      <TextInput value={value} onChangeText={onChange} onBlur={onBlur} placeholder="Nama bahan" />
+                    )}
+                  />
+                  {ingErrors?.name ? <Text className="text-xs text-red-500 mt-1">{ingErrors.name.message}</Text> : null}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Controller
+                    control={control}
+                    name={`ingredients.${idx}.quantity` as const}
+                    render={({ field: { value, onChange, onBlur } }) => (
+                      <TextInput
+                        value={value}
+                        onChangeText={onChange}
+                        onBlur={onBlur}
+                        placeholder="Qty"
+                        keyboardType="numeric"
+                      />
+                    )}
+                  />
+                  {ingErrors?.quantity ? <Text className="text-xs text-red-500 mt-1">{ingErrors.quantity.message}</Text> : null}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Controller
+                    control={control}
+                    name={`ingredients.${idx}.unit` as const}
+                    render={({ field: { value, onChange, onBlur } }) => (
+                      <TextInput value={value} onChangeText={onChange} onBlur={onBlur} placeholder="Satuan" />
+                    )}
+                  />
+                  {ingErrors?.unit ? <Text className="text-xs text-red-500 mt-1">{ingErrors.unit.message}</Text> : null}
+                </View>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
+                {COMMON_UNITS.map((unit) => (
+                  <Chip
+                    key={`${field.id}-${unit}`}
+                    label={unit}
+                    active={current.unit.trim().toLowerCase() === unit}
+                    onPress={() => updateIngredient(idx, { unit })}
+                    className="mx-1"
+                  />
+                ))}
+              </ScrollView>
             </View>
-            <View className="flex-row gap-2 mb-2">
-              <View style={{ flex: 2 }}>
-                <TextInput value={ing.name} onChangeText={(t) => updateIngredient(idx, { name: t })} placeholder="Nama bahan" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <TextInput
-                  value={ing.quantity}
-                  onChangeText={(t) => updateIngredient(idx, { quantity: t })}
-                  placeholder="Qty"
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <TextInput value={ing.unit} onChangeText={(t) => updateIngredient(idx, { unit: t })} placeholder="Satuan" />
-              </View>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
-              {COMMON_UNITS.map((unit) => (
-                <Chip
-                  key={`${idx}-${unit}`}
-                  label={unit}
-                  active={ing.unit.trim().toLowerCase() === unit}
-                  onPress={() => updateIngredient(idx, { unit })}
-                  className="mx-1"
-                />
-              ))}
-            </ScrollView>
-          </View>
-        ))}
+          );
+        })}
         <Button title="Tambah bahan" variant="secondary" onPress={addIngredient} />
       </Section>
 
@@ -406,13 +422,21 @@ export default function MenuQCForm() {
       >
         <View className="mb-4">
           <Text className="mb-1 text-gray-800">Catatan (opsional)</Text>
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Catatan QC, suhu penyajian, catatan alergi, dll."
-            multiline
-            numberOfLines={4}
+          <Controller
+            control={control}
+            name="notes"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <TextInput
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="Catatan QC, suhu penyajian, catatan alergi, dll."
+                multiline
+                numberOfLines={4}
+              />
+            )}
           />
+          {errors.notes ? <Text className="text-xs text-red-500 mt-1">{errors.notes.message}</Text> : null}
         </View>
 
         <Text className="mb-2 text-gray-800">Dokumentasi Foto</Text>
