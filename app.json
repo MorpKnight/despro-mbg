@@ -39,20 +39,42 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
-        "typedRoutes": true,
-        "reactCompiler": false
+      "typedRoutes": true,
+      "reactCompiler": false
     },
     "extra": {
+      "apiUrl": "http://localhost:8000/api/v1",
       "auth": {
         "users": [
-          { "username": "super", "password": "super123", "role": "super admin" },
-          { "username": "sekolah", "password": "sekolah123", "role": "admin sekolah" },
-          { "username": "catering", "password": "catering123", "role": "admin catering" },
-          { "username": "siswa", "password": "siswa123", "role": "siswa" },
-          { "username": "dinkes", "password": "dinkes123", "role": "admin dinkes" }
+          {
+            "username": "super",
+            "password": "super123",
+            "role": "super_admin"
+          },
+          {
+            "username": "sekolah",
+            "password": "sekolah123",
+            "role": "admin_sekolah"
+          },
+          {
+            "username": "catering",
+            "password": "catering123",
+            "role": "admin_catering"
+          },
+          {
+            "username": "siswa",
+            "password": "siswa123",
+            "role": "siswa"
+          },
+          {
+            "username": "dinkes",
+            "password": "dinkes123",
+            "role": "admin_dinkes"
+          }
         ],
         "sessionKey": "mbg_auth_session"
       }

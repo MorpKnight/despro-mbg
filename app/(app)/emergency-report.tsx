@@ -1,95 +1,186 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect } from 'expo-router';
-import React from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Redirect, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../hooks/useAuth';
+import { fetchEmergencyReports, type EmergencyReport, type ReportStatus } from '../../services/emergency';
 
-type ReportStatus = 'MENUNGGU' | 'PROSES' | 'SELESAI';
+const STATUS_META: Record<ReportStatus, { label: string; bg: string; text: string }> = {
+  menunggu: { label: 'Menunggu', bg: '#FBC02D', text: '#000000' },
+  proses: { label: 'Diproses', bg: '#1976D2', text: '#FFFFFF' },
+  selesai: { label: 'Selesai', bg: '#4CAF50', text: '#FFFFFF' },
+};
 
-interface ReportItem {
-  id: string;
-  date: string; // ISO or formatted
-  title: string; // short summary
-  status: ReportStatus;
-}
+const FILTERS: { value: 'all' | ReportStatus; label: string }[] = [
+  { value: 'all', label: 'Semua' },
+  { value: 'menunggu', label: 'Menunggu' },
+  { value: 'proses', label: 'Diproses' },
+  { value: 'selesai', label: 'Selesai' },
+];
 
 export default function EmergencyReportPage() {
   const { user } = useAuth();
-  if (user?.role !== 'admin sekolah' && user?.role !== 'super admin') return <Redirect href="/" />;
+  const router = useRouter();
+  const [reports, setReports] = useState<EmergencyReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | ReportStatus>('all');
+  const canView = user?.role === 'admin_sekolah' || user?.role === 'super_admin';
 
-  // Example list (newest first)
-  const reports: ReportItem[] = [
-    { id: 'r1', date: '2025-10-18', title: 'Dugaan Keracunan Makanan', status: 'PROSES' },
-    { id: 'r2', date: '2025-10-16', title: 'Alergi Kacang - 1 siswa', status: 'SELESAI' },
-    { id: 'r3', date: '2025-10-12', title: 'Keluhan Mual Setelah Makan', status: 'MENUNGGU' },
-  ];
+  useEffect(() => {
+    let active = true;
+    if (!canView) {
+      setLoading(false);
+      setReports([]);
+      return () => {
+        active = false;
+      };
+    }
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        const data = await fetchEmergencyReports();
+        if (active) {
+          setReports(data);
+          setError(null);
+        }
+      } catch (err) {
+        console.warn('[emergency-report] gagal memuat', err);
+        if (active) {
+          setReports([]);
+          setError('Gagal memuat daftar laporan darurat.');
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [canView]);
 
-  const badgeColor = (s: ReportStatus) =>
-    s === 'MENUNGGU' ? { bg: '#FBC02D', text: '#000000' } : s === 'PROSES' ? { bg: '#1976D2', text: '#FFFFFF' } : { bg: '#4CAF50', text: '#FFFFFF' };
+  const sortedReports = useMemo(
+    () => [...reports].sort((a, b) => +new Date(b.date) - +new Date(a.date)),
+    [reports],
+  );
 
-  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const filteredReports = useMemo(() => {
+    if (filter === 'all') return sortedReports;
+    return sortedReports.filter((report) => report.status === filter);
+  }, [sortedReports, filter]);
+
+  if (user?.role !== 'admin_sekolah' && user?.role !== 'super_admin') return <Redirect href="/" />;
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-    <ScrollView className="flex-1 bg-neutral-gray">
-      <View className="p-6">
-        <View className="mb-4">
-          <Text className="text-2xl font-bold text-gray-900">Daftar Laporan Darurat</Text>
-        </View>
+      <ScrollView className="flex-1 bg-neutral-gray">
+        <View className="p-6">
+          <View className="mb-4">
+            <Text className="text-2xl font-bold text-gray-900">Laporan Darurat Sekolah</Text>
+            <Text className="text-gray-600">Pantau dan tindak lanjuti laporan darurat yang dibuat oleh sekolah Anda</Text>
+          </View>
 
-        <Card className="mb-4">
-          <View className="flex-row">
-            <View className="flex-1">
-              <Button
-                title="+ Buat Laporan Baru"
-                className="w-full"
-                style={{ backgroundColor: '#E53935' }}
-                onPress={() => {
-                  // TODO: open create report flow
-                  console.log('create emergency report');
-                }}
-              />
+          <Card className="mb-4">
+            <View className="flex-row">
+              <View className="flex-1">
+                <Button
+                  title="+ Buat Laporan Baru"
+                  className="w-full"
+                  style={{ backgroundColor: '#E53935' }}
+                  onPress={() => {
+                    console.log('create emergency report');
+                  }}
+                />
+              </View>
             </View>
-          </View>
-          <View className="absolute left-4 top-4">
-            <Ionicons name="add-circle" size={20} color="#FFFFFF" />
-          </View>
-        </Card>
+            <View className="absolute left-4 top-4">
+              <Ionicons name="add-circle" size={20} color="#FFFFFF" />
+            </View>
+          </Card>
 
-        {reports.length === 0 ? (
-          <View className="items-center justify-center py-12">
-            <Ionicons name="medkit-outline" size={40} color="#9CA3AF" />
-            <Text className="text-gray-500 mt-2 text-center">Tidak ada laporan darurat yang dibuat. Gunakan tombol di atas untuk membuat laporan baru.</Text>
-          </View>
-        ) : (
-          <View className="gap-3">
-            {reports.map((r) => {
-              const colors = badgeColor(r.status);
+          <View className="flex-row gap-2 mb-4">
+            {FILTERS.map((item) => {
+              const active = filter === item.value;
               return (
-                <Card key={r.id} className="p-4">
-                  <View className="flex-row items-start justify-between">
-                    <View className="flex-1 pr-3">
-                      <Text className="font-semibold text-gray-900 mb-1">{fmtDate(r.date)} - {r.title}</Text>
-                      <View style={{ alignSelf: 'flex-start', backgroundColor: colors.bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
-                        <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700' }}>
-                          {r.status === 'MENUNGGU' ? 'Menunggu Penanganan' : r.status === 'PROSES' ? 'Sedang Ditangani' : 'Selesai'}
-                        </Text>
-                      </View>
-                    </View>
-                    <View>
-                      <Text className="text-primary font-semibold">Lihat Detail</Text>
-                    </View>
-                  </View>
-                </Card>
+                <TouchableOpacity
+                  key={item.value}
+                  className={`px-3 py-1 rounded-full border ${active ? 'bg-primary border-primary' : 'border-gray-200 bg-white'}`}
+                  onPress={() => setFilter(item.value)}
+                >
+                  <Text className={`text-xs font-semibold ${active ? 'text-white' : 'text-gray-600'}`}>{item.label}</Text>
+                </TouchableOpacity>
               );
             })}
           </View>
-        )}
-      </View>
-    </ScrollView>
+
+          {loading ? (
+            <Card>
+              <Text className="text-gray-600">Memuat laporan darurat…</Text>
+            </Card>
+          ) : error ? (
+            <Card className="border border-accent-red bg-red-50">
+              <Text className="text-accent-red">{error}</Text>
+            </Card>
+          ) : filteredReports.length === 0 ? (
+            <View className="items-center justify-center py-12">
+              <Ionicons name="medkit-outline" size={40} color="#9CA3AF" />
+              <Text className="text-gray-500 mt-2 text-center">
+                Tidak ada laporan dengan kriteria ini. Gunakan tombol di atas untuk membuat laporan baru.
+              </Text>
+            </View>
+          ) : (
+            <View className="gap-3">
+              {filteredReports.map((report) => {
+                const meta = STATUS_META[report.status];
+                const lastFollowUp = report.followUps[report.followUps.length - 1];
+                return (
+                  <Pressable
+                    key={report.id}
+                    onPress={() => router.push(`/dinkes-emergency/${report.id}` as never)}
+                  >
+                    <Card className="p-4">
+                      <View className="flex-row items-start justify-between">
+                        <View className="flex-1 pr-3">
+                          <Text className="text-xs text-gray-500 mb-1">{fmtDate(report.date)}</Text>
+                          <Text className="font-semibold text-gray-900 mb-1">{report.title}</Text>
+                          {report.description && (
+                            <Text className="text-sm text-gray-700 mb-2" numberOfLines={2}>{report.description}</Text>
+                          )}
+                          <View
+                            className="self-start px-3 py-1 rounded-full"
+                            style={{ backgroundColor: meta.bg }}
+                          >
+                            <Text style={{ color: meta.text, fontSize: 12, fontWeight: '700' }}>{meta.label}</Text>
+                          </View>
+                          {lastFollowUp && (
+                            <Text className="text-xs text-gray-500 mt-2" numberOfLines={2}>
+                              Terakhir update ({new Date(lastFollowUp.at).toLocaleString('id-ID')}): {lastFollowUp.note}
+                            </Text>
+                          )}
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                      </View>
+                    </Card>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

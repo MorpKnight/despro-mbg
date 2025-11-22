@@ -8,6 +8,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../hooks/useAuth';
 import { useOffline } from '../../hooks/useOffline';
+import { recordAttendance } from '../../services/attendance';
 // No backend yet: we'll only parse and show the QR contents for now
 
 type ParsedQR = {
@@ -58,7 +59,7 @@ export default function AttendanceScanPage() {
     return () => sub.remove();
   }, []);
 
-  if (user?.role !== 'admin sekolah' && user?.role !== 'super admin') {
+  if (user?.role !== 'admin_sekolah' && user?.role !== 'super_admin') {
     return (
       <SafeAreaView className="flex-1 bg-[#f5f7fb]">
         <Stack.Screen options={{ title: 'Scan Kehadiran' }} />
@@ -78,16 +79,30 @@ export default function AttendanceScanPage() {
       if (!parsed.id || parsed.id === 'UNKNOWN') {
         throw new Error('Data QR tidak valid');
       }
-      const title = 'QR Terbaca';
-      const message = parsed.name
-        ? `ID: ${parsed.id}\nNama: ${parsed.name}\nSumber: ${parsed.source}`
-        : `ID: ${parsed.id}\nSumber: ${parsed.source}`;
+      const result = await recordAttendance(parsed.id, 'qr');
+      const title = result.queued ? 'Disimpan Offline' : 'Kehadiran Tercatat';
+      const timestamp = result.record?.createdAt ?? new Date().toISOString();
+      const timeLabel = new Date(timestamp).toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const message = result.queued
+        ? `${parsed.name ? `${parsed.name} (${parsed.id})` : parsed.id} akan dikirim saat koneksi kembali tersedia.`
+        : `${parsed.name ? `${parsed.name} (${parsed.id})` : parsed.id} tercatat pada ${timeLabel}.`;
       Alert.alert(title, message, [
         { text: 'Scan lagi', onPress: () => setPaused(false) },
         { text: 'Tutup', style: 'cancel' },
       ]);
     } catch (err: any) {
-      Alert.alert('Gagal Memproses', err?.message || 'QR tidak dapat diproses.');
+      console.warn('[attendance-scan] gagal mencatat', err);
+      const rawMessage = String(err?.message || '');
+      const friendly = /409/.test(rawMessage)
+        ? 'Siswa sudah tercatat hadir hari ini.'
+        : rawMessage || 'QR tidak dapat diproses.';
+      Alert.alert('Gagal Memproses', friendly);
       setPaused(false);
     }
   }
