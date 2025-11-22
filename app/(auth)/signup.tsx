@@ -3,7 +3,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -39,25 +38,27 @@ export default function SignUpPage() {
   const [schoolId, setSchoolId] = useState("");
   const [cateringId, setCateringId] = useState("");
   const [healthOfficeAreaId, setHealthOfficeAreaId] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleSignUp = async () => {
     if (!username || !fullName || !password || !confirmPassword) {
-      Alert.alert("Error", "Mohon lengkapi semua kolom.");
+      setError("Mohon lengkapi semua kolom.");
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Konfirmasi password tidak cocok.");
+      setError("Konfirmasi password tidak cocok.");
       return;
     }
     if (password.length < 8) {
-      Alert.alert("Error", "Password minimal 8 karakter.");
+      setError("Password minimal 8 karakter.");
+      return;
+    }
+    if (!role) {
+      setError("Mohon pilih role.");
       return;
     }
 
-    if (!role) {
-      Alert.alert("Error", "Mohon pilih role.");
-      return;
-    }
+    setError(null);
     console.log("REGISTER PAYLOAD:", {
       username,
       full_name: fullName,
@@ -73,7 +74,7 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
-      await api("auth/register", {
+      const res = await api("auth/register", {
         method: "POST",
         body: JSON.stringify({
           username,
@@ -88,12 +89,18 @@ export default function SignUpPage() {
             role === "admin_dinkes" ? healthOfficeAreaId : undefined,
         }),
       });
+      if (!res || res === undefined) {
+        throw new Error("API response was invalid or incomplete.");
+      }
 
-      Alert.alert("Sukses", "Akun berhasil dibuat. Silakan login.", [
-        { text: "Login", onPress: () => router.replace("/(auth)") },
-      ]);
-    } catch (error: any) {
-      Alert.alert("Gagal", error.message || "Gagal membuat akun.");
+      console.log(res);
+
+      // 3. Status check logic remains the same
+      router.replace("/");
+    } catch (err: any) {
+      // This block handles status codes 4xx or 5xx, or network errors.
+      console.error(err);
+      setError(err?.data?.detail || err?.message || "Gagal membuat akun.");
     } finally {
       setLoading(false);
     }
@@ -300,6 +307,11 @@ export default function SignUpPage() {
                   </Text>
                 </Text>
               </View>
+              {error && (
+                <View className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                  <Text className="text-red-600 text-sm">{error}</Text>
+                </View>
+              )}
             </View>
           </View>
         </ScrollView>
