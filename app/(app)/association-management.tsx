@@ -92,6 +92,7 @@ export default function AssociationManagementPage() {
                         await api(`associations/${id}`, { method: 'DELETE' });
                         fetchData();
                     } catch (error) {
+                        console.warn('[association-management] delete failed', error);
                         Alert.alert('Error', 'Gagal menghapus asosiasi.');
                     }
                 },

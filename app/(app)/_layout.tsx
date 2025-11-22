@@ -143,6 +143,30 @@ export default function AppDrawerLayout() {
         }}
       />
       <Drawer.Screen
+        name="school-management"
+        options={{
+          title: 'Manajemen Sekolah',
+          drawerIcon: ({ color, size }) => (<Ionicons name="school-outline" size={size} color={color} />),
+          drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
+        name="catering-management"
+        options={{
+          title: 'Manajemen Katering',
+          drawerIcon: ({ color, size }) => (<Ionicons name="restaurant-outline" size={size} color={color} />),
+          drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
+        name="health-area-management"
+        options={{
+          title: 'Manajemen Area Dinkes',
+          drawerIcon: ({ color, size }) => (<Ionicons name="medkit-outline" size={size} color={color} />),
+          drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+        }}
+      />
+      <Drawer.Screen
         name="system-health"
         options={{
           title: 'Kesehatan & Log Sistem',

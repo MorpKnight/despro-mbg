@@ -63,8 +63,6 @@ export default function EmergencyReportPage() {
     };
   }, [canView]);
 
-  if (user?.role !== 'admin_sekolah' && user?.role !== 'super_admin') return <Redirect href="/" />;
-
   const sortedReports = useMemo(
     () => [...reports].sort((a, b) => +new Date(b.date) - +new Date(a.date)),
     [reports],
@@ -74,6 +72,8 @@ export default function EmergencyReportPage() {
     if (filter === 'all') return sortedReports;
     return sortedReports.filter((report) => report.status === filter);
   }, [sortedReports, filter]);
+
+  if (user?.role !== 'admin_sekolah' && user?.role !== 'super_admin') return <Redirect href="/" />;
 
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleString('id-ID', {

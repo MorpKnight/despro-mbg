@@ -30,7 +30,7 @@ const roleFilterOptions: DropdownOption[] = [
 
 export default function PendingApprovalsPage() {
     const router = useRouter();
-    const { isDesktop, isMobile } = useResponsive();
+    const { isDesktop } = useResponsive();
     const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -84,6 +84,7 @@ export default function PendingApprovalsPage() {
                     Alert.alert('Berhasil', 'Pengguna berhasil disetujui!');
                 }
             } catch (error) {
+                console.warn('[pending-approvals] approve failed', error);
                 if (Platform.OS === 'web') {
                     alert('❌ Gagal menyetujui pengguna.');
                 } else {
@@ -111,6 +112,7 @@ export default function PendingApprovalsPage() {
                     Alert.alert('Berhasil', 'Pengguna berhasil ditolak!');
                 }
             } catch (error) {
+                console.warn('[pending-approvals] reject failed', error);
                 if (Platform.OS === 'web') {
                     alert('❌ Gagal menolak pengguna.');
                 } else {

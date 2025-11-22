@@ -33,15 +33,6 @@ export default function PortalFeedback() {
     }
   }, [user]);
 
-  // Jika bukan siswa, jangan render konten
-  if (!user || user.role !== 'siswa') {
-    return (
-      <View className="flex-1 bg-gray-100 justify-center items-center">
-        <Text className="text-gray-600">Memuat...</Text>
-      </View>
-    );
-  }
-
   const categories = useMemo(
     () => [
       { id: 'makanan', label: 'Makanan' },
@@ -93,6 +84,15 @@ export default function PortalFeedback() {
       setSubmitting(false);
     }
   }, [categoryLabel, description, photo, rating, selectedCategory, submitting, title]);
+
+  // Jika bukan siswa, jangan render konten
+  if (!user || user.role !== 'siswa') {
+    return (
+      <View className="flex-1 bg-gray-100 justify-center items-center">
+        <Text className="text-gray-600">Memuat...</Text>
+      </View>
+    );
+  }
 
   const handleDownload = () => {
     Alert.alert('Download', 'Mengunduh semua masukan...');

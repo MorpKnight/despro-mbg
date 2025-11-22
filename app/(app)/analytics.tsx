@@ -115,6 +115,12 @@ export default function AnalyticsPage() {
     };
   }, [isSuperAdmin, isDinkes]);
 
+  const visibleTrend = useMemo(() => {
+    if (!trend?.data) return [];
+    const count = Number(trendRange);
+    return trend.data.slice(-count);
+  }, [trend?.data, trendRange]);
+
   if (!isSuperAdmin && !isDinkes) {
     return (
       <SafeAreaView className="flex-1 bg-[#f5f7fb]">
@@ -129,12 +135,6 @@ export default function AnalyticsPage() {
       </SafeAreaView>
     );
   }
-
-  const visibleTrend = useMemo(() => {
-    if (!trend?.data) return [];
-    const count = Number(trendRange);
-    return trend.data.slice(-count);
-  }, [trend?.data, trendRange]);
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
