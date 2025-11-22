@@ -7,7 +7,6 @@ import { useAuth } from "../../hooks/useAuth";
 
 export default function AuthIndex() {
   const { user, loading, signIn } = useAuth();
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +18,7 @@ export default function AuthIndex() {
     return <Redirect href="/(app)" />;
   }
 
+  const router = useRouter();
 
   // Mobile keeps the simple centered layout; Web gets a polished split view with a card
   if (Platform.OS !== "web") {
@@ -67,21 +67,25 @@ export default function AuthIndex() {
           disabled={!username.trim() || !password}
         />
         <View className="items-center mt-2">
-          <Text className="text-gray-500 text-xs">
-            Try: super/super123, sekolah/sekolah123, catering/catering123,
-            siswa/siswa123, dinkes/dinkes123
+          <Text className="text-gray-700 mt-4">
+            Super Admin - superadmin / Admin123!{"\n"}
+            School Admin - admin_school_1 / School1Pass!{"\n"}
+            Catering Admin - admin_catering_1 / Catering1Pass!{"\n"}
+            Dinkes Admin - admin_dinkes_1 / Dinkes1Pass!{"\n"}
+            Student - student_001 / Student1!
           </Text>
-           <View className="items-center mt-2">
-                <Text className="text-gray-500 mt-1">
-                  Don’t have an account?{" "}
-                  <Text
-                    className="text-primary font-bold"
-                    onPress={() => router.push("/(auth)/signup")}
-                  >
-                    Sign up
-                  </Text>
-                </Text>
-              </View>
+
+          <View className="items-center mt-2">
+            <Text className="text-gray-500 mt-1">
+              Don’t have an account?{" "}
+              <Text
+                className="text-primary font-bold"
+                onPress={() => router.push("/(auth)/signup")}
+              >
+                Sign up
+              </Text>
+            </Text>
+          </View>
         </View>
         <View className="items-center mt-2">
           <Text className="text-gray-500 mt-1">
@@ -206,9 +210,12 @@ export default function AuthIndex() {
             </View>
 
             <View className="items-center mt-4">
-              <Text className="text-gray-400 text-xs text-center">
-                Demo accounts: super/super123 · sekolah/sekolah123 ·
-                catering/catering123 · siswa/siswa123 · dinkes/dinkes123
+              <Text className="text-gray-700 mt-4">
+                Super Admin - superadmin / Admin123!{"\n"}
+                School Admin - admin_school_1 / School1Pass!{"\n"}
+                Catering Admin - admin_catering_1 / Catering1Pass!{"\n"}
+                Dinkes Admin - admin_dinkes_1 / Dinkes1Pass!{"\n"}
+                Student - student_001 / Student1!
               </Text>
             </View>
             <View className="items-center mt-2">
