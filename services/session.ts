@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { storage } from './storage';
+import { secureStorage, storage } from './storage';
 
 export type Role = 'super_admin' | 'admin_sekolah' | 'admin_catering' | 'siswa' | 'admin_dinkes';
 
@@ -17,9 +17,58 @@ const AUTH = (EXTRA?.auth || { users: [], sessionKey: 'mbg_auth_session' }) as {
 };
 
 const SESSION_STORAGE_KEY = AUTH.sessionKey || 'mbg_auth_session';
+const ACCESS_TOKEN_KEY = `${SESSION_STORAGE_KEY}_access_token`;
+const REFRESH_TOKEN_KEY = `${SESSION_STORAGE_KEY}_refresh_token`;
 let cachedSession: Session | null | undefined;
 type SessionListener = (session: Session | null) => void;
 const listeners = new Set<SessionListener>();
+
+type StoredSessionMeta = Omit<Session, 'access_token' | 'refresh_token'>;
+
+async function readPersistedSession(): Promise<Session | null> {
+  const meta = await storage.get<StoredSessionMeta>(SESSION_STORAGE_KEY);
+  if (!meta) {
+    return null;
+  }
+
+  const [accessToken, refreshToken] = await Promise.all([
+    secureStorage.getItem(ACCESS_TOKEN_KEY),
+    secureStorage.getItem(REFRESH_TOKEN_KEY),
+  ]);
+
+  if (!accessToken || !refreshToken) {
+    await Promise.all([
+      storage.remove(SESSION_STORAGE_KEY),
+      secureStorage.removeItem(ACCESS_TOKEN_KEY),
+      secureStorage.removeItem(REFRESH_TOKEN_KEY),
+    ]);
+    return null;
+  }
+
+  return {
+    ...meta,
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  };
+}
+
+async function persistSession(session: Session | null): Promise<void> {
+  if (session) {
+    const { access_token, refresh_token, ...meta } = session;
+    await Promise.all([
+      storage.set(SESSION_STORAGE_KEY, meta),
+      secureStorage.setItem(ACCESS_TOKEN_KEY, access_token),
+      secureStorage.setItem(REFRESH_TOKEN_KEY, refresh_token),
+    ]);
+    return;
+  }
+
+  await Promise.all([
+    storage.remove(SESSION_STORAGE_KEY),
+    secureStorage.removeItem(ACCESS_TOKEN_KEY),
+    secureStorage.removeItem(REFRESH_TOKEN_KEY),
+  ]);
+}
 
 export function getSessionStorageKey() {
   return SESSION_STORAGE_KEY;
@@ -29,18 +78,13 @@ export async function getSession(force = false): Promise<Session | null> {
   if (!force && cachedSession !== undefined) {
     return cachedSession;
   }
-  const stored = await storage.get<Session>(SESSION_STORAGE_KEY);
-  cachedSession = stored || null;
+  cachedSession = await readPersistedSession();
   return cachedSession;
 }
 
 export async function setSession(session: Session | null): Promise<void> {
   cachedSession = session;
-  if (session) {
-    await storage.set(SESSION_STORAGE_KEY, session);
-  } else {
-    await storage.remove(SESSION_STORAGE_KEY);
-  }
+  await persistSession(session);
   listeners.forEach((listener) => {
     try {
       listener(session);

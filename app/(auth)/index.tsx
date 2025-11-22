@@ -7,6 +7,7 @@ import { useAuth } from "../../hooks/useAuth";
 
 export default function AuthIndex() {
   const { user, loading, signIn } = useAuth();
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -17,8 +18,6 @@ export default function AuthIndex() {
   if (!loading && user) {
     return <Redirect href="/(app)" />;
   }
-
-  const router = useRouter();
 
 
   // Mobile keeps the simple centered layout; Web gets a polished split view with a card
