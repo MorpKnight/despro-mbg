@@ -1,11 +1,11 @@
 import React, {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 import { loadSession, signIn, signOut, type Role as LocalRole } from '../services/auth';
 import { fetchMyProfile, type Profile } from '../services/profile';
@@ -42,6 +42,7 @@ function profileToUser(profile: Profile): User {
 
 interface AuthState {
   user: User | null;
+  session: Session | null;
   loading: boolean;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -51,6 +52,7 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const isMounted = useRef(true);
@@ -71,8 +73,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const session = await loadSession();
-        if (!session) {
+        const loadedSession = await loadSession();
+        if (isMounted.current) {
+          setSession(loadedSession);
+        }
+        if (!loadedSession) {
           if (isMounted.current) {
             setUser(null);
             setLoading(false);
@@ -90,8 +95,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })();
 
-    const unsubscribe = subscribeSession((session: Session | null) => {
-      if (!session) {
+    const unsubscribe = subscribeSession((newSession: Session | null) => {
+      if (isMounted.current) {
+        setSession(newSession);
+      }
+      if (!newSession) {
         if (isMounted.current) {
           setUser(null);
           setLoading(false);
@@ -118,19 +126,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthState>(
     () => ({
       user,
+      session,
       loading,
       signIn: async (username: string, password: string) => {
-        const session = await signIn(username, password);
+        const newSession = await signIn(username, password);
+        // Session update is handled by subscription
         try {
           await refreshProfile();
         } catch (err) {
           console.warn('[auth] gagal mengambil profil sesudah login', err);
           setUser({
             id: 'unknown',
-            username: session.username,
-            role: session.role,
+            username: newSession.username,
+            role: newSession.role,
             fullName: null,
-            accountStatus: session.account_status,
+            accountStatus: newSession.account_status,
             schoolId: null,
             cateringId: null,
             healthOfficeArea: null,
@@ -152,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
     }),
-    [user, loading, refreshProfile]
+    [user, session, loading, refreshProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

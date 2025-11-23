@@ -9,7 +9,7 @@ interface ChipProps extends PressableProps {
   className?: string;
 }
 
-export function Chip({
+export const Chip = React.memo(function Chip({
   label,
   active,
   leadingIcon,
@@ -30,7 +30,7 @@ export function Chip({
       {trailingIcon}
     </Pressable>
   );
-}
+});
 
 interface ChipGroupOption {
   label: string;
@@ -45,7 +45,7 @@ interface ChipGroupProps {
   className?: string;
 }
 
-export function ChipGroup({ options, value, onChange, scrollable, className = '' }: ChipGroupProps) {
+export const ChipGroup = React.memo(function ChipGroup({ options, value, onChange, scrollable, className = '' }: ChipGroupProps) {
   if (scrollable) {
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className={`flex-row gap-2 ${className}`}>
@@ -72,4 +72,4 @@ export function ChipGroup({ options, value, onChange, scrollable, className = ''
       ))}
     </View>
   );
-}
+});

@@ -17,7 +17,7 @@ interface Props extends PressableProps {
   fullWidth?: boolean;
 }
 
-export default function Button({
+export function Button({
   title,
   variant = 'primary',
   size = 'md',
@@ -91,3 +91,5 @@ export default function Button({
     </Pressable>
   );
 }
+
+export default React.memo(Button);

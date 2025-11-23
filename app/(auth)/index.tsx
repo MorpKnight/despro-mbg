@@ -71,17 +71,17 @@ export default function AuthIndex() {
             Try: super/super123, sekolah/sekolah123, catering/catering123,
             siswa/siswa123, dinkes/dinkes123
           </Text>
-           <View className="items-center mt-2">
-                <Text className="text-gray-500 mt-1">
-                  Don’t have an account?{" "}
-                  <Text
-                    className="text-primary font-bold"
-                    onPress={() => router.push("/(auth)/signup")}
-                  >
-                    Sign up
-                  </Text>
-                </Text>
-              </View>
+          <View className="items-center mt-2">
+            <Text className="text-gray-500 mt-1">
+              Don’t have an account?{" "}
+              <Text
+                className="text-primary font-bold"
+                onPress={() => router.push("/(auth)/signup")}
+              >
+                Sign up
+              </Text>
+            </Text>
+          </View>
         </View>
         <View className="items-center mt-2">
           <Text className="text-gray-500 mt-1">
@@ -206,10 +206,56 @@ export default function AuthIndex() {
             </View>
 
             <View className="items-center mt-4">
-              <Text className="text-gray-400 text-xs text-center">
-                Demo accounts: super/super123 · sekolah/sekolah123 ·
-                catering/catering123 · siswa/siswa123 · dinkes/dinkes123
+              <Text className="text-gray-400 text-xs text-center mb-2">
+                Fast Login (Demo):
               </Text>
+              <View className="flex-row flex-wrap justify-center gap-2">
+                <Button
+                  title="Super Admin"
+                  size="sm"
+                  variant="outline"
+                  onPress={() => {
+                    setUsername('superadmin');
+                    setPassword('Admin123!');
+                  }}
+                />
+                <Button
+                  title="Sekolah"
+                  size="sm"
+                  variant="outline"
+                  onPress={() => {
+                    setUsername('admin_school_1');
+                    setPassword('School1Pass!');
+                  }}
+                />
+                <Button
+                  title="Catering"
+                  size="sm"
+                  variant="outline"
+                  onPress={() => {
+                    setUsername('admin_catering_1');
+                    setPassword('Catering1Pass!');
+                  }}
+                />
+                <Button
+                  title="Siswa"
+                  size="sm"
+                  variant="outline"
+                  onPress={() => {
+                    setUsername('student_001');
+                    setPassword('Student1!');
+                  }}
+                />
+                <Button
+                  title="Dinkes"
+                  size="sm"
+                  variant="outline"
+                  onPress={() => {
+                    setUsername('admin_dinkes_1');
+                    setPassword('Dinkes1Pass!');
+                  }}
+                />
+              </View>
             </View>
             <View className="items-center mt-2">
               <View className="items-center mt-2">

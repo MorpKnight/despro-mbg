@@ -8,10 +8,12 @@ interface Props {
   color?: string;
 }
 
-export default function Icon({ name, size = 20, color = '#111827' }: Props) {
+export function Icon({ name, size = 20, color = '#111827' }: Props) {
   return (
     <View>
       <Ionicons name={name} size={size} color={color} />
     </View>
   );
 }
+
+export default React.memo(Icon);

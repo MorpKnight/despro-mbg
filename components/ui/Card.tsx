@@ -9,7 +9,7 @@ interface CardProps extends ViewProps {
   onPress?: () => void;
 }
 
-export default function Card({
+export function Card({
   children,
   variant = 'default',
   onPress,
@@ -54,3 +54,5 @@ export default function Card({
 
   return content;
 }
+
+export default React.memo(Card);

@@ -52,27 +52,27 @@
         "users": [
           {
             "username": "super",
-            "password": "super123",
+            "password": "Admin123!",
             "role": "super_admin"
           },
           {
-            "username": "sekolah",
-            "password": "sekolah123",
+            "username": "admin_school_1",
+            "password": "School1Pass!",
             "role": "admin_sekolah"
           },
           {
-            "username": "catering",
-            "password": "catering123",
+            "username": "admin_catering_1",
+            "password": "Catering1Pass!",
             "role": "admin_catering"
           },
           {
-            "username": "siswa",
-            "password": "siswa123",
+            "username": "student_001",
+            "password": "Student1!",
             "role": "siswa"
           },
           {
-            "username": "dinkes",
-            "password": "dinkes123",
+            "username": "admin_dinkes_1",
+            "password": "Dinkes1Pass!",
             "role": "admin_dinkes"
           }
         ],

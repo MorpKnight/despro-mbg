@@ -1,19 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Image } from 'expo-image';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Platform,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
@@ -258,7 +258,7 @@ export default function MenuQCForm() {
         queue.push(payload);
         await (await import('../../../services/storage')).storage.set(key, queue);
         showSnackbar({ message: 'Anda offline. Data diantrikan untuk sinkron otomatis.', variant: 'info' });
-      } catch {}
+      } catch { }
     } finally {
       setSubmitting(false);
     }
@@ -447,6 +447,9 @@ export default function MenuQCForm() {
               <Image
                 source={{ uri: p.uri }}
                 style={{ width: 96, height: 96, borderRadius: 14, backgroundColor: '#e5e7eb' }}
+                contentFit="cover"
+                transition={500}
+                cachePolicy="memory-disk"
               />
               <TouchableOpacity
                 className="absolute -top-2 -right-2 bg-black/70 rounded-full p-1"
