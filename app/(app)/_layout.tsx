@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Link, Redirect } from 'expo-router';
+import { Link, Redirect, Tabs } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import React, { useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import CustomDrawerContent from '../../components/navigation/CustomDrawerContent';
 import { ROLE_LABEL_EN, ROLE_LABEL_ID, type UserRoleValue } from '../../constants/roles';
 import { useAuth } from '../../hooks/useAuth';
@@ -73,126 +73,263 @@ function HeaderActions() {
   );
 }
 
-export default function AppDrawerLayout() {
+export default function AppLayout() {
   const { user, loading } = useAuth();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+
   const isSuperAdmin = user?.role === 'super_admin';
   const isSiswa = user?.role === 'siswa';
+
   if (!loading && !user) {
     return <Redirect href="/(auth)" />;
   }
+
+  if (isDesktop) {
+    return (
+      <Drawer
+        drawerContent={(props) => <CustomDrawerContent {...props} />}
+        screenOptions={{
+          headerTitle: () => <HeaderTitle />,
+          headerRight: () => <HeaderActions />,
+          headerTitleStyle: { fontWeight: '700' },
+          headerTintColor: '#111827',
+          headerStyle: { backgroundColor: '#FFFFFF' },
+          drawerType: 'front',
+          drawerStyle: { width: 280, backgroundColor: '#FFFFFF' },
+          drawerActiveTintColor: '#1976D2',
+          drawerInactiveTintColor: '#374151',
+          drawerActiveBackgroundColor: 'rgba(25,118,210,0.08)',
+          drawerLabelStyle: { fontSize: 16, marginLeft: -12 },
+          drawerItemStyle: { marginVertical: 6, borderRadius: 12 },
+        }}
+      >
+        <Drawer.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="home-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="settings"
+          options={{
+            title: 'Settings',
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="settings-outline" size={size} color={color} />
+            ),
+          }}
+        />
+
+        <Drawer.Screen name="student-attendance" options={{ title: 'Absensi Harian', drawerIcon: ({ color, size }) => (<Ionicons name="checkmark-done-outline" size={size} color={color} />) }} />
+        <Drawer.Screen name="attendance-scan" options={{ title: 'Scan Kehadiran', drawerIcon: ({ color, size }) => (<Ionicons name="qr-code-outline" size={size} color={color} />) }} />
+        <Drawer.Screen name="catering-dashboard" options={{ title: 'Catering Dashboard', drawerIcon: ({ color, size }) => (<Ionicons name="restaurant-outline" size={size} color={color} />) }} />
+        <Drawer.Screen name="dinkes-dashboard" options={{ title: 'Dinkes Dashboard', drawerIcon: ({ color, size }) => (<Ionicons name="medical-outline" size={size} color={color} />) }} />
+        <Drawer.Screen
+          name="notifications/broadcast"
+          options={{
+            title: 'Siarkan Notifikasi',
+            drawerIcon: ({ color, size }) => (<Ionicons name="megaphone-outline" size={size} color={color} />),
+            drawerItemStyle: isSiswa ? { display: 'none' } : undefined
+          }}
+        />
+
+        {/* Super Admin feature pages */}
+        <Drawer.Screen
+          name="user-management"
+          options={{
+            title: 'Manajemen Pengguna',
+            drawerIcon: ({ color, size }) => (<Ionicons name="people-outline" size={size} color={color} />),
+            drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="school-management"
+          options={{
+            title: 'Manajemen Sekolah',
+            drawerIcon: ({ color, size }) => (<Ionicons name="school-outline" size={size} color={color} />),
+            drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="catering-management"
+          options={{
+            title: 'Manajemen Katering',
+            drawerIcon: ({ color, size }) => (<Ionicons name="restaurant-outline" size={size} color={color} />),
+            drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="health-area-management"
+          options={{
+            title: 'Manajemen Area Dinkes',
+            drawerIcon: ({ color, size }) => (<Ionicons name="medkit-outline" size={size} color={color} />),
+            drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="system-health"
+          options={{
+            title: 'Kesehatan & Log Sistem',
+            drawerIcon: ({ color, size }) => (<Ionicons name="pulse-outline" size={size} color={color} />),
+            drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="analytics"
+          options={{
+            title: 'Analitik Global',
+            drawerIcon: ({ color, size }) => (<Ionicons name="analytics-outline" size={size} color={color} />),
+            drawerItemStyle: (isSuperAdmin || user?.role === 'admin_dinkes') ? undefined : { display: 'none' },
+          }}
+        />
+        <Drawer.Screen
+          name="pending-approvals"
+          options={{
+            title: 'Persetujuan Pengguna',
+            drawerIcon: ({ color, size }) => (<Ionicons name="shield-checkmark-outline" size={size} color={color} />),
+            drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+          }}
+        />
+
+        {/* Hidden child route: accessible via Link but not visible in drawer */}
+        <Drawer.Screen name="details" options={{ title: 'Details', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="explore" options={{ title: 'Explore', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="notifications" options={{ title: 'Notifications', drawerItemStyle: { display: 'none' } }} />
+      </Drawer>
+    );
+  }
+
   return (
-    <Drawer
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
+    <Tabs
       screenOptions={{
-        headerTitle: () => <HeaderTitle />,
-        headerRight: () => <HeaderActions />,
-        headerTitleStyle: { fontWeight: '700' },
-        headerTintColor: '#111827',
-        headerStyle: { backgroundColor: '#FFFFFF' },
-        drawerType: 'front',
-        drawerStyle: { width: 280, backgroundColor: '#FFFFFF' },
-        drawerActiveTintColor: '#1976D2',
-        drawerInactiveTintColor: '#374151',
-        drawerActiveBackgroundColor: 'rgba(25,118,210,0.08)',
-        drawerLabelStyle: { fontSize: 16, marginLeft: -12 },
-        drawerItemStyle: { marginVertical: 6, borderRadius: 12 },
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#F1F5F9',
+          height: Platform.OS === 'ios' ? 88 : 68,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+          paddingTop: 12,
+        },
+        tabBarActiveTintColor: '#2563EB',
+        tabBarInactiveTintColor: '#64748B',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginTop: 4,
+        },
       }}
     >
-      <Drawer.Screen
+      <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
           ),
         }}
       />
 
-      <Drawer.Screen name="student-attendance" options={{ title: 'Absensi Harian', drawerIcon: ({ color, size }) => (<Ionicons name="checkmark-done-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="attendance-scan" options={{ title: 'Scan Kehadiran', drawerIcon: ({ color, size }) => (<Ionicons name="qr-code-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="assisted-attendance" options={{ title: 'Bantuan Presensi', drawerIcon: ({ color, size }) => (<Ionicons name="hand-left-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="emergency-report" options={{ title: 'Laporan Darurat', drawerIcon: ({ color, size }) => (<Ionicons name="warning-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="feedback-list" options={{ title: 'Umpan Balik Siswa', drawerIcon: ({ color, size }) => (<Ionicons name="chatbubbles-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="portal-feedback" options={{ title: 'Portal Feedback', drawerIcon: ({ color, size }) => (<Ionicons name="chatbox-outline" size={size} color={color} />), drawerItemStyle: isSiswa ? undefined : { display: 'none' } }} />
-      <Drawer.Screen name="catering-menu-qc" options={{ title: 'Input Menu Harian & QC', drawerIcon: ({ color, size }) => (<Ionicons name="create-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="dinkes-emergency" options={{ title: 'Kelola Laporan Darurat', drawerIcon: ({ color, size }) => (<Ionicons name="medkit-outline" size={size} color={color} />) }} />
+      {/* Explore Tab: Visible to everyone */}
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Eksplorasi',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
+          ),
+        }}
+      />
 
+      {/* Role-Specific Tabs */}
 
-      {/* Role-specific dashboards */}
-      <Drawer.Screen name="admin-dashboard" options={{ title: 'Admin Dashboard', drawerIcon: ({ color, size }) => (<Ionicons name="shield-checkmark-outline" size={size} color={color} />), drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' } }} />
-      <Drawer.Screen name="sekolah-dashboard" options={{ title: 'Sekolah Dashboard', drawerIcon: ({ color, size }) => (<Ionicons name="school-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="catering-dashboard" options={{ title: 'Catering Dashboard', drawerIcon: ({ color, size }) => (<Ionicons name="restaurant-outline" size={size} color={color} />) }} />
-      <Drawer.Screen name="dinkes-dashboard" options={{ title: 'Dinkes Dashboard', drawerIcon: ({ color, size }) => (<Ionicons name="medical-outline" size={size} color={color} />) }} />
+      {/* Siswa: Feedback & Attendance */}
+      <Tabs.Screen
+        name="feedback-list"
+        options={{
+          title: 'Umpan Balik',
+          href: isSiswa ? '/(app)/feedback-list' : null,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={24} color={color} />
+          ),
+        }}
+      />
 
-      {/* Super Admin feature pages */}
-      <Drawer.Screen
-        name="user-management"
+      {/* School Admin: Emergency & Attendance */}
+      <Tabs.Screen
+        name="emergency-report"
         options={{
-          title: 'Manajemen Pengguna',
-          drawerIcon: ({ color, size }) => (<Ionicons name="people-outline" size={size} color={color} />),
-          drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+          title: 'Darurat',
+          href: user?.role === 'admin_sekolah' ? '/(app)/emergency-report' : null,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'warning' : 'warning-outline'} size={24} color={color} />
+          ),
         }}
       />
-      <Drawer.Screen
-        name="school-management"
+
+      {/* Dinkes: Emergency Management */}
+      <Tabs.Screen
+        name="dinkes-emergency"
         options={{
-          title: 'Manajemen Sekolah',
-          drawerIcon: ({ color, size }) => (<Ionicons name="school-outline" size={size} color={color} />),
-          drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+          title: 'Laporan',
+          href: user?.role === 'admin_dinkes' ? '/(app)/dinkes-emergency' : null,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'medkit' : 'medkit-outline'} size={24} color={color} />
+          ),
         }}
       />
-      <Drawer.Screen
-        name="catering-management"
-        options={{
-          title: 'Manajemen Katering',
-          drawerIcon: ({ color, size }) => (<Ionicons name="restaurant-outline" size={size} color={color} />),
-          drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
-        }}
-      />
-      <Drawer.Screen
-        name="health-area-management"
-        options={{
-          title: 'Manajemen Area Dinkes',
-          drawerIcon: ({ color, size }) => (<Ionicons name="medkit-outline" size={size} color={color} />),
-          drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
-        }}
-      />
-      <Drawer.Screen
-        name="system-health"
-        options={{
-          title: 'Kesehatan & Log Sistem',
-          drawerIcon: ({ color, size }) => (<Ionicons name="pulse-outline" size={size} color={color} />),
-          drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
-        }}
-      />
-      <Drawer.Screen
-        name="analytics"
-        options={{
-          title: 'Analitik Global',
-          drawerIcon: ({ color, size }) => (<Ionicons name="analytics-outline" size={size} color={color} />),
-          drawerItemStyle: (isSuperAdmin || user?.role === 'admin_dinkes') ? undefined : { display: 'none' },
-        }}
-      />
-      <Drawer.Screen
+
+      {/* Super Admin: Approvals */}
+      <Tabs.Screen
         name="pending-approvals"
         options={{
-          title: 'Persetujuan Pengguna',
-          drawerIcon: ({ color, size }) => (<Ionicons name="shield-checkmark-outline" size={size} color={color} />),
-          drawerItemStyle: isSuperAdmin ? undefined : { display: 'none' },
+          title: 'Approvals',
+          href: isSuperAdmin ? '/(app)/pending-approvals' : null,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'} size={24} color={color} />
+          ),
         }}
       />
 
-      {/* Hidden child route: accessible via Link but not visible in drawer */}
-      <Drawer.Screen name="details" options={{ title: 'Details', drawerItemStyle: { display: 'none' } }} />
-    </Drawer>
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Akun',
+          tabBarIcon: ({ color, focused }) => (
+            <View className={`w-7 h-7 rounded-full overflow-hidden border-2 ${focused ? 'border-blue-600' : 'border-transparent'}`}>
+              <Image
+                source={{ uri: 'https://i.pravatar.cc/64?img=3' }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+                transition={500}
+                cachePolicy="memory-disk"
+              />
+            </View>
+          ),
+        }}
+      />
+
+      {/* Hidden Screens (Programmatic navigation only) */}
+      <Tabs.Screen name="admin-dashboard" options={{ href: null }} />
+      <Tabs.Screen name="sekolah-dashboard" options={{ href: null }} />
+      <Tabs.Screen name="catering-dashboard" options={{ href: null }} />
+      <Tabs.Screen name="dinkes-dashboard" options={{ href: null }} />
+      <Tabs.Screen name="student-attendance" options={{ href: null }} />
+      <Tabs.Screen name="attendance-scan" options={{ href: null }} />
+      <Tabs.Screen name="assisted-attendance" options={{ href: null }} />
+      <Tabs.Screen name="portal-feedback" options={{ href: null }} />
+      <Tabs.Screen name="catering-menu-qc" options={{ href: null }} />
+      <Tabs.Screen name="user-management" options={{ href: null }} />
+      <Tabs.Screen name="school-management" options={{ href: null }} />
+      <Tabs.Screen name="catering-management" options={{ href: null }} />
+      <Tabs.Screen name="health-area-management" options={{ href: null }} />
+      <Tabs.Screen name="system-health" options={{ href: null }} />
+      <Tabs.Screen name="analytics" options={{ href: null }} />
+      <Tabs.Screen name="details" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+    </Tabs>
   );
 }

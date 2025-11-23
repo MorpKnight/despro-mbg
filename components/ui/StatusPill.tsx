@@ -15,7 +15,7 @@ interface StatusPillProps extends ViewProps {
   tone?: StatusTone;
 }
 
-export function StatusPill({ label, tone = 'info', style, className = '', ...rest }: StatusPillProps & { className?: string }) {
+export const StatusPill = React.memo(function StatusPill({ label, tone = 'info', style, className = '', ...rest }: StatusPillProps & { className?: string }) {
   const colors = toneMap[tone];
   return (
     <View
@@ -26,4 +26,4 @@ export function StatusPill({ label, tone = 'info', style, className = '', ...res
       <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700' }}>{label}</Text>
     </View>
   );
-}
+});

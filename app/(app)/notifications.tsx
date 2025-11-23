@@ -36,6 +36,13 @@ export default function NotificationsPage() {
 
     useEffect(() => {
         fetchNotifications();
+
+        // Poll every 10 seconds
+        const interval = setInterval(() => {
+            fetchNotifications();
+        }, 10000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const handleMarkAsRead = async (id: string) => {

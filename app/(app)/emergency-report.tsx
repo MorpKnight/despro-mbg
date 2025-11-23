@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Redirect, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -26,42 +27,60 @@ export default function EmergencyReportPage() {
   const router = useRouter();
   const [reports, setReports] = useState<EmergencyReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | ReportStatus>('all');
   const canView = user?.role === 'admin_sekolah' || user?.role === 'super_admin';
 
-  useEffect(() => {
-    let active = true;
+  const loadReports = useCallback(async (isRefresh = false) => {
     if (!canView) {
       setLoading(false);
       setReports([]);
-      return () => {
-        active = false;
-      };
+      return;
     }
-    setLoading(true);
+
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
-    (async () => {
-      try {
-        const data = await fetchEmergencyReports();
-        if (active) {
-          setReports(data);
-          setError(null);
-        }
-      } catch (err) {
-        console.warn('[emergency-report] gagal memuat', err);
-        if (active) {
-          setReports([]);
-          setError('Gagal memuat daftar laporan darurat.');
-        }
-      } finally {
-        if (active) setLoading(false);
+
+    try {
+      const data = await fetchEmergencyReports();
+      setReports(data);
+      setError(null);
+    } catch (err) {
+      console.warn('[emergency-report] gagal memuat', err);
+      setReports([]);
+      setError('Gagal memuat daftar laporan darurat.');
+    } finally {
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
       }
-    })();
-    return () => {
-      active = false;
-    };
+    }
   }, [canView]);
+
+  // Initial load
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
+
+  // Auto-refresh when user returns to this screen
+  useFocusEffect(
+    useCallback(() => {
+      // Only refresh if not already loading
+      if (!loading && !refreshing) {
+        loadReports(true);
+      }
+    }, [loading, refreshing, loadReports])
+  );
+
+  const onRefresh = useCallback(() => {
+    loadReports(true);
+  }, [loadReports]);
 
   const sortedReports = useMemo(
     () => [...reports].sort((a, b) => +new Date(b.date) - +new Date(a.date)),
@@ -86,7 +105,17 @@ export default function EmergencyReportPage() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-      <ScrollView className="flex-1 bg-neutral-gray">
+      <ScrollView
+        className="flex-1 bg-neutral-gray"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#2563EB']}
+            tintColor="#2563EB"
+          />
+        }
+      >
         <View className="p-6">
           <View className="mb-4">
             <Text className="text-2xl font-bold text-gray-900">Laporan Darurat Sekolah</Text>
@@ -101,7 +130,7 @@ export default function EmergencyReportPage() {
                   className="w-full"
                   style={{ backgroundColor: '#E53935' }}
                   onPress={() => {
-                    console.log('create emergency report');
+                    router.push('/(app)/emergency-report/new');
                   }}
                 />
               </View>
