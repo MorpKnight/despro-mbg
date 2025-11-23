@@ -14,6 +14,14 @@ export async function signIn(username: string, password: string): Promise<Sessio
     access_token: res.access_token,
     refresh_token: res.refresh_token,
     account_status: res.account_status,
+    // NEW: Store user data from login response
+    user: res.user ? {
+      id: res.user.id,
+      fullName: res.user.full_name,
+      schoolId: res.user.school_id,
+      cateringId: res.user.catering_id,
+      healthOfficeArea: res.user.health_office_area,
+    } : undefined,
   };
 
   await setSession(session);

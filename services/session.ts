@@ -9,6 +9,14 @@ export interface Session {
   access_token: string;
   refresh_token: string;
   account_status: string;
+  // NEW: Optional user profile data from login response
+  user?: {
+    id: string;
+    fullName: string | null;
+    schoolId: string | null;
+    cateringId: string | null;
+    healthOfficeArea: string | null;
+  };
 }
 
 const EXTRA = (Constants?.expoConfig as any)?.extra || (Constants as any)?.manifest?.extra;

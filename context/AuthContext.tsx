@@ -130,24 +130,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       signIn: async (username: string, password: string) => {
         const newSession = await signIn(username, password);
-        // Session update is handled by subscription
-        try {
-          await refreshProfile();
-        } catch (err) {
-          console.warn('[auth] gagal mengambil profil sesudah login', err);
+
+        // NEW: Use basic user data from session immediately if available
+        if (newSession.user) {
           setUser({
-            id: 'unknown',
+            id: newSession.user.id,
             username: newSession.username,
             role: newSession.role,
-            fullName: null,
+            fullName: newSession.user.fullName,
             accountStatus: newSession.account_status,
-            schoolId: null,
-            cateringId: null,
-            healthOfficeArea: null,
-            sekolah: null,
-            catering: null,
+            schoolId: newSession.user.schoolId,
+            cateringId: newSession.user.cateringId,
+            healthOfficeArea: newSession.user.healthOfficeArea,
+            sekolah: null, // Will be fetched in background
+            catering: null, // Will be fetched in background
           });
         }
+
+        // OPTIMIZED: Fetch full profile in background (non-blocking)
+        // This includes sekolah and catering relationships
+        refreshProfile().catch((err) => {
+          console.warn('[auth] gagal mengambil profil lengkap sesudah login', err);
+          // User already set above, so UI is not blocked
+        });
       },
       signOut: async () => {
         await signOut();
