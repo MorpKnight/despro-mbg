@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -138,16 +138,48 @@ export function SchoolAdminHome({ username }: Props) {
             Aksi Cepat
           </Text>
           <View className="gap-3">
-            <Button
-              title="Mulai Presensi (Scan)"
-              variant="primary"
-              icon={<Ionicons name="qr-code" size={20} color="white" />}
-              fullWidth
-              onPress={() => router.push('/(app)/attendance-scan')}
-            />
+            {isMobile ? (
+              <>
+                <Button
+                  title="Mulai Presensi (QR-Code)"
+                  variant="primary"
+                  icon={<Ionicons name="qr-code" size={20} color="white" />}
+                  fullWidth
+                  onPress={() => router.push('/(app)/attendance-scan')}
+                />
+                <Button
+                  title="Mulai Presensi (NFC)"
+                  variant="outline"
+                  icon={<MaterialCommunityIcons name="nfc" size={20} color="#2563EB" />}
+                  fullWidth
+                  onPress={() => router.push('/(app)/attendance-nfc')}
+                />
+              </>
+            ) : (
+              <View className="flex-row gap-3">
+                <View className="flex-1">
+                  <Button
+                    title="Mulai Presensi (QR-Code)"
+                    variant="primary"
+                    icon={<Ionicons name="qr-code" size={20} color="white" />}
+                    className="w-full"
+                    onPress={() => router.push('/(app)/attendance-scan')}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Button
+                    title="Mulai Presensi (NFC)"
+                    variant="outline"
+                    icon={<MaterialCommunityIcons name="nfc" size={20} color="#2563EB" />}
+                    className="w-full"
+                    onPress={() => router.push('/(app)/attendance-nfc')}
+                  />
+                </View>
+              </View>
+            )}
             <Button
               title="Presensi Pendampingan"
-              variant="outline"
+              variant="ghost"
               icon={<Ionicons name="people-circle" size={20} color="#2563EB" />}
               fullWidth
               onPress={() => router.push('/(app)/assisted-attendance')}
