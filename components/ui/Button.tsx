@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { ActivityIndicator, Pressable, PressableProps, Text, View } from 'react-native';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -30,6 +30,22 @@ export function Button({
   fullWidth = false,
   ...rest
 }: Props) {
+  const [hovered, setHovered] = useState(false);
+
+  const handleHoverIn: PressableProps['onHoverIn'] = (e) => {
+    setHovered(true);
+    if (rest.onHoverIn) {
+      (rest.onHoverIn as any)(e);
+    }
+  };
+
+  const handleHoverOut: PressableProps['onHoverOut'] = (e) => {
+    setHovered(false);
+    if (rest.onHoverOut) {
+      (rest.onHoverOut as any)(e);
+    }
+  };
+
   const isSecondary = variant === 'secondary';
   const isOutline = variant === 'outline';
   const isGhost = variant === 'ghost';
@@ -61,6 +77,22 @@ export function Button({
     textSizeClass = 'text-lg';
   }
 
+  // apply hover styles (web)
+  if (!disabled && hovered) {
+    if (variant === 'primary') {
+      bgClass = 'bg-gradient-to-r from-blue-700 to-blue-600';
+    } else if (isSecondary) {
+      bgClass = 'bg-gray-200';
+      textClass = 'text-gray-900';
+    } else if (isOutline) {
+      bgClass = 'bg-blue-50';
+      textClass = 'text-blue-700';
+    } else if (isGhost) {
+      bgClass = 'bg-blue-50';
+      textClass = 'text-blue-700';
+    }
+  }
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -76,6 +108,8 @@ export function Button({
         },
         style as any,
       ]}
+      onHoverIn={handleHoverIn}
+      onHoverOut={handleHoverOut}
       {...rest}
     >
       {loading ? (
