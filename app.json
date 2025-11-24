@@ -19,7 +19,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.NFC"
+      ],
+      "package": "com.anonymous.desprofe"
     },
     "web": {
       "output": "static",
@@ -40,7 +44,8 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "react-native-nfc-manager"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -74,9 +79,38 @@
             "username": "admin_dinkes_1",
             "password": "Dinkes1Pass!",
             "role": "admin_dinkes"
+          },
+          {
+            "username": "super",
+            "password": "Admin123!",
+            "role": "super_admin"
+          },
+          {
+            "username": "admin_school_1",
+            "password": "School1Pass!",
+            "role": "admin_sekolah"
+          },
+          {
+            "username": "admin_catering_1",
+            "password": "Catering1Pass!",
+            "role": "admin_catering"
+          },
+          {
+            "username": "student_001",
+            "password": "Student1!",
+            "role": "siswa"
+          },
+          {
+            "username": "admin_dinkes_1",
+            "password": "Dinkes1Pass!",
+            "role": "admin_dinkes"
           }
         ],
         "sessionKey": "mbg_auth_session"
+      },
+      "router": {},
+      "eas": {
+        "projectId": "c2b333a8-e8ef-4a32-9f3a-b5dbee1b9326"
       }
     }
   }
