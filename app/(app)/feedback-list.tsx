@@ -164,10 +164,11 @@ export default function FeedbackListPage() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-      <FlashList
+      <FlashList<ApiFeedbackItem>
         data={listData}
         renderItem={renderFeedbackItem}
         keyExtractor={(item) => item.id}
+        // @ts-ignore
         estimatedItemSize={150}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListEmptyComponent={renderEmptyComponent}

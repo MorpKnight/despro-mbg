@@ -9,10 +9,10 @@ import Card from '../../components/ui/Card';
 import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../hooks/useAuth';
 import {
-    fetchAttendanceList,
-    fetchAttendanceSummary,
-    type AttendanceRecord,
-    type AttendanceSummary,
+  fetchAttendanceList,
+  fetchAttendanceSummary,
+  type AttendanceRecord,
+  type AttendanceSummary,
 } from '../../services/attendance';
 
 function formatDateLabel(date: Date) {
@@ -261,6 +261,7 @@ export default function StudentAttendancePage() {
         data={listData}
         renderItem={renderAttendanceItem}
         keyExtractor={(item) => item.id}
+        // @ts-ignore
         estimatedItemSize={112}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}

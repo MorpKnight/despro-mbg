@@ -12,6 +12,15 @@ import {
 } from '../schemas/users';
 import { api } from './api';
 
+export type {
+    CreateUserPayload,
+    FetchUsersParams,
+    UpdateUserPayload,
+    User,
+    UserAccountStatus,
+    UserRole
+} from '../schemas/users';
+
 export async function fetchUsers(params: FetchUsersParams = {}): Promise<User[]> {
     const safeParams = FetchUsersParamsSchema.parse(params);
     const searchParams = new URLSearchParams();

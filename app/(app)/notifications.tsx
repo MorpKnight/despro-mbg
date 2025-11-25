@@ -1,10 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Card from '../../components/ui/Card';
+import Toast from '../../components/ui/Toast';
+import { useAuth } from '../../hooks/useAuth';
 import { api } from '../../services/api';
+import { getServerUrl } from '../../services/storage';
 
 interface Notification {
     id: string;
@@ -17,10 +20,17 @@ interface Notification {
 
 export default function NotificationsPage() {
     const router = useRouter();
+    const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
+
+    // Toast State
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+
+    const wsRef = useRef<WebSocket | null>(null);
 
     const fetchNotifications = async () => {
         try {
@@ -36,14 +46,59 @@ export default function NotificationsPage() {
 
     useEffect(() => {
         fetchNotifications();
-
-        // Poll every 10 seconds
-        const interval = setInterval(() => {
-            fetchNotifications();
-        }, 10000);
-
-        return () => clearInterval(interval);
     }, []);
+
+    // WebSocket Connection
+    useEffect(() => {
+        if (!user?.id) return;
+
+        let reconnectTimeout: any;
+
+        const connectWebSocket = async () => {
+            try {
+                const baseUrl = await getServerUrl();
+                // Replace http/https with ws/wss
+                const wsProtocol = baseUrl.startsWith('https') ? 'wss' : 'ws';
+                const wsBaseUrl = baseUrl.replace(/^https?/, wsProtocol);
+                const wsUrl = `${wsBaseUrl}/ws/notifications/${user.id}`;
+
+                console.log('Connecting to WebSocket:', wsUrl);
+                const ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('WebSocket Connected');
+                };
+
+                ws.onmessage = (event) => {
+                };
+
+                ws.onerror = (e) => {
+                    console.log('WebSocket Error:', (e as any).message);
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket Closed, reconnecting in 5s...');
+                    reconnectTimeout = setTimeout(connectWebSocket, 5000);
+                };
+
+                wsRef.current = ws;
+            } catch (err) {
+                console.error('Failed to initialize WebSocket:', err);
+                reconnectTimeout = setTimeout(connectWebSocket, 5000);
+            }
+        };
+
+        connectWebSocket();
+
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+            }
+        };
+    }, [user?.id]);
 
     const handleMarkAsRead = async (id: string) => {
         try {
@@ -132,6 +187,12 @@ export default function NotificationsPage() {
                     />
                 )}
             </View>
+
+            <Toast
+                visible={toastVisible}
+                message={toastMessage}
+                onHide={() => setToastVisible(false)}
+            />
         </SafeAreaView>
     );
 }

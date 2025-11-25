@@ -6,20 +6,21 @@ import Grid from '../../components/layout/Grid';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Dropdown, { DropdownOption } from '../../components/ui/Dropdown';
+import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '../../hooks/useResponsive';
 import { fetchCaterings, type CateringListItem } from '../../services/caterings';
 import { fetchHealthOfficeAreas, type HealthOfficeAreaListItem } from '../../services/healthAreas';
 import { fetchSchools, type SchoolListItem } from '../../services/schools';
 import {
-    createUser,
-    deleteUser,
-    fetchUsers,
-    updateUser,
-    type CreateUserPayload,
-    type UpdateUserPayload,
-    type User,
-    type UserAccountStatus,
-    type UserRole,
+  createUser,
+  deleteUser,
+  fetchUsers,
+  updateUser,
+  type CreateUserPayload,
+  type UpdateUserPayload,
+  type User,
+  type UserAccountStatus,
+  type UserRole,
 } from '../../services/users';
 
 type RoleFilter = 'all' | UserRole;
@@ -61,29 +62,25 @@ function getRoleLabel(role: string): string {
 
 export default function UserManagementPage() {
   const { isDesktop } = useResponsive();
+  const { isEdgeMode } = useAuth();
   const [activeTab, setActiveTab] = useState<RoleFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  // Data State
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Dropdown Data
   const [schools, setSchools] = useState<SchoolListItem[]>([]);
   const [caterings, setCaterings] = useState<CateringListItem[]>([]);
   const [healthAreas, setHealthAreas] = useState<HealthOfficeAreaListItem[]>([]);
 
-  // Modal State
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<Partial<User> & { password?: string } | null>(null);
+  const [selectedUser, setSelectedUser] = useState<(Partial<User> & { password?: string }) | null>(null);
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [usersData, schoolsData, cateringsData, areasData] = await Promise.all([
+      const [usersData, schoolsData, cateringsData, healthAreasData] = await Promise.all([
         fetchUsers(),
         fetchSchools(),
         fetchCaterings(),
@@ -92,10 +89,9 @@ export default function UserManagementPage() {
       setUsers(usersData);
       setSchools(schoolsData);
       setCaterings(cateringsData);
-      setHealthAreas(areasData);
+      setHealthAreas(healthAreasData);
     } catch (error) {
       Alert.alert('Error', 'Gagal memuat data pengguna');
-      console.error(error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -112,108 +108,37 @@ export default function UserManagementPage() {
   };
 
   const filteredUsers = useMemo(() => {
-    let filtered = users;
+    return users.filter(user => {
+      const matchesRole = activeTab === 'all' || user.role === activeTab;
+      const matchesSearch =
+        user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (user.fullName && user.fullName.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesRole && matchesSearch;
+    });
+  }, [users, activeTab, searchQuery]);
 
-    // Filter by role tab
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(user => user.role === activeTab);
-    }
+  const schoolOptions = useMemo(() => schools.map(s => ({ label: s.name, value: s.id })), [schools]);
+  const cateringOptions = useMemo(() => caterings.map(c => ({ label: c.name, value: c.id })), [caterings]);
+  const healthAreaOptions = useMemo(() => healthAreas.map(h => ({ label: h.name, value: h.id })), [healthAreas]);
 
-    // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(user => user.accountStatus === statusFilter);
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(user =>
-        (user.fullName?.toLowerCase() || '').includes(query) ||
-        user.username.toLowerCase().includes(query)
-      );
-    }
-
-    return filtered;
-  }, [activeTab, statusFilter, searchQuery, users]);
+  const handleCreate = () => {
+    setSelectedUser({
+      role: 'siswa',
+      accountStatus: 'active',
+    });
+    setIsModalVisible(true);
+  };
 
   const handleEdit = (user: User) => {
     setSelectedUser({ ...user });
     setIsModalVisible(true);
   };
 
-  const handleCreate = () => {
-    setSelectedUser({ role: 'siswa', accountStatus: 'pending_confirmation' as UserAccountStatus });
-    setIsModalVisible(true);
-  };
-
-  const handleSave = async () => {
-    if (!selectedUser) return;
-    if (!selectedUser.username || !selectedUser.role) {
-      Alert.alert('Error', 'Username dan Role wajib diisi');
-      return;
-    }
-
-    try {
-      setModalLoading(true);
-
-      if (selectedUser.id) {
-        // Update
-        const payload: UpdateUserPayload = {
-          username: selectedUser.username,
-          full_name: selectedUser.fullName || undefined,
-          role: selectedUser.role,
-          account_status: selectedUser.accountStatus,
-          school_id: selectedUser.schoolId ?? null,
-          catering_id: selectedUser.cateringId ?? null,
-          health_office_area: selectedUser.healthOfficeArea || undefined,
-          health_office_area_id: selectedUser.healthOfficeAreaId ?? null,
-        };
-        if (selectedUser.password) {
-          payload.password = selectedUser.password;
-        }
-
-        await updateUser(selectedUser.id, payload);
-        Alert.alert('Sukses', 'Pengguna berhasil diperbarui');
-      } else {
-        // Create
-        if (!selectedUser.password) {
-          Alert.alert('Error', 'Password wajib diisi untuk pengguna baru');
-          setModalLoading(false);
-          return;
-        }
-
-        const payload: CreateUserPayload = {
-          username: selectedUser.username,
-          password: selectedUser.password,
-          full_name: selectedUser.fullName || undefined,
-          role: selectedUser.role,
-          account_status: selectedUser.accountStatus,
-          school_id: selectedUser.schoolId || undefined,
-          catering_id: selectedUser.cateringId || undefined,
-          health_office_area: selectedUser.healthOfficeArea || undefined,
-          health_office_area_id: selectedUser.healthOfficeAreaId || undefined,
-        };
-
-        await createUser(payload);
-        Alert.alert('Sukses', 'Pengguna berhasil dibuat');
-      }
-
-      setIsModalVisible(false);
-      setSelectedUser(null);
-      handleRefresh(); // Auto-refresh
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Gagal menyimpan data');
-    } finally {
-      setModalLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedUser?.id) return;
-
     Alert.alert(
-      'Konfirmasi Hapus',
-      `Apakah Anda yakin ingin menghapus pengguna ${selectedUser.username}?`,
+      'Hapus Pengguna',
+      `Apakah Anda yakin ingin menghapus user ${selectedUser.username}?`,
       [
         { text: 'Batal', style: 'cancel' },
         {
@@ -223,12 +148,10 @@ export default function UserManagementPage() {
             try {
               setModalLoading(true);
               await deleteUser(selectedUser.id!);
-              Alert.alert('Sukses', 'Pengguna berhasil dihapus');
               setIsModalVisible(false);
-              setSelectedUser(null);
-              handleRefresh();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Gagal menghapus pengguna');
+              loadData();
+            } catch (error) {
+              Alert.alert('Error', 'Gagal menghapus pengguna');
             } finally {
               setModalLoading(false);
             }
@@ -238,25 +161,71 @@ export default function UserManagementPage() {
     );
   };
 
-  const schoolOptions = useMemo(() => schools.map(s => ({ label: s.name, value: s.id })), [schools]);
-  const cateringOptions = useMemo(() => caterings.map(c => ({ label: c.name, value: c.id })), [caterings]);
-  const healthAreaOptions = useMemo(
-    () => healthAreas.map((area) => ({ label: area.name, value: area.id })),
-    [healthAreas],
-  );
+  const handleSave = async () => {
+    if (!selectedUser?.username) {
+      Alert.alert('Error', 'Username wajib diisi');
+      return;
+    }
+
+    try {
+      setModalLoading(true);
+      if (selectedUser.id) {
+        // Update
+        const payload: UpdateUserPayload = {
+          full_name: selectedUser.fullName || undefined,
+          role: selectedUser.role,
+          account_status: selectedUser.accountStatus,
+          school_id: selectedUser.schoolId || undefined,
+          catering_id: selectedUser.cateringId || undefined,
+          health_office_area_id: selectedUser.healthOfficeAreaId || undefined,
+          health_office_area: selectedUser.healthOfficeArea || undefined,
+        };
+        if (selectedUser.password) {
+          payload.password = selectedUser.password;
+        }
+        await updateUser(selectedUser.id, payload);
+      } else {
+        // Create
+        if (!selectedUser.password) {
+          Alert.alert('Error', 'Password wajib diisi untuk pengguna baru');
+          setModalLoading(false);
+          return;
+        }
+        const payload: CreateUserPayload = {
+          username: selectedUser.username,
+          password: selectedUser.password,
+          full_name: selectedUser.fullName || undefined,
+          role: selectedUser.role || 'siswa',
+          account_status: selectedUser.accountStatus || 'active',
+          school_id: selectedUser.schoolId || undefined,
+          catering_id: selectedUser.cateringId || undefined,
+          health_office_area_id: selectedUser.healthOfficeAreaId || undefined,
+          health_office_area: selectedUser.healthOfficeArea || undefined,
+        };
+        await createUser(payload);
+      }
+      setIsModalVisible(false);
+      loadData();
+    } catch (error) {
+      Alert.alert('Error', 'Gagal menyimpan data pengguna');
+    } finally {
+      setModalLoading(false);
+    }
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <ScrollView className="flex-1">
-        <View className={`${isDesktop ? 'px-12 py-8' : 'px-6 py-6'}`}>
+        <View className="p-6 pb-24">
           {/* Header */}
-          <View className="mb-8 flex-row justify-between items-start">
+          <View className="flex-row justify-between items-center mb-6">
             <View>
-              <Text className={`${isDesktop ? 'text-4xl' : 'text-3xl'} font-bold text-gray-900 mb-2`}>
-                Manajemen Pengguna
-              </Text>
+              <Text className="text-2xl font-bold text-gray-900">Manajemen Pengguna</Text>
               <Text className="text-base text-gray-600">
                 Kelola akun, peran, dan akses sistem
+                {isEdgeMode && (
+                  <Text className="text-orange-600 font-bold ml-2"> (Read Only - Edge Mode)</Text>
+                )}
               </Text>
             </View>
             <Button
@@ -269,131 +238,112 @@ export default function UserManagementPage() {
           </View>
 
           {/* Role Tabs */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="mb-6"
-            contentContainerStyle={{ paddingRight: 16 }}
-          >
-            <View className="flex-row gap-3">
-              {roleTabs.map((tab) => (
-                <TouchableOpacity
-                  key={tab.key}
-                  onPress={() => setActiveTab(tab.key)}
-                  className={`px-6 py-3 rounded-xl ${activeTab === tab.key
-                    ? 'bg-blue-600 shadow-lg'
-                    : 'bg-white border-2 border-gray-200'
-                    }`}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    className={`font-bold text-sm ${activeTab === tab.key ? 'text-white' : 'text-gray-700'
+          <View className="flex-row justify-between items-center mb-6">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-grow mr-4">
+              <View className="flex-row gap-2">
+                {roleTabs.map((tab) => (
+                  <TouchableOpacity
+                    key={tab.key}
+                    onPress={() => setActiveTab(tab.key)}
+                    className={`px-4 py-2 rounded-full border ${activeTab === tab.key
+                      ? 'bg-blue-600 border-blue-600'
+                      : 'bg-white border-gray-200'
                       }`}
                   >
-                    {tab.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-
-          {/* Search & Add */}
-          <View className={`gap-4 mb-6 ${isDesktop ? 'flex-row items-center' : 'flex-col'}`}>
-            <View className={`${isDesktop ? 'flex-1' : 'w-full'} flex-row items-center bg-white border-2 border-gray-200 rounded-xl px-4 h-14 shadow-sm`}>
-              <Ionicons name="search" size={22} color="#9CA3AF" />
-              <TextInput
-                className="flex-1 ml-3 text-base text-gray-900"
-                placeholder="Cari pengguna..."
-                placeholderTextColor="#9CA3AF"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
+                    <Text
+                      className={`font-medium ${activeTab === tab.key ? 'text-white' : 'text-gray-600'
+                        }`}
+                    >
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+            {!isEdgeMode && (
+              <Button
+                title="Tambah Pengguna"
+                icon={<Ionicons name="person-add" size={18} color="white" />}
+                onPress={handleCreate}
               />
-            </View>
-            <View className={isDesktop ? 'w-60' : 'w-full'}>
-              <Dropdown
-                label="Filter Status"
-                options={statusFilterOptions}
-                value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-              />
-            </View>
-            <Button
-              title="Tambah Pengguna"
-              icon={<Ionicons name="person-add" size={18} color="white" />}
-              onPress={handleCreate}
-            />
+            )}
           </View>
 
           {/* User List */}
-          {loading && !refreshing ? (
-            <View className="py-12 items-center">
-              <ActivityIndicator size="large" color="#2563EB" />
-              <Text className="text-gray-500 mt-4">Memuat data pengguna...</Text>
-            </View>
-          ) : filteredUsers.length === 0 ? (
-            <Card variant="outlined" className="items-center py-12">
-              <Ionicons name="people-outline" size={64} color="#D1D5DB" />
-              <Text className="text-gray-500 mt-4 text-base font-medium">
-                Tidak ada pengguna ditemukan
-              </Text>
-              <Text className="text-gray-400 mt-1 text-sm">
-                Coba ubah filter atau kata kunci pencarian
-              </Text>
-            </Card>
-          ) : (
-            <Grid mobileColumns={1} tabletColumns={2} desktopColumns={2} gap={4}>
-              {filteredUsers.map((user) => (
-                <Card
-                  key={user.id}
-                  variant="elevated"
-                  className="overflow-hidden"
-                >
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1 pr-3">
-                      <Text className="text-xl font-bold text-gray-900 mb-1">
-                        {user.fullName || user.username}
-                      </Text>
-                      <View className="flex-row items-center mb-3">
-                        <Ionicons name="at" size={14} color="#6B7280" />
-                        <Text className="text-gray-600 ml-1">{user.username}</Text>
-                      </View>
+          <View className="mb-4 flex-row items-center bg-white border border-gray-200 rounded-xl px-3 h-12">
+            <Ionicons name="search" size={20} color="#9CA3AF" />
+            <TextInput
+              placeholder="Cari pengguna..."
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              className="flex-1 ml-2 text-base text-gray-900"
+            />
+          </View>
 
-                      <View className="flex-row items-center flex-wrap gap-2 mb-2">
-                        <View className="bg-blue-100 px-3 py-1.5 rounded-lg">
-                          <Text className="text-sm text-blue-700 font-semibold">
-                            {getRoleLabel(user.role)}
-                          </Text>
-                        </View>
-                        <View className={`px-3 py-1.5 rounded-lg ${user.accountStatus === 'active' ? 'bg-green-100' : 'bg-gray-100'
-                          }`}>
-                          <Text className={`text-sm font-semibold ${user.accountStatus === 'active' ? 'text-green-700' : 'text-gray-700'
-                            }`}>
+          {loading ? (
+            <View className="py-10">
+              <ActivityIndicator size="large" color="#1976D2" />
+            </View>
+          ) : (
+            <Grid desktopColumns={3} mobileColumns={1} gap={4}>
+              {filteredUsers.map((user) => (
+                <Card key={user.id} className="p-4">
+                  <View className="flex-row justify-between items-start">
+                    <View className="flex-1 mr-3">
+                      <View className="flex-row items-center gap-2 mb-1">
+                        <Text className="text-lg font-bold text-gray-900">
+                          {user.fullName || user.username}
+                        </Text>
+                        <View
+                          className={`px-2 py-0.5 rounded-full ${user.accountStatus === 'active'
+                            ? 'bg-green-100'
+                            : 'bg-gray-100'
+                            }`}
+                        >
+                          <Text
+                            className={`text-xs font-medium ${user.accountStatus === 'active'
+                              ? 'text-green-700'
+                              : 'text-gray-600'
+                              }`}
+                          >
                             {user.accountStatus}
                           </Text>
                         </View>
                       </View>
-
-                      {(user.sekolah || user.catering || user.healthOfficeArea) && (
-                        <View className="flex-row items-center mt-2">
-                          <Ionicons
-                            name={user.sekolah ? 'school' : user.catering ? 'restaurant' : 'location'}
-                            size={14}
-                            color="#9CA3AF"
-                          />
-                          <Text className="text-sm text-gray-500 ml-1">
-                            {user.sekolah?.name ?? user.catering?.name ?? user.healthOfficeArea}
+                      <Text className="text-sm text-gray-500 mb-2">@{user.username}</Text>
+                      <View className="flex-row flex-wrap gap-2">
+                        <View className="bg-blue-50 px-2 py-1 rounded-md">
+                          <Text className="text-xs text-blue-700 font-medium">
+                            {getRoleLabel(user.role)}
                           </Text>
                         </View>
-                      )}
+                        {user.sekolah && (
+                          <View className="bg-orange-50 px-2 py-1 rounded-md">
+                            <Text className="text-xs text-orange-700">
+                              {user.sekolah.name}
+                            </Text>
+                          </View>
+                        )}
+                        {user.catering && (
+                          <View className="bg-purple-50 px-2 py-1 rounded-md">
+                            <Text className="text-xs text-purple-700">
+                              {user.catering.name}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
 
-                    <TouchableOpacity
-                      onPress={() => handleEdit(user)}
-                      className="p-3 bg-blue-50 rounded-xl active:bg-blue-100"
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="create-outline" size={22} color="#1976D2" />
-                    </TouchableOpacity>
+                    {!isEdgeMode && (
+                      <TouchableOpacity
+                        onPress={() => handleEdit(user)}
+                        className="p-3 bg-blue-50 rounded-xl active:bg-blue-100"
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="create-outline" size={22} color="#1976D2" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </Card>
               ))}

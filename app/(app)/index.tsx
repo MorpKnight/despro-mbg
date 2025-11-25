@@ -48,9 +48,9 @@ export default function AppHome() {
     case 'admin_sekolah':
       return <SchoolAdminHome username={user.username} />;
     case 'admin_catering':
-      return <CateringAdminHome username={user.username} cateringId={user.catering_id ?? undefined} />;
+      return <CateringAdminHome username={user.username} cateringId={user.cateringId ?? undefined} />;
     case 'admin_dinkes':
-      return <DinkesAdminHome username={user.username} healthOfficeArea={user.health_office_area ?? undefined} />;
+      return <DinkesAdminHome username={user.username} healthOfficeArea={user.healthOfficeArea ?? undefined} />;
     case 'siswa':
       return <StudentHome username={user.username} />;
     default:
