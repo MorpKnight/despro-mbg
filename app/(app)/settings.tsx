@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    Pressable,
-    ScrollView,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
@@ -43,7 +44,8 @@ function getAccountStatusKey(status?: string) {
 }
 
 export default function SettingsScreen() {
-  const { user, signOut, refreshProfile } = useAuth();
+  const { user, signOut, refreshProfile, isEdgeMode } = useAuth();
+  const router = useRouter();
   const { setDarkMode, isEnglish, setLanguage, t } = usePreferences();
   const { isMobile } = useResponsive();
 
@@ -61,6 +63,7 @@ export default function SettingsScreen() {
 
   const placeholderColor = '#9CA3AF';
   const canEditHealthOffice = user?.role === 'admin_dinkes';
+  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin_sekolah';
 
   useEffect(() => {
     if (isEditProfileVisible) {
@@ -270,6 +273,28 @@ export default function SettingsScreen() {
               />
             </View>
           </Card>
+
+          {/* API Key Management - Only for Admins and NOT in Edge Mode */}
+          {isAdmin && !isEdgeMode && (
+            <>
+              <Text className="text-xl font-bold text-gray-900 mb-4">Sinkronisasi Server</Text>
+              <Card variant="elevated" className="mb-6 p-0 overflow-hidden">
+                <TouchableOpacity
+                  className="flex-row items-center justify-between px-5 py-4 active:bg-gray-50"
+                  onPress={() => router.push('/(app)/api-keys' as any)}
+                  activeOpacity={0.7}
+                >
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-10 h-10 rounded-full bg-indigo-50 items-center justify-center mr-4">
+                      <Ionicons name="key-outline" size={20} color="#4F46E5" />
+                    </View>
+                    <Text className="text-base font-semibold text-gray-900">Kelola API Keys</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={22} color="#BDBDBD" />
+                </TouchableOpacity>
+              </Card>
+            </>
+          )}
 
           <Text className="text-xl font-bold text-gray-900 mb-4">{t('settings.accountSectionTitle')}</Text>
           <Card variant="elevated" className="mb-6 p-0 overflow-hidden">

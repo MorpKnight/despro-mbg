@@ -38,7 +38,7 @@ interface SearchResultItem {
 }
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, isEdgeMode } = useAuth();
   const router = useRouter();
   const { isMobile } = useResponsive();
   const [globalKpi, setGlobalKpi] = useState<GlobalKpi | null>(null);
@@ -195,41 +195,43 @@ export default function AdminDashboard() {
         </View>
 
         {/* KPI Cards */}
-        <View className={isMobile ? "mb-6" : "mb-8"}>
-          <Grid mobileColumns={1} tabletColumns={2} desktopColumns={2} gap={isMobile ? 3 : 4}>
-            <KPICard
-              icon="school"
-              iconColor="#1976D2"
-              title="Sekolah Terdaftar"
-              value={kpiLoading ? '…' : formatNumber(globalKpi?.total_sekolah)}
-              subtitle="Dalam jaringan MBG"
-            />
-            <KPICard
-              icon="restaurant"
-              iconColor="#F97316"
-              title="Mitra Katering"
-              value={kpiLoading ? '…' : formatNumber(globalKpi?.total_katering)}
-              subtitle="Tersertifikasi program"
-            />
-            <KPICard
-              icon="people"
-              iconColor="#4CAF50"
-              title="Siswa Terlayani"
-              value={kpiLoading ? '…' : formatNumber(globalKpi?.total_siswa)}
-              subtitle="Data siswa aktif"
-            />
-            <KPICard
-              icon="warning"
-              iconColor="#E53935"
-              title="Darurat Aktif"
-              value={kpiLoading ? '…' : formatNumber(globalKpi?.total_laporan_darurat_aktif)}
-              subtitle="Perlu tindak lanjut"
-            />
-          </Grid>
-          {kpiError && (
-            <Text className="text-sm text-red-600 mt-4 px-2">{kpiError}</Text>
-          )}
-        </View>
+        {!isEdgeMode && (
+          <View className={isMobile ? "mb-6" : "mb-8"}>
+            <Grid mobileColumns={1} tabletColumns={2} desktopColumns={2} gap={isMobile ? 3 : 4}>
+              <KPICard
+                icon="school"
+                iconColor="#1976D2"
+                title="Sekolah Terdaftar"
+                value={kpiLoading ? '…' : formatNumber(globalKpi?.total_sekolah)}
+                subtitle="Dalam jaringan MBG"
+              />
+              <KPICard
+                icon="restaurant"
+                iconColor="#F97316"
+                title="Mitra Katering"
+                value={kpiLoading ? '…' : formatNumber(globalKpi?.total_katering)}
+                subtitle="Tersertifikasi program"
+              />
+              <KPICard
+                icon="people"
+                iconColor="#4CAF50"
+                title="Siswa Terlayani"
+                value={kpiLoading ? '…' : formatNumber(globalKpi?.total_siswa)}
+                subtitle="Data siswa aktif"
+              />
+              <KPICard
+                icon="warning"
+                iconColor="#E53935"
+                title="Darurat Aktif"
+                value={kpiLoading ? '…' : formatNumber(globalKpi?.total_laporan_darurat_aktif)}
+                subtitle="Perlu tindak lanjut"
+              />
+            </Grid>
+            {kpiError && (
+              <Text className="text-sm text-red-600 mt-4 px-2">{kpiError}</Text>
+            )}
+          </View>
+        )}
 
         {/* System Status Card */}
         <Card variant="elevated" className={isMobile ? "mb-6" : "mb-8"}>
@@ -294,9 +296,8 @@ export default function AdminDashboard() {
                 <Pressable
                   key={option.value}
                   onPress={() => setEntityFilter(option.value)}
-                  className={`px-4 py-2 rounded-full border ${
-                    isActive ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200'
-                  }`}
+                  className={`px-4 py-2 rounded-full border ${isActive ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200'
+                    }`}
                 >
                   <Text className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-gray-700'}`}>
                     {option.label}
@@ -357,13 +358,15 @@ export default function AdminDashboard() {
               fullWidth
               onPress={() => router.push('/(app)/user-management')}
             />
-            <Button
-              title="Buka Laporan Lengkap"
-              variant="outline"
-              icon={<Ionicons name="analytics" size={20} color="#1976D2" />}
-              fullWidth
-              onPress={() => router.push('/(app)/analytics')}
-            />
+            {!isEdgeMode && (
+              <Button
+                title="Buka Laporan Lengkap"
+                variant="outline"
+                icon={<Ionicons name="analytics" size={20} color="#1976D2" />}
+                fullWidth
+                onPress={() => router.push('/(app)/analytics')}
+              />
+            )}
             <Button
               title="Lihat Kesehatan Sistem"
               variant="ghost"

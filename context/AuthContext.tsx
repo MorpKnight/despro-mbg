@@ -45,7 +45,7 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   isEdgeMode: boolean;
-  signIn: (username: string, password: string) => Promise<void>;
+  signIn: (username: string, password: string, endpoint?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   checkServerMode: () => Promise<void>;
@@ -72,7 +72,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const url = await getServerUrl();
 
       // Logic 1: Try to fetch health/mode endpoint if available
-      // For now, we use the fallback logic as primary or if fetch fails
+      try {
+        const response = await fetch(`${url.replace(/\/$/, "")}/health`);
+        if (response.ok) {
+          const data = await response.json();
+          if (isMounted.current && data.deployment_mode) {
+            setIsEdgeMode(data.deployment_mode === 'EDGE');
+            return;
+          }
+        }
+      } catch (e) {
+        // Ignore fetch error, fall back to IP check
+      }
 
       // Logic 2: Check IP address
       // Simple regex for private IP ranges: 192.168.x.x, 10.x.x.x, 172.16.x.x - 172.31.x.x, localhost, 127.0.0.1
@@ -153,9 +164,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       loading,
       isEdgeMode,
-      signIn: async (username: string, password: string) => {
+      signIn: async (username: string, password: string, endpoint?: string) => {
         await checkServerMode();
-        const newSession = await signIn(username, password);
+        const newSession = await signIn(username, password, endpoint);
 
         // NEW: Use basic user data from session immediately if available
         if (newSession.user) {

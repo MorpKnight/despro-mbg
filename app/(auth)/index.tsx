@@ -17,6 +17,7 @@ export default function AuthIndex() {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginType, setLoginType] = useState<'staff' | 'student'>('staff');
 
   // Server Settings State
   const [showSettings, setShowSettings] = useState(false);
@@ -142,6 +143,22 @@ export default function AuthIndex() {
               </TouchableOpacity>
             </View>
 
+            {/* Login Type Toggle */}
+            <View className="flex-row mb-2 bg-gray-100 p-1 rounded-xl">
+              <TouchableOpacity
+                className={`flex-1 py-2.5 rounded-lg items-center ${loginType === 'staff' ? 'bg-white shadow-sm' : ''}`}
+                onPress={() => setLoginType('staff')}
+              >
+                <Text className={`font-medium ${loginType === 'staff' ? 'text-blue-600' : 'text-gray-500'}`}>Staf / Admin</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className={`flex-1 py-2.5 rounded-lg items-center ${loginType === 'student' ? 'bg-white shadow-sm' : ''}`}
+                onPress={() => setLoginType('student')}
+              >
+                <Text className={`font-medium ${loginType === 'student' ? 'text-blue-600' : 'text-gray-500'}`}>Siswa</Text>
+              </TouchableOpacity>
+            </View>
+
             <SettingsModal />
 
             {error ? (
@@ -199,7 +216,7 @@ export default function AuthIndex() {
                     setPasswordError("Password wajib diisi");
                     return;
                   }
-                  await signIn(username.trim(), password);
+                  await signIn(username.trim(), password, loginType === 'student' ? 'auth/login/student' : 'auth/login');
                 } catch (e: any) {
                   setError(e?.message || "Gagal masuk");
                 }
@@ -267,13 +284,29 @@ export default function AuthIndex() {
           entering={FadeInDown.delay(400).duration(1000).springify()}
           className="w-full max-w-md"
         >
-          <View className="mb-10">
+          <View className="mb-6">
             <Text className="text-3xl font-bold text-gray-900 mb-2">
               Selamat Datang
             </Text>
             <Text className="text-gray-500 text-lg">
               Silakan masuk ke akun Anda
             </Text>
+          </View>
+
+          {/* Login Type Toggle Web */}
+          <View className="flex-row mb-6 bg-gray-100 p-1.5 rounded-xl">
+            <TouchableOpacity
+              className={`flex-1 py-3 rounded-lg items-center transition-all ${loginType === 'staff' ? 'bg-white shadow-sm' : 'hover:bg-gray-200/50'}`}
+              onPress={() => setLoginType('staff')}
+            >
+              <Text className={`font-medium text-base ${loginType === 'staff' ? 'text-blue-600' : 'text-gray-500'}`}>Staf / Admin</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className={`flex-1 py-3 rounded-lg items-center transition-all ${loginType === 'student' ? 'bg-white shadow-sm' : 'hover:bg-gray-200/50'}`}
+              onPress={() => setLoginType('student')}
+            >
+              <Text className={`font-medium text-base ${loginType === 'student' ? 'text-blue-600' : 'text-gray-500'}`}>Siswa</Text>
+            </TouchableOpacity>
           </View>
 
           {error ? (
@@ -344,7 +377,7 @@ export default function AuthIndex() {
                     setPasswordError("Password wajib diisi");
                     return;
                   }
-                  await signIn(username.trim(), password);
+                  await signIn(username.trim(), password, loginType === 'student' ? 'auth/login/student' : 'auth/login');
                 } catch (e: any) {
                   setError(e?.message || "Gagal masuk");
                 }
