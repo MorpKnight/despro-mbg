@@ -77,7 +77,7 @@ function statusBadge(status: ReportStatus): { label: string; bubbleClass: string
 }
 
 export default function SekolahDashboard() {
-  const { user } = useAuth();
+  const { user, isEdgeMode } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isMobile = width < 900;
@@ -439,9 +439,8 @@ export default function SekolahDashboard() {
                         <Pressable
                           key={school.id}
                           onPress={() => setSelectedSchoolId(school.id)}
-                          className={`rounded-xl border px-4 py-3 ${
-                            school.id === selectedSchoolId ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
-                          }`}
+                          className={`rounded-xl border px-4 py-3 ${school.id === selectedSchoolId ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                            }`}
                         >
                           <Text className="text-base font-semibold text-gray-800">{school.name}</Text>
                           <Text className="text-xs text-gray-500">
@@ -466,14 +465,12 @@ export default function SekolahDashboard() {
                             <Pressable
                               disabled={schoolPage >= totalSchoolPages - 1}
                               onPress={() => setSchoolPage((prev) => Math.min(prev + 1, totalSchoolPages - 1))}
-                              className={`px-3 py-2 rounded-lg border ${
-                                schoolPage >= totalSchoolPages - 1 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
-                              }`}
+                              className={`px-3 py-2 rounded-lg border ${schoolPage >= totalSchoolPages - 1 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
+                                }`}
                             >
                               <Text
-                                className={`text-sm font-semibold ${
-                                  schoolPage >= totalSchoolPages - 1 ? 'text-gray-400' : 'text-gray-700'
-                                }`}
+                                className={`text-sm font-semibold ${schoolPage >= totalSchoolPages - 1 ? 'text-gray-400' : 'text-gray-700'
+                                  }`}
                               >
                                 Next
                               </Text>
@@ -535,9 +532,8 @@ export default function SekolahDashboard() {
                       <Text className="text-sm text-gray-500">Status Perangkat:</Text>
                       <View className="flex-row items-center">
                         <View
-                          className={`w-2 h-2 rounded-full ${
-                            attendanceStatus === 'Online' ? 'bg-emerald-500' : 'bg-gray-400'
-                          } mr-1`}
+                          className={`w-2 h-2 rounded-full ${attendanceStatus === 'Online' ? 'bg-emerald-500' : 'bg-gray-400'
+                            } mr-1`}
                         />
                         <Text className="text-sm text-[#333]">{attendanceStatus}</Text>
                       </View>
@@ -598,44 +594,46 @@ export default function SekolahDashboard() {
           </View>
 
           {/* Feedback section */}
-          <View className="bg-white rounded-2xl p-6 shadow-sm mt-3">
-            <View className="flex-row items-center mb-3">
-              <View className="w-9 h-9 rounded-full bg-yellow-50 items-center justify-center mr-2">
-                <Text className="text-yellow-500 text-lg">💬</Text>
-              </View>
-              <Text className="text-base font-semibold text-[#333]">Umpan Balik Terbaru</Text>
-            </View>
-            {feedbackLoading ? (
-              <View className="py-4 items-center">
-                <ActivityIndicator color="#F97316" />
-              </View>
-            ) : recentFeedback.length === 0 ? (
-              <Text className="text-gray-500">Belum ada umpan balik terbaru.</Text>
-            ) : (
-              recentFeedback.map((feedback) => (
-                <View key={feedback.id} className="flex-row items-start mb-4 pb-4 border-b border-gray-100">
-                  <Text className="text-2xl mr-3">{ratingToEmoji(feedback.rating)}</Text>
-                  <View className="flex-1">
-                    <Text className="font-semibold text-gray-900 mb-1">
-                      {feedback.student.fullName ?? feedback.student.username}
-                    </Text>
-                    {feedback.comment ? (
-                      <Text className="text-gray-600">{feedback.comment}</Text>
-                    ) : (
-                      <Text className="text-gray-500 italic">Tidak ada catatan tambahan.</Text>
-                    )}
-                    <Text className="text-xs text-gray-500 mt-1">{formatRelativeTime(feedback.createdAt)}</Text>
-                  </View>
+          {!isEdgeMode && (
+            <View className="bg-white rounded-2xl p-6 shadow-sm mt-3">
+              <View className="flex-row items-center mb-3">
+                <View className="w-9 h-9 rounded-full bg-yellow-50 items-center justify-center mr-2">
+                  <Text className="text-yellow-500 text-lg">💬</Text>
                 </View>
-              ))
-            )}
-            {dataError && <Text className="text-xs text-red-600 mt-2">{dataError}</Text>}
-            <View className="flex-row justify-end mt-3">
-              <Text className="text-primary font-semibold" onPress={() => router.push('/(app)/feedback-list')}>
-                Lihat Semua
-              </Text>
+                <Text className="text-base font-semibold text-[#333]">Umpan Balik Terbaru</Text>
+              </View>
+              {feedbackLoading ? (
+                <View className="py-4 items-center">
+                  <ActivityIndicator color="#F97316" />
+                </View>
+              ) : recentFeedback.length === 0 ? (
+                <Text className="text-gray-500">Belum ada umpan balik terbaru.</Text>
+              ) : (
+                recentFeedback.map((feedback) => (
+                  <View key={feedback.id} className="flex-row items-start mb-4 pb-4 border-b border-gray-100">
+                    <Text className="text-2xl mr-3">{ratingToEmoji(feedback.rating)}</Text>
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-900 mb-1">
+                        {feedback.student.fullName ?? feedback.student.username}
+                      </Text>
+                      {feedback.comment ? (
+                        <Text className="text-gray-600">{feedback.comment}</Text>
+                      ) : (
+                        <Text className="text-gray-500 italic">Tidak ada catatan tambahan.</Text>
+                      )}
+                      <Text className="text-xs text-gray-500 mt-1">{formatRelativeTime(feedback.createdAt)}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+              {dataError && <Text className="text-xs text-red-600 mt-2">{dataError}</Text>}
+              <View className="flex-row justify-end mt-3">
+                <Text className="text-primary font-semibold" onPress={() => router.push('/(app)/feedback-list')}>
+                  Lihat Semua
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -1,8 +1,8 @@
 import { api } from './api';
 import { getSession, setSession, type Role, type Session } from './session';
 
-export async function signIn(username: string, password: string): Promise<Session> {
-  const res = await api('auth/login', {
+export async function signIn(username: string, password: string, endpoint: string = 'auth/login'): Promise<Session> {
+  const res = await api(endpoint, {
     method: 'POST',
     body: { username, password },
     auth: false,
