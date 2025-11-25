@@ -48,41 +48,43 @@ const EMPTY_FORM: CateringFormState = {
 
 export default function CateringManagementPage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, isEdgeMode } = useAuth();
     const [list, setList] = useState<CateringListItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [form, setForm] = useState<CateringFormState>(EMPTY_FORM);
     const [modalVisible, setModalVisible] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState<CateringFormState>(EMPTY_FORM);
 
     const loadCaterings = useCallback(async () => {
-        setLoading(true);
         try {
-            const data = await fetchCaterings({ limit: 200 });
+            setLoading(true);
+            const data = await fetchCaterings();
             setList(data);
         } catch (error) {
-            console.warn('[catering-management] failed to load caterings', error);
-            Alert.alert('Error', 'Gagal memuat daftar katering.');
+            Alert.alert('Error', 'Gagal memuat data katering');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, []);
 
     useFocusEffect(
         useCallback(() => {
-            void loadCaterings();
-        }, [loadCaterings]),
+            loadCaterings();
+        }, [loadCaterings])
     );
 
+    const handleRefresh = () => {
+        setRefreshing(true);
+        loadCaterings();
+    };
+
     const filteredList = useMemo(() => {
-        const query = searchQuery.trim().toLowerCase();
-        if (!query) return list;
-        return list.filter((item) =>
-            item.name.toLowerCase().includes(query)
-            || (item.alamat ?? '').toLowerCase().includes(query)
-            || (item.contactPhone ?? '').toLowerCase().includes(query),
-        );
+        if (!searchQuery) return list;
+        const lower = searchQuery.toLowerCase();
+        return list.filter(item => item.name.toLowerCase().includes(lower));
     }, [list, searchQuery]);
 
     const openCreateModal = () => {
@@ -94,12 +96,12 @@ export default function CateringManagementPage() {
         setForm({
             id: item.id,
             name: item.name,
-            alamat: item.alamat ?? null,
-            provinsi: item.provinsi ?? null,
-            kotaKabupaten: item.kotaKabupaten ?? null,
-            kecamatan: item.kecamatan ?? null,
-            kelurahan: item.kelurahan ?? null,
-            contactPhone: item.contactPhone ?? null,
+            alamat: item.alamat,
+            provinsi: item.provinsi,
+            kotaKabupaten: item.kotaKabupaten,
+            kecamatan: item.kecamatan,
+            kelurahan: item.kelurahan,
+            contactPhone: item.contactPhone,
         });
         setModalVisible(true);
     };
@@ -109,41 +111,33 @@ export default function CateringManagementPage() {
         setForm(EMPTY_FORM);
     };
 
-    const normalize = (value?: string | null) => {
-        if (value === undefined || value === null) return null;
-        const trimmed = value.trim();
-        return trimmed.length ? trimmed : null;
-    };
-
-    const buildPayload = (state: CateringFormState): CateringPayload => ({
-        name: state.name.trim(),
-        alamat: normalize(state.alamat),
-        provinsi: normalize(state.provinsi),
-        kotaKabupaten: normalize(state.kotaKabupaten),
-        kecamatan: normalize(state.kecamatan),
-        kelurahan: normalize(state.kelurahan),
-        contactPhone: normalize(state.contactPhone),
-    });
-
     const handleSave = async () => {
         if (!form.name.trim()) {
-            Alert.alert('Validasi', 'Nama katering wajib diisi.');
+            Alert.alert('Error', 'Nama katering wajib diisi');
             return;
         }
 
-        setSaving(true);
         try {
-            const payload = buildPayload(form);
+            setSaving(true);
+            const payload: CateringPayload = {
+                name: form.name,
+                alamat: form.alamat,
+                provinsi: form.provinsi,
+                kotaKabupaten: form.kotaKabupaten,
+                kecamatan: form.kecamatan,
+                kelurahan: form.kelurahan,
+                contactPhone: form.contactPhone,
+            };
+
             if (form.id) {
                 await updateCatering(form.id, payload);
             } else {
                 await createCatering(payload);
             }
             closeModal();
-            await loadCaterings();
-        } catch (error: any) {
-            console.warn('[catering-management] save failed', error);
-            Alert.alert('Error', error?.message ?? 'Gagal menyimpan data katering.');
+            loadCaterings();
+        } catch (error) {
+            Alert.alert('Error', 'Gagal menyimpan data');
         } finally {
             setSaving(false);
         }
@@ -152,7 +146,7 @@ export default function CateringManagementPage() {
     const confirmDelete = (item: CateringListItem) => {
         Alert.alert(
             'Hapus Katering',
-            `Hapus ${item.name}? Aksi ini tidak dapat dibatalkan.`,
+            `Apakah Anda yakin ingin menghapus ${item.name}?`,
             [
                 { text: 'Batal', style: 'cancel' },
                 {
@@ -161,20 +155,19 @@ export default function CateringManagementPage() {
                     onPress: async () => {
                         try {
                             await deleteCatering(item.id);
-                            await loadCaterings();
+                            loadCaterings();
                         } catch (error) {
-                            console.warn('[catering-management] delete failed', error);
-                            Alert.alert('Error', 'Gagal menghapus katering.');
+                            Alert.alert('Error', 'Gagal menghapus data');
                         }
                     },
                 },
-            ],
+            ]
         );
     };
 
     const renderItem = ({ item }: { item: CateringListItem }) => (
-        <Card className="mb-3 p-4">
-            <View className="flex-row justify-between items-start gap-3">
+        <Card className="mb-3">
+            <View className="flex-row justify-between items-start">
                 <View className="flex-1 gap-1">
                     <Text className="text-lg font-bold text-gray-900">{item.name}</Text>
                     {item.alamat ? <Text className="text-sm text-gray-600">{item.alamat}</Text> : null}
@@ -186,22 +179,24 @@ export default function CateringManagementPage() {
                     </View>
                     {item.contactPhone ? <Text className="text-xs text-gray-500 mt-1">Kontak: {item.contactPhone}</Text> : null}
                 </View>
-                <View className="flex-row gap-2">
-                    <TouchableOpacity
-                        accessibilityRole="button"
-                        onPress={() => openEditModal(item)}
-                        className="p-2 bg-blue-50 rounded-full"
-                    >
-                        <Ionicons name="create-outline" size={20} color="#1976D2" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        accessibilityRole="button"
-                        onPress={() => confirmDelete(item)}
-                        className="p-2 bg-red-50 rounded-full"
-                    >
-                        <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                    </TouchableOpacity>
-                </View>
+                {!isEdgeMode && (
+                    <View className="flex-row gap-2">
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            onPress={() => openEditModal(item)}
+                            className="p-2 bg-blue-50 rounded-full"
+                        >
+                            <Ionicons name="create-outline" size={20} color="#1976D2" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            onPress={() => confirmDelete(item)}
+                            className="p-2 bg-red-50 rounded-full"
+                        >
+                            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
         </Card>
     );
@@ -225,13 +220,20 @@ export default function CateringManagementPage() {
                         <TouchableOpacity onPress={() => router.back()} className="mr-4" accessibilityRole="button">
                             <Ionicons name="arrow-back" size={24} color="#111827" />
                         </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-gray-900">Manajemen Katering</Text>
+                        <View>
+                            <Text className="text-2xl font-bold text-gray-900">Manajemen Katering</Text>
+                            {isEdgeMode && (
+                                <Text className="text-orange-600 font-bold text-sm">Read Only - Edge Mode</Text>
+                            )}
+                        </View>
                     </View>
-                    <Button
-                        title="+ Tambah"
-                        size="sm"
-                        onPress={openCreateModal}
-                    />
+                    {!isEdgeMode && (
+                        <Button
+                            title="+ Tambah"
+                            size="sm"
+                            onPress={openCreateModal}
+                        />
+                    )}
                 </View>
 
                 <View className="mb-4 flex-row items-center bg-white border border-gray-200 rounded-xl px-3 h-12">
@@ -259,6 +261,8 @@ export default function CateringManagementPage() {
                                 {searchQuery.trim() ? 'Tidak ada katering yang sesuai.' : 'Belum ada data katering.'}
                             </Text>
                         }
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
                     />
                 )}
             </View>

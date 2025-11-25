@@ -44,9 +44,11 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isEdgeMode: boolean;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  checkServerMode: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEdgeMode, setIsEdgeMode] = useState(false);
   const isMounted = useRef(true);
 
   useEffect(() => (
@@ -62,6 +65,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isMounted.current = false;
     }
   ), []);
+
+  const checkServerMode = useCallback(async () => {
+    try {
+      const { getServerUrl } = await import('../services/storage');
+      const url = await getServerUrl();
+
+      // Logic 1: Try to fetch health/mode endpoint if available
+      // For now, we use the fallback logic as primary or if fetch fails
+
+      // Logic 2: Check IP address
+      // Simple regex for private IP ranges: 192.168.x.x, 10.x.x.x, 172.16.x.x - 172.31.x.x, localhost, 127.0.0.1
+      const isLocal = /^(?:https?:\/\/)?(?:localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(?::\d+)?/.test(url);
+
+      if (isMounted.current) {
+        setIsEdgeMode(isLocal);
+      }
+    } catch (err) {
+      console.warn('[auth] checkServerMode failed', err);
+    }
+  }, []);
 
   const refreshProfile = useCallback(async () => {
     const profile = await fetchMyProfile();
@@ -73,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
+        await checkServerMode();
         const loadedSession = await loadSession();
         if (isMounted.current) {
           setSession(loadedSession);
@@ -121,14 +145,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       unsubscribe();
     };
-  }, [refreshProfile]);
+  }, [refreshProfile, checkServerMode]);
 
   const value = useMemo<AuthState>(
     () => ({
       user,
       session,
       loading,
+      isEdgeMode,
       signIn: async (username: string, password: string) => {
+        await checkServerMode();
         const newSession = await signIn(username, password);
 
         // NEW: Use basic user data from session immediately if available
@@ -166,8 +192,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw err;
         }
       },
+      checkServerMode,
     }),
-    [user, session, loading, refreshProfile]
+    [user, session, loading, isEdgeMode, refreshProfile, checkServerMode]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,5 +1,5 @@
-import Constants from 'expo-constants';
 import { getSession, setSession, type Session } from './session';
+import { getServerUrl } from './storage';
 
 export interface ApiOptions extends Omit<RequestInit, 'body'> {
   baseURL?: string;
@@ -7,14 +7,7 @@ export interface ApiOptions extends Omit<RequestInit, 'body'> {
   auth?: boolean;
 }
 
-const extraConfig = (Constants?.expoConfig as any)?.extra || (Constants as any)?.manifest?.extra || {};
-const extraApiUrl = typeof extraConfig?.apiUrl === 'string' ? extraConfig.apiUrl : undefined;
-const nestedApiUrl = typeof extraConfig?.api?.baseUrl === 'string' ? extraConfig.api.baseUrl : undefined;
 
-const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL
-  || extraApiUrl
-  || nestedApiUrl
-  || 'http://10.0.2.2:8000/api/v1';
 
 let refreshPromise: Promise<Session | null> | null = null;
 
@@ -115,7 +108,7 @@ async function makeRequest(
 
 export async function api(path: string, options: ApiOptions = {}) {
   const {
-    baseURL = DEFAULT_BASE_URL,
+    baseURL = await getServerUrl(),
     body,
     auth = true,
     ...requestOptions
@@ -144,7 +137,16 @@ export async function api(path: string, options: ApiOptions = {}) {
       isFormData,
     );
 
-  let response = await attempt(session?.access_token);
+  let response;
+  try {
+    response = await attempt(session?.access_token);
+  } catch (err: any) {
+    // Check for network error (fetch failure)
+    if (err.message === 'Network request failed' || err.name === 'TypeError') {
+      throw new Error('Gagal terhubung ke Server Sekolah. Pastikan Anda terhubung ke jaringan lokal sekolah.');
+    }
+    throw err;
+  }
 
   if (response.status === 401 && auth) {
     if (session) {

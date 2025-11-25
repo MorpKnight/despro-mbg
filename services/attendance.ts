@@ -1,5 +1,4 @@
 import { api } from './api';
-import { queueDataForSync } from './offlineQueue';
 
 export type AttendanceMethod = 'nfc' | 'qr' | 'manual' | 'assisted';
 
@@ -156,10 +155,6 @@ export async function recordAttendance(studentId: string, method: AttendanceMeth
     const data = await api('attendance/', { method: 'POST', body: payload });
     return { record: toAttendanceRecord(data as RawAttendanceRecord), queued: false };
   } catch (error) {
-    if (isNetworkError(error)) {
-      await queueDataForSync({ type: 'attendance', payload });
-      return { record: null, queued: true };
-    }
     throw error;
   }
 }

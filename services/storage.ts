@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 type SecureStoreModule = typeof import('expo-secure-store');
 
@@ -32,6 +33,34 @@ async function isSecureStoreAvailable(): Promise<boolean> {
     }
   }
   return Boolean(secureStoreAvailable);
+}
+
+const extraConfig = (Constants?.expoConfig as any)?.extra || (Constants as any)?.manifest?.extra || {};
+const extraApiUrl = typeof extraConfig?.apiUrl === 'string' ? extraConfig.apiUrl : undefined;
+const nestedApiUrl = typeof extraConfig?.api?.baseUrl === 'string' ? extraConfig.api.baseUrl : undefined;
+
+const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL
+  || extraApiUrl
+  || nestedApiUrl
+  || 'http://10.0.2.2:8000/api/v1';
+
+export const SERVER_URL_KEY = 'server_url';
+
+export async function getServerUrl(): Promise<string> {
+  try {
+    const storedUrl = await AsyncStorage.getItem(SERVER_URL_KEY);
+    return storedUrl || DEFAULT_BASE_URL;
+  } catch {
+    return DEFAULT_BASE_URL;
+  }
+}
+
+export async function setServerUrl(url: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(SERVER_URL_KEY, url);
+  } catch (err) {
+    console.warn('[storage] failed to set server url', err);
+  }
 }
 
 export const storage = {
@@ -79,7 +108,7 @@ export const secureStorage = {
           await mod.setItemAsync(
             key,
             value,
-            accessible ? { keychainService: key, accessible } : { keychainService: key },
+            accessible ? { keychainService: key, keychainAccessible: accessible } : { keychainService: key },
           );
           return;
         }
