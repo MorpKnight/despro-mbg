@@ -1,6 +1,7 @@
 import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, Image, Modal, Platform, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Text, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import Button from "../../components/ui/Button";
 import Icon from "../../components/ui/Icon";
 import TextInput from "../../components/ui/TextInput";
@@ -102,276 +103,295 @@ export default function AuthIndex() {
   // Mobile keeps the simple centered layout; Web gets a polished split view with a card
   if (Platform.OS !== "web") {
     return (
-      <View className="flex-1 bg-neutral-gray p-6 gap-4 justify-center relative">
-        <TouchableOpacity
-          className="absolute top-12 right-6 z-10 p-2 bg-white/80 rounded-full"
-          onPress={() => setShowSettings(true)}
+      <View className="flex-1 bg-gray-50">
+        <Image
+          source={require("../../assets/images/logo.png")}
+          style={{ width: 400, height: 400, position: 'absolute', top: -100, right: -100, opacity: 0.05 }}
+          resizeMode="contain"
+        />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1 justify-center p-6"
         >
-          <Icon name="settings-outline" size={24} color="#333" />
-        </TouchableOpacity>
-
-        <SettingsModal />
-
-        <Text className="text-heading font-bold text-center">Sign in</Text>
-        {error ? (
-          <Text className="text-red-500 text-body text-center">{error}</Text>
-        ) : null}
-        <TextInput
-          placeholder="Username"
-          value={username}
-          onChangeText={(t) => {
-            setUsername(t);
-            if (usernameError) setUsernameError(null);
-          }}
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder="Password"
-          value={password}
-          onChangeText={(t) => {
-            setPassword(t);
-            if (passwordError) setPasswordError(null);
-          }}
-          secureTextEntry
-        />
-        <Button
-          title={loading ? "Loading…" : "Sign In"}
-          onPress={async () => {
-            try {
-              setError(null);
-              if (!username.trim()) {
-                setUsernameError("Username is required");
-                return;
-              }
-              if (!password) {
-                setPasswordError("Password is required");
-                return;
-              }
-              await signIn(username.trim(), password);
-            } catch (e: any) {
-              setError(e?.message || "Failed to sign in");
-            }
-          }}
-          disabled={!username.trim() || !password}
-        />
-        <View className="items-center mt-2">
-          <Text className="text-gray-700 mt-4">
-            Super Admin - superadmin / Admin123!{"\n"}
-            School Admin - admin_school_1 / School1Pass!{"\n"}
-            Catering Admin - admin_catering_1 / Catering1Pass!{"\n"}
-            Dinkes Admin - admin_dinkes_1 / Dinkes1Pass!{"\n"}
-            Student - student_001 / Student1!
-          </Text>
-
-          <View className="items-center mt-2">
-            <Text className="text-gray-500 mt-1">
-              Don’t have an account?{" "}
-              <Text
-                className="text-primary font-bold"
-                onPress={() => router.push("/(auth)/signup")}
-              >
-                Sign up
-              </Text>
-            </Text>
-          </View>
-        </View>
-        <View className="items-center mt-2">
-          <Text className="text-gray-500 mt-1">
-            Don’t have an account?{" "}
-            <Text className="text-primary font-bold">Sign up</Text>
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  // Web layout
-  return (
-    <View className="bg-neutral-gray min-h-screen">
-      <SettingsModal />
-      <View className="flex-row w-full h-full">
-        {/* Left hero panel (hidden on very small widths via CSS, only effective on web) */}
-        <View className="hidden md:flex flex-1 items-center justify-center bg-gradient-to-br from-secondary to-primary">
-          <View className="px-10">
-            <View className="flex-row items-center mb-4">
-              <View className="w-16 h-16 rounded-full bg-white/15 items-center justify-center overflow-hidden">
-                <Image
-                  source={require("../../assets/images/logo.png")}
-                  style={{ width: 55, height: 55, alignSelf: "center" }}
-                  resizeMode="contain"
-                />
-              </View>
-              <Text className="text-white text-4xl font-extrabold leading-tight ml-4">
-                MBGlance
-              </Text>
+          <Animated.View
+            entering={FadeInUp.delay(200).duration(1000).springify()}
+            className="items-center mb-8"
+          >
+            <View className="w-24 h-24 bg-white rounded-3xl shadow-lg items-center justify-center mb-4 border border-gray-100">
+              <Image
+                source={require("../../assets/images/logo.png")}
+                style={{ width: 60, height: 60 }}
+                resizeMode="contain"
+              />
             </View>
-          </View>
-          <Text className="text-white/80 mt-3 max-w-md">
-            Kelola review dan tracking dengan cepat dan aman. Masuk untuk
-            melanjutkan.
-          </Text>
-        </View>
-      </View>
-
-      {/* Right form panel */}
-      <View className="flex-1 items-center justify-center p-6 relative">
-        <TouchableOpacity
-          className="absolute top-6 right-6 z-10 p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
-          onPress={() => setShowSettings(true)}
-        >
-          <Icon name="settings-outline" size={24} color="#333" />
-        </TouchableOpacity>
-
-        <View className="w-full max-w-md bg-neutral-white rounded-card shadow-card p-8">
-          <View className="items-center mb-6">
-            <Text className="text-2xl font-bold text-gray-900">
-              Welcome back
+            <Text className="text-3xl font-bold text-gray-900">MBGlance</Text>
+            <Text className="text-gray-500 mt-2 text-center px-8">
+              Sistem Monitoring Makan Bergizi Gratis
             </Text>
-            <Text className="text-gray-500 mt-1">
-              Please sign in to your account
-            </Text>
-          </View>
+          </Animated.View>
 
-          {error ? (
-            <View className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
-              <Text className="text-red-600 text-sm">{error}</Text>
+          <Animated.View
+            entering={FadeInDown.delay(400).duration(1000).springify()}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 gap-4"
+          >
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-xl font-bold text-gray-900">Masuk</Text>
+              <TouchableOpacity onPress={() => setShowSettings(true)}>
+                <Icon name="settings-outline" size={20} color="#6B7280" />
+              </TouchableOpacity>
             </View>
-          ) : null}
 
-          <View className="gap-3">
+            <SettingsModal />
+
+            {error ? (
+              <Animated.View entering={FadeInDown} className="bg-red-50 p-3 rounded-xl border border-red-100">
+                <Text className="text-red-600 text-sm text-center">{error}</Text>
+              </Animated.View>
+            ) : null}
+
             <View>
-              <Text className="text-sm text-gray-700 mb-1">Username</Text>
+              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">Username</Text>
               <TextInput
-                placeholder="Enter your username"
+                placeholder="Masukkan username"
                 value={username}
                 onChangeText={(t) => {
                   setUsername(t);
                   if (usernameError) setUsernameError(null);
                 }}
                 autoCapitalize="none"
+                className="bg-gray-50 border-gray-200 focus:border-primary focus:bg-white transition-all"
               />
-              {usernameError ? (
-                <Text className="text-red-600 text-xs mt-1">
-                  {usernameError}
-                </Text>
-              ) : null}
             </View>
+
             <View>
-              <Text className="text-sm text-gray-700 mb-1">Password</Text>
+              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">Password</Text>
               <View className="relative">
                 <TextInput
-                  placeholder="••••••••"
+                  placeholder="Masukkan password"
                   value={password}
                   onChangeText={(t) => {
                     setPassword(t);
                     if (passwordError) setPasswordError(null);
                   }}
                   secureTextEntry={!showPassword}
+                  className="bg-gray-50 border-gray-200 focus:border-primary focus:bg-white transition-all"
                 />
-                <View className="absolute right-2 top-1/2 -translate-y-1/2">
-                  <Text
-                    className="text-primary font-semibold text-sm"
-                    onPress={() => setShowPassword((s) => !s)}
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  className="absolute right-3 top-3.5"
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Icon name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
+                </TouchableOpacity>
               </View>
-              {passwordError ? (
-                <Text className="text-red-600 text-xs mt-1">
-                  {passwordError}
-                </Text>
-              ) : null}
             </View>
+
             <Button
-              className="w-full"
-              title={loading ? "Signing in…" : "Sign In"}
+              title={loading ? "Memproses..." : "Masuk Sekarang"}
               onPress={async () => {
                 try {
                   setError(null);
                   if (!username.trim()) {
-                    setUsernameError("Username is required");
+                    setUsernameError("Username wajib diisi");
                     return;
                   }
                   if (!password) {
-                    setPasswordError("Password is required");
+                    setPasswordError("Password wajib diisi");
                     return;
                   }
                   await signIn(username.trim(), password);
                 } catch (e: any) {
-                  setError(e?.message || "Failed to sign in");
+                  setError(e?.message || "Gagal masuk");
                 }
               }}
-              disabled={!username.trim() || !password}
+              disabled={!username.trim() || !password || loading}
+              className="mt-2 shadow-md shadow-blue-500/30"
+              size="lg"
+            />
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.delay(600).duration(1000)} className="items-center mt-8">
+            <Text className="text-gray-400 text-xs">
+              Belum punya akun? <Text className="text-primary font-bold" onPress={() => router.push("/(auth)/signup")}>Daftar</Text>
+            </Text>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </View>
+    );
+  }
+
+  // Web layout
+  return (
+    <View className="bg-gray-50 min-h-screen flex-row">
+      <SettingsModal />
+
+      {/* Left hero panel */}
+      <View className="hidden md:flex flex-1 relative overflow-hidden bg-blue-600 items-center justify-center">
+        <View className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-800" />
+        <Image
+          source={require("../../assets/images/logo.png")}
+          style={{ width: 600, height: 600, position: 'absolute', bottom: -100, left: -100, opacity: 0.1 }}
+          resizeMode="contain"
+        />
+
+        <Animated.View
+          entering={FadeInUp.delay(200).duration(1000).springify()}
+          className="z-10 px-16 max-w-2xl"
+        >
+          <View className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-3xl items-center justify-center mb-8 border border-white/20">
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={{ width: 50, height: 50 }}
+              resizeMode="contain"
+            />
+          </View>
+          <Text className="text-white text-5xl font-bold leading-tight mb-6">
+            Monitoring Gizi,{'\n'}Masa Depan Bangsa
+          </Text>
+          <Text className="text-blue-100 text-xl leading-relaxed">
+            Platform terintegrasi untuk memantau distribusi dan kualitas Makan Bergizi Gratis di seluruh sekolah.
+          </Text>
+        </Animated.View>
+      </View>
+
+      {/* Right form panel */}
+      <View className="flex-1 items-center justify-center p-12 relative">
+        <TouchableOpacity
+          className="absolute top-8 right-8 z-10 p-3 bg-white rounded-full shadow-sm border border-gray-100 hover:bg-gray-50 transition-all"
+          onPress={() => setShowSettings(true)}
+        >
+          <Icon name="settings-outline" size={24} color="#374151" />
+        </TouchableOpacity>
+
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(1000).springify()}
+          className="w-full max-w-md"
+        >
+          <View className="mb-10">
+            <Text className="text-3xl font-bold text-gray-900 mb-2">
+              Selamat Datang
+            </Text>
+            <Text className="text-gray-500 text-lg">
+              Silakan masuk ke akun Anda
+            </Text>
+          </View>
+
+          {error ? (
+            <Animated.View entering={FadeInDown} className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex-row items-center gap-3">
+              <Icon name="alert-circle" size={20} color="#DC2626" />
+              <Text className="text-red-700 font-medium flex-1">{error}</Text>
+            </Animated.View>
+          ) : null}
+
+          <View className="gap-5">
+            <View>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">Username</Text>
+              <TextInput
+                placeholder="Masukkan username"
+                value={username}
+                onChangeText={(t) => {
+                  setUsername(t);
+                  if (usernameError) setUsernameError(null);
+                }}
+                autoCapitalize="none"
+                className="h-12 bg-white border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-base"
+              />
+              {usernameError ? (
+                <Text className="text-red-600 text-sm mt-1.5 ml-1">
+                  {usernameError}
+                </Text>
+              ) : null}
+            </View>
+
+            <View>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">Password</Text>
+              <View className="relative">
+                <TextInput
+                  placeholder="Masukkan password"
+                  value={password}
+                  onChangeText={(t) => {
+                    setPassword(t);
+                    if (passwordError) setPasswordError(null);
+                  }}
+                  secureTextEntry={!showPassword}
+                  className="h-12 bg-white border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-base pr-12"
+                />
+                <TouchableOpacity
+                  className="absolute right-0 top-0 h-12 w-12 items-center justify-center"
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Icon name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+              {passwordError ? (
+                <Text className="text-red-600 text-sm mt-1.5 ml-1">
+                  {passwordError}
+                </Text>
+              ) : null}
+            </View>
+
+            <Button
+              className="w-full h-12 mt-2 shadow-lg shadow-blue-600/20"
+              title={loading ? "Memproses..." : "Masuk"}
+              onPress={async () => {
+                try {
+                  setError(null);
+                  if (!username.trim()) {
+                    setUsernameError("Username wajib diisi");
+                    return;
+                  }
+                  if (!password) {
+                    setPasswordError("Password wajib diisi");
+                    return;
+                  }
+                  await signIn(username.trim(), password);
+                } catch (e: any) {
+                  setError(e?.message || "Gagal masuk");
+                }
+              }}
+              disabled={!username.trim() || !password || loading}
+              size="lg"
             />
           </View>
 
-          <View className="items-center mt-4">
-            <Text className="text-gray-400 text-xs text-center mb-2">
-              Fast Login (Demo):
+          <View className="mt-8 pt-8 border-t border-gray-100">
+            <Text className="text-gray-400 text-xs text-center mb-4 uppercase tracking-wider font-semibold">
+              Akun Demo
             </Text>
             <View className="flex-row flex-wrap justify-center gap-2">
-              <Button
-                title="Super Admin"
-                size="sm"
-                variant="outline"
-                onPress={() => {
-                  setUsername('superadmin');
-                  setPassword('Admin123!');
-                }}
-              />
-              <Button
-                title="Sekolah"
-                size="sm"
-                variant="outline"
-                onPress={() => {
-                  setUsername('admin_school_1');
-                  setPassword('School1Pass!');
-                }}
-              />
-              <Button
-                title="Catering"
-                size="sm"
-                variant="outline"
-                onPress={() => {
-                  setUsername('admin_catering_1');
-                  setPassword('Catering1Pass!');
-                }}
-              />
-              <Button
-                title="Siswa"
-                size="sm"
-                variant="outline"
-                onPress={() => {
-                  setUsername('student_001');
-                  setPassword('Student1!');
-                }}
-              />
-              <Button
-                title="Dinkes"
-                size="sm"
-                variant="outline"
-                onPress={() => {
-                  setUsername('admin_dinkes_1');
-                  setPassword('Dinkes1Pass!');
-                }}
-              />
-            </View>
-          </View>
-          <View className="items-center mt-2">
-            <View className="items-center mt-2">
-              <Text className="text-gray-500 mt-1">
-                Don’t have an account?{" "}
-                <Text
-                  className="text-primary font-bold"
-                  onPress={() => router.push("/(auth)/signup")}
+              {[
+                { label: 'Super Admin', u: 'superadmin', p: 'Admin123!' },
+                { label: 'Sekolah', u: 'admin_school_1', p: 'School1Pass!' },
+                { label: 'Catering', u: 'admin_catering_1', p: 'Catering1Pass!' },
+                { label: 'Dinkes', u: 'admin_dinkes_1', p: 'Dinkes1Pass!' },
+                { label: 'Siswa', u: 'student_001', p: 'Student1!' },
+              ].map((demo) => (
+                <TouchableOpacity
+                  key={demo.label}
+                  onPress={() => {
+                    setUsername(demo.u);
+                    setPassword(demo.p);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-all"
                 >
-                  Sign up
-                </Text>
-              </Text>
+                  <Text className="text-xs font-medium text-gray-600">{demo.label}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
-        </View>
+
+          <View className="items-center mt-8">
+            <Text className="text-gray-500">
+              Belum punya akun?{" "}
+              <Text
+                className="text-blue-600 font-bold hover:underline cursor-pointer"
+                onPress={() => router.push("/(auth)/signup")}
+              >
+                Daftar Sekarang
+              </Text>
+            </Text>
+          </View>
+        </Animated.View>
       </View>
     </View>
   );
