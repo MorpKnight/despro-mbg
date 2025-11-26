@@ -12,6 +12,8 @@ COPY . .
 
 # Build for web
 # This creates a 'dist' folder (default for Expo Router web export)
+ARG EXPO_PUBLIC_API_URL
+ENV EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL
 RUN npx expo export -p web
 
 # Stage 2: Production
