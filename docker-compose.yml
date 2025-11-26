@@ -13,9 +13,9 @@ services:
     environment:
       - EXPO_PUBLIC_API_URL=https://mbg-be.mrt.qzz.io/api/v1/docs
     networks:
-      - cloudflared-internal
+      - cloudflared-private
     restart: always
 
 networks:
-  cloudflared-internal:
+  cloudflared-private:
     external: true
