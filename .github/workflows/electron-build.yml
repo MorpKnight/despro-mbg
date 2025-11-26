@@ -1,0 +1,50 @@
+name: Build Electron App
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Expo Web
+        run: npx expo export -p web
+
+      # Note: This step assumes you have configured electron-builder in your package.json
+      # and have a valid electron entry point (e.g., main.js)
+      - name: Build Electron App
+        run: |
+          # Ensure electron-builder is installed if not in devDependencies
+          # npm install --no-save electron-builder
+
+          # Run the build command (adjust 'build:electron' to your actual script name if different)
+          # If you don't have a script, you can run electron-builder directly:
+          npx electron-builder --linux --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-build-linux
+          path: dist/*.AppImage

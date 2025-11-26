@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  frontend:
+    container_name: despro-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    networks:
+      - internal
+    restart: always
+
+networks:
+  internal:
+    driver: bridge

@@ -1,22 +1,28 @@
-FROM node:lts-alpine
+# Stage 1: Builder
+FROM node:20-alpine AS builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copy package files
+# Install dependencies
 COPY package*.json ./
-
-# Install dependencies (including dev dependencies for Expo)
 RUN npm install
 
-# Copy project files
+# Copy source code
 COPY . .
 
-# Expose Expo ports
-# 8081: Metro bundler
-# 19000: Expo Dev Tools
-# 19001: Expo Dev Tools (secure)
-# 19002: Expo Dev Tools (ng serve)
-EXPOSE 8081 19000 19001 19002
+# Build for web
+# This creates a 'dist' folder (default for Expo Router web export)
+RUN npx expo export -p web
 
-# Start Expo
-CMD ["npx", "expo", "start", "--tunnel"]
+# Stage 2: Production
+FROM nginx:alpine
+
+# Copy built assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy custom nginx config if needed (optional, using default for now but good to have placeholder)
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

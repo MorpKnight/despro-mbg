@@ -14,19 +14,73 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
 import type { TranslationKey } from '../../context/PreferencesContext';
 import { useAuth } from '../../hooks/useAuth';
 import { usePreferences } from '../../hooks/usePreferences';
 import { useResponsive } from '../../hooks/useResponsive';
 import { changeMyPassword, updateMyProfile } from '../../services/profile';
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, icon }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap }) {
   return (
-    <View className="mb-3">
-      <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</Text>
-      <Text className="text-base text-gray-900 mt-1">{value}</Text>
+    <View className="flex-row items-start mb-4">
+      <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-3 mt-0.5">
+        <Ionicons name={icon} size={16} color="#3B82F6" />
+      </View>
+      <View className="flex-1">
+        <Text className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-0.5">{label}</Text>
+        <Text className="text-base text-gray-900 leading-6">{value}</Text>
+      </View>
     </View>
+  );
+}
+
+function SettingItem({
+  icon,
+  iconColor,
+  iconBg,
+  label,
+  value,
+  onPress,
+  rightElement,
+  isLast = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  iconBg: string;
+  label: string;
+  value?: string;
+  onPress?: () => void;
+  rightElement?: React.ReactNode;
+  isLast?: boolean;
+}) {
+  const Content = (
+    <View className={`flex-row items-center px-4 py-4 ${!isLast ? 'border-b border-gray-100' : ''}`}>
+      <View className={`w-10 h-10 rounded-full ${iconBg} items-center justify-center mr-4`}>
+        <Ionicons name={icon} size={20} color={iconColor} />
+      </View>
+      <View className="flex-1">
+        <Text className="text-base font-medium text-gray-900">{label}</Text>
+        {value && <Text className="text-sm text-gray-500 mt-0.5">{value}</Text>}
+      </View>
+      {rightElement || <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {Content}
+      </TouchableOpacity>
+    );
+  }
+  return Content;
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <Text className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 px-4 mt-6">
+      {title}
+    </Text>
   );
 }
 
@@ -210,169 +264,170 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1">
-        <View className={isMobile ? 'p-4' : 'p-8'}>
-          <Text className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold text-gray-900 mb-8`}>
-            {t('settings.title')}
-          </Text>
-
-          <Card variant="elevated" className="mb-6">
-            <View className="flex-row items-center mb-6">
-              <View className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 items-center justify-center mr-5 shadow-lg">
-                <Text className="text-3xl font-bold text-white">
-                  {user?.username?.[0]?.toUpperCase() ?? 'U'}
-                </Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-xl font-bold text-gray-900">
-                  {user?.fullName || user?.username || 'Guest'}
-                </Text>
-                <Text className="text-base text-gray-600 capitalize mt-1">
-                  {roleLabel}
-                </Text>
-              </View>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Header Profile Section */}
+        <View className="bg-white pb-6 pt-2 px-6 rounded-b-[32px] shadow-sm mb-4">
+          <View className="flex-row items-center justify-between mb-6">
+            <Text className="text-2xl font-bold text-gray-900">{t('settings.title')}</Text>
+            <View className="bg-blue-50 px-3 py-1 rounded-full">
+              <Text className="text-blue-700 text-xs font-bold uppercase">{roleLabel}</Text>
             </View>
-            <Button
-              title={t('settings.editProfile')}
-              variant="outline"
-              icon={<Ionicons name="create-outline" size={20} color="#1976D2" />}
-              fullWidth
-              onPress={() => setIsEditProfileVisible(true)}
+          </View>
+
+          <View className="flex-row items-center">
+            <View className="w-20 h-20 rounded-full bg-blue-600 items-center justify-center shadow-lg border-4 border-white mr-5">
+              <Text className="text-3xl font-bold text-white">
+                {user?.username?.[0]?.toUpperCase() ?? 'U'}
+              </Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-xl font-bold text-gray-900 mb-1">
+                {user?.fullName || user?.username || 'Guest'}
+              </Text>
+              <Text className="text-gray-500 text-sm mb-3">
+                {user?.username ? `@${user.username}` : ''}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsEditProfileVisible(true)}
+                className="bg-gray-100 self-start px-4 py-2 rounded-full flex-row items-center"
+              >
+                <Ionicons name="create-outline" size={16} color="#4B5563" />
+                <Text className="text-gray-700 text-xs font-semibold ml-2">{t('settings.editProfile')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        <View className="px-4">
+          {/* App Settings */}
+          <SectionHeader title={t('settings.applicationSectionTitle')} />
+          <View className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+            <SettingItem
+              icon="moon"
+              iconColor="#7C3AED"
+              iconBg="bg-purple-50"
+              label={t('settings.darkMode')}
+              rightElement={
+                <Switch
+                  value={false}
+                  onValueChange={handleDarkModeToggle}
+                  trackColor={{ false: '#E5E7EB', true: '#C4B5FD' }}
+                  thumbColor="#F3F4F6"
+                  disabled
+                />
+              }
             />
-          </Card>
+            <SettingItem
+              icon="language"
+              iconColor="#059669"
+              iconBg="bg-green-50"
+              label={t('settings.languageToggle')}
+              value={isEnglish ? 'English' : 'Bahasa Indonesia'}
+              isLast
+              rightElement={
+                <Switch
+                  value={isEnglish}
+                  onValueChange={handleLanguageToggle}
+                  trackColor={{ false: '#E5E7EB', true: '#6EE7B7' }}
+                  thumbColor={isEnglish ? '#10B981' : '#F3F4F6'}
+                />
+              }
+            />
+          </View>
 
-          <Text className="text-xl font-bold text-gray-900 mb-4">{t('settings.applicationSectionTitle')}</Text>
-          <Card variant="elevated" className="mb-6 p-0 overflow-hidden">
-            <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
-              <View className="flex-row items-center flex-1">
-                <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center mr-4">
-                  <Ionicons name="moon" size={20} color="#1976D2" />
-                </View>
-                <Text className="text-base font-semibold text-gray-900">{t('settings.darkMode')}</Text>
-              </View>
-              <Switch
-                value={false}
-                onValueChange={handleDarkModeToggle}
-                trackColor={{ false: '#E0E0E0', true: '#90CAF9' }}
-                thumbColor="#F5F5F5"
-                disabled
-              />
-            </View>
-            <View className="flex-row items-center justify-between px-5 py-4">
-              <View className="flex-row items-center flex-1">
-                <View className="w-10 h-10 rounded-full bg-green-50 items-center justify-center mr-4">
-                  <Ionicons name="language" size={20} color="#4CAF50" />
-                </View>
-                <Text className="text-base font-semibold text-gray-900">{t('settings.languageToggle')}</Text>
-              </View>
-              <Switch
-                value={isEnglish}
-                onValueChange={handleLanguageToggle}
-                trackColor={{ false: '#E0E0E0', true: '#A5D6A7' }}
-                thumbColor={isEnglish ? '#4CAF50' : '#F5F5F5'}
-              />
-            </View>
-          </Card>
-
-          {/* API Key Management - Only for Admins and NOT in Edge Mode */}
+          {/* Server Sync - Admin Only & Not Edge */}
           {isAdmin && !isEdgeMode && (
             <>
-              <Text className="text-xl font-bold text-gray-900 mb-4">Sinkronisasi Server</Text>
-              <Card variant="elevated" className="mb-6 p-0 overflow-hidden">
-                <TouchableOpacity
-                  className="flex-row items-center justify-between px-5 py-4 active:bg-gray-50"
+              <SectionHeader title="Sinkronisasi Server" />
+              <View className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                <SettingItem
+                  icon="key-outline"
+                  iconColor="#2563EB"
+                  iconBg="bg-blue-50"
+                  label="Kelola API Keys"
                   onPress={() => router.push('/(app)/api-keys' as any)}
-                  activeOpacity={0.7}
-                >
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-10 h-10 rounded-full bg-indigo-50 items-center justify-center mr-4">
-                      <Ionicons name="key-outline" size={20} color="#4F46E5" />
-                    </View>
-                    <Text className="text-base font-semibold text-gray-900">Kelola API Keys</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={22} color="#BDBDBD" />
-                </TouchableOpacity>
-              </Card>
+                  isLast
+                />
+              </View>
             </>
           )}
 
-          <Text className="text-xl font-bold text-gray-900 mb-4">{t('settings.accountSectionTitle')}</Text>
-          <Card variant="elevated" className="mb-6 p-0 overflow-hidden">
-            <TouchableOpacity
-              className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100 active:bg-gray-50"
+          {/* Account Settings */}
+          <SectionHeader title={t('settings.accountSectionTitle')} />
+          <View className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+            <SettingItem
+              icon="lock-closed-outline"
+              iconColor="#EA580C"
+              iconBg="bg-orange-50"
+              label={t('settings.changePassword')}
               onPress={() => setIsChangePasswordVisible(true)}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center flex-1">
-                <View className="w-10 h-10 rounded-full bg-orange-50 items-center justify-center mr-4">
-                  <Ionicons name="key" size={20} color="#FF9800" />
-                </View>
-                <Text className="text-base font-semibold text-gray-900">{t('settings.changePassword')}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={22} color="#BDBDBD" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-row items-center justify-between px-5 py-4 active:bg-red-50"
+            />
+            <SettingItem
+              icon="log-out-outline"
+              iconColor="#DC2626"
+              iconBg="bg-red-50"
+              label={t('settings.signOut')}
               onPress={signOut}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center flex-1">
-                <View className="w-10 h-10 rounded-full bg-red-50 items-center justify-center mr-4">
-                  <Ionicons name="log-out" size={20} color="#F44336" />
-                </View>
-                <Text className="text-base font-semibold text-red-600">{t('settings.signOut')}</Text>
-              </View>
-            </TouchableOpacity>
-          </Card>
+              isLast
+            />
+          </View>
 
-          <Text className="text-center text-gray-400 mt-6 text-sm">{versionLabel}</Text>
+          <Text className="text-center text-gray-400 mt-8 text-xs font-medium uppercase tracking-widest">
+            {versionLabel}
+          </Text>
         </View>
       </ScrollView>
 
+      {/* Edit Profile Modal */}
       <Modal visible={isEditProfileVisible} animationType="slide" transparent>
         <Pressable
           className="flex-1 bg-black/60 justify-end"
           onPress={() => setIsEditProfileVisible(false)}
         >
           <Pressable
-            className="bg-white rounded-t-3xl h-[75%] shadow-2xl"
+            className="bg-white rounded-t-[32px] h-[85%] shadow-2xl"
             onPress={(e) => e.stopPropagation()}
           >
-            <View className="flex-row justify-between items-center p-6 pb-4 border-b border-gray-100">
-              <View>
-                <Text className="text-2xl font-bold text-gray-900">{t('profileModal.title')}</Text>
-                <Text className="text-sm text-gray-500 mt-1">{t('profileModal.subtitle')}</Text>
-              </View>
+            <View className="flex-row justify-between items-center px-6 py-5 border-b border-gray-100">
+              <Text className="text-xl font-bold text-gray-900">{t('profileModal.title')}</Text>
               <TouchableOpacity
                 onPress={() => setIsEditProfileVisible(false)}
-                className="p-2 bg-gray-100 rounded-full"
+                className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center"
               >
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons name="close" size={20} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1 px-6 py-4">
-              <View className="gap-5">
-                <View className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
-                  <Text className="text-sm font-semibold text-gray-800 mb-1">{t('profileModal.accountInfoTitle')}</Text>
-                  <Text className="text-xs text-gray-500 mb-4">{t('profileModal.accountInfoDescription')}</Text>
-                  <InfoRow label={t('profileModal.usernameLabel')} value={user?.username ?? '-'} />
-                  <InfoRow label={t('profileModal.roleLabel')} value={roleLabel} />
-                  <InfoRow label={t('profileModal.statusLabel')} value={accountStatusLabel} />
+            <ScrollView className="flex-1 px-6 py-6">
+              <View className="bg-blue-50 p-4 rounded-2xl mb-6 flex-row items-start">
+                <Ionicons name="information-circle" size={24} color="#2563EB" />
+                <View className="ml-3 flex-1">
+                  <Text className="text-blue-900 font-bold text-sm mb-1">{t('profileModal.accountInfoTitle')}</Text>
+                  <Text className="text-blue-700 text-xs leading-4">{t('profileModal.accountInfoDescription')}</Text>
                 </View>
+              </View>
 
-                <View className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
-                  <Text className="text-sm font-semibold text-gray-800 mb-1">{t('profileModal.linkedInfoTitle')}</Text>
-                  <Text className="text-xs text-gray-500 mb-4">{t('profileModal.associationsDescription')}</Text>
-                  <InfoRow label={t('profileModal.schoolLabel')} value={schoolDisplay} />
-                  <InfoRow label={t('profileModal.cateringLabel')} value={cateringDisplay} />
-                  <InfoRow label={t('profileModal.dinkesLabel')} value={dinkesDisplay} />
-                </View>
+              <View className="mb-8">
+                <Text className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Detail Akun</Text>
+                <InfoRow label={t('profileModal.usernameLabel')} value={user?.username ?? '-'} icon="person-outline" />
+                <InfoRow label={t('profileModal.roleLabel')} value={roleLabel} icon="shield-outline" />
+                <InfoRow label={t('profileModal.statusLabel')} value={accountStatusLabel} icon="checkmark-circle-outline" />
+              </View>
 
-                <View>
-                  <Text className="text-sm font-semibold text-gray-700 mb-2">{t('profileModal.fullNameLabel')}</Text>
+              <View className="mb-8">
+                <Text className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Afiliasi</Text>
+                <InfoRow label={t('profileModal.schoolLabel')} value={schoolDisplay} icon="school-outline" />
+                <InfoRow label={t('profileModal.cateringLabel')} value={cateringDisplay} icon="restaurant-outline" />
+                <InfoRow label={t('profileModal.dinkesLabel')} value={dinkesDisplay} icon="medkit-outline" />
+              </View>
+
+              <View className="mb-6">
+                <Text className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Edit Informasi</Text>
+
+                <View className="mb-4">
+                  <Text className="text-sm font-medium text-gray-700 mb-2">{t('profileModal.fullNameLabel')}</Text>
                   <TextInput
-                    className="border-2 border-gray-200 rounded-xl p-4 text-base bg-white text-gray-900"
+                    className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-base text-gray-900"
                     value={fullNameInput}
                     onChangeText={setFullNameInput}
                     placeholder={fullNamePlaceholder}
@@ -381,18 +436,17 @@ export default function SettingsScreen() {
                 </View>
 
                 <View>
-                  <Text className="text-sm font-semibold text-gray-700 mb-2">{t('profileModal.healthOfficeAreaLabel')}</Text>
+                  <Text className="text-sm font-medium text-gray-700 mb-2">{t('profileModal.healthOfficeAreaLabel')}</Text>
                   <TextInput
-                    className={`border-2 border-gray-200 rounded-xl p-4 text-base bg-white text-gray-900 ${canEditHealthOffice ? '' : 'opacity-60'}`}
+                    className={`bg-gray-50 border border-gray-200 rounded-xl p-4 text-base text-gray-900 ${!canEditHealthOffice && 'opacity-50'}`}
                     value={healthOfficeAreaInput}
                     onChangeText={setHealthOfficeAreaInput}
                     placeholder={healthOfficePlaceholder}
                     placeholderTextColor={placeholderColor}
                     editable={canEditHealthOffice}
-                    selectTextOnFocus={canEditHealthOffice}
                   />
                   {!canEditHealthOffice && (
-                    <Text className="text-xs text-amber-600 mt-1">
+                    <Text className="text-xs text-gray-500 mt-2 italic">
                       {t('profileModal.healthOfficeAreaDisabledHint')}
                     </Text>
                   )}
@@ -400,53 +454,53 @@ export default function SettingsScreen() {
               </View>
             </ScrollView>
 
-            <View className="px-6 pb-6">
-              <Text className="text-xs text-gray-500 mb-3">{t('profileModal.note')}</Text>
-            </View>
-
-            <View className="p-6 pt-0 border-t-2 border-gray-100">
+            <View className="p-6 border-t border-gray-100 bg-white pb-8">
               <Button
                 title={t('profileModal.saveButton')}
                 onPress={handleUpdateProfile}
                 loading={profileLoading}
                 fullWidth
-                icon={<Ionicons name="checkmark-circle" size={20} color="white" />}
+                size="lg"
               />
             </View>
           </Pressable>
         </Pressable>
       </Modal>
 
+      {/* Change Password Modal */}
       <Modal visible={isChangePasswordVisible} animationType="slide" transparent>
         <Pressable
           className="flex-1 bg-black/60 justify-end"
           onPress={() => setIsChangePasswordVisible(false)}
         >
           <Pressable
-            className="bg-white rounded-t-3xl h-[70%] shadow-2xl"
+            className="bg-white rounded-t-[32px] h-[75%] shadow-2xl"
             onPress={(e) => e.stopPropagation()}
           >
-            <View className="flex-row justify-between items-center p-6 pb-4 border-b border-gray-100">
-              <View>
-                <Text className="text-2xl font-bold text-gray-900">{t('passwordModal.title')}</Text>
-                <Text className="text-sm text-gray-500 mt-1">{t('passwordModal.subtitle')}</Text>
-              </View>
+            <View className="flex-row justify-between items-center px-6 py-5 border-b border-gray-100">
+              <Text className="text-xl font-bold text-gray-900">{t('passwordModal.title')}</Text>
               <TouchableOpacity
                 onPress={() => setIsChangePasswordVisible(false)}
-                className="p-2 bg-gray-100 rounded-full"
+                className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center"
               >
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons name="close" size={20} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1 px-6 py-4">
+            <ScrollView className="flex-1 px-6 py-6">
+              <View className="bg-orange-50 p-4 rounded-2xl mb-6 flex-row items-start">
+                <Ionicons name="shield-checkmark" size={24} color="#EA580C" />
+                <View className="ml-3 flex-1">
+                  <Text className="text-orange-900 font-bold text-sm mb-1">Keamanan Akun</Text>
+                  <Text className="text-orange-700 text-xs leading-4">{t('passwordModal.hint')}</Text>
+                </View>
+              </View>
+
               <View className="gap-5">
                 <View>
-                  <Text className="text-sm font-semibold text-gray-700 mb-2">
-                    {t('passwordModal.currentLabel')}
-                  </Text>
+                  <Text className="text-sm font-medium text-gray-700 mb-2">{t('passwordModal.currentLabel')}</Text>
                   <TextInput
-                    className="border-2 border-gray-200 rounded-xl p-4 text-base bg-white text-gray-900"
+                    className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-base text-gray-900"
                     value={currentPassword}
                     onChangeText={setCurrentPassword}
                     placeholder={t('passwordModal.currentPlaceholder')}
@@ -456,11 +510,9 @@ export default function SettingsScreen() {
                 </View>
 
                 <View>
-                  <Text className="text-sm font-semibold text-gray-700 mb-2">
-                    {t('passwordModal.newLabel')}
-                  </Text>
+                  <Text className="text-sm font-medium text-gray-700 mb-2">{t('passwordModal.newLabel')}</Text>
                   <TextInput
-                    className="border-2 border-gray-200 rounded-xl p-4 text-base bg-white text-gray-900"
+                    className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-base text-gray-900"
                     value={newPassword}
                     onChangeText={setNewPassword}
                     placeholder={t('passwordModal.newPlaceholder')}
@@ -470,11 +522,9 @@ export default function SettingsScreen() {
                 </View>
 
                 <View>
-                  <Text className="text-sm font-semibold text-gray-700 mb-2">
-                    {t('passwordModal.confirmLabel')}
-                  </Text>
+                  <Text className="text-sm font-medium text-gray-700 mb-2">{t('passwordModal.confirmLabel')}</Text>
                   <TextInput
-                    className="border-2 border-gray-200 rounded-xl p-4 text-base bg-white text-gray-900"
+                    className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-base text-gray-900"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     placeholder={t('passwordModal.confirmPlaceholder')}
@@ -482,25 +532,16 @@ export default function SettingsScreen() {
                     secureTextEntry
                   />
                 </View>
-
-                <View className="bg-blue-50 p-4 rounded-xl">
-                  <View className="flex-row items-start">
-                    <Ionicons name="information-circle" size={20} color="#1976D2" />
-                    <Text className="text-sm text-blue-700 ml-2 flex-1">
-                      {t('passwordModal.hint')}
-                    </Text>
-                  </View>
-                </View>
               </View>
             </ScrollView>
 
-            <View className="p-6 pt-4 border-t-2 border-gray-100">
+            <View className="p-6 border-t border-gray-100 bg-white pb-8">
               <Button
                 title={t('passwordModal.saveButton')}
                 onPress={handleChangePassword}
                 loading={passwordLoading}
                 fullWidth
-                icon={<Ionicons name="shield-checkmark" size={20} color="white" />}
+                size="lg"
               />
             </View>
           </Pressable>
