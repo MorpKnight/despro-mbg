@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -65,29 +65,46 @@ export default function ApiKeysPage() {
     };
 
     const handleRevoke = async (id: string, name: string) => {
-        Alert.alert(
-            'Konfirmasi Hapus',
-            `Apakah Anda yakin ingin menghapus key "${name}"? Akses sinkronisasi untuk key ini akan hilang.`,
-            [
-                { text: 'Batal', style: 'cancel' },
-                {
-                    text: 'Hapus',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            console.log('[API Keys] Deleting key:', id);
-                            await revokeApiKey(id);
-                            console.log('[API Keys] Delete successful, reloading...');
-                            await loadKeys();
-                            Alert.alert('Berhasil', 'API Key berhasil dihapus.');
-                        } catch (e: any) {
-                            console.error('[API Keys] Delete failed:', e);
-                            Alert.alert('Error', e?.message || 'Gagal menghapus API Key.');
-                        }
+        if (Platform.OS === 'web') {
+            if (window.confirm(`Apakah Anda yakin ingin menghapus key "${name}"? Akses sinkronisasi untuk key ini akan hilang.`)) {
+                await performDelete(id);
+            }
+        } else {
+            Alert.alert(
+                'Konfirmasi Hapus',
+                `Apakah Anda yakin ingin menghapus key "${name}"? Akses sinkronisasi untuk key ini akan hilang.`,
+                [
+                    { text: 'Batal', style: 'cancel' },
+                    {
+                        text: 'Hapus',
+                        style: 'destructive',
+                        onPress: () => performDelete(id),
                     },
-                },
-            ]
-        );
+                ]
+            );
+        }
+    };
+
+    const performDelete = async (id: string) => {
+        try {
+            console.log('[API Keys] Deleting key:', id);
+            await revokeApiKey(id);
+            console.log('[API Keys] Delete successful, reloading...');
+            await loadKeys();
+            if (Platform.OS !== 'web') {
+                Alert.alert('Berhasil', 'API Key berhasil dihapus.');
+            } else {
+                alert('API Key berhasil dihapus.');
+            }
+        } catch (e: any) {
+            console.error('[API Keys] Delete failed:', e);
+            const msg = e?.message || 'Gagal menghapus API Key.';
+            if (Platform.OS !== 'web') {
+                Alert.alert('Error', msg);
+            } else {
+                alert('Error: ' + msg);
+            }
+        }
     };
 
     const copyToClipboard = async () => {
