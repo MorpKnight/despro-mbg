@@ -133,3 +133,37 @@ export const secureStorage = {
     }
   },
 };
+
+export const CENTRAL_API_KEY = 'central_api_key';
+
+/**
+ * Get the Central API Key for Edge Mode.
+ * This key is used to authenticate requests to the Central Server.
+ * Stored securely using expo-secure-store when available.
+ */
+export async function getCentralApiKey(): Promise<string | null> {
+  return await secureStorage.getItem(CENTRAL_API_KEY);
+}
+
+/**
+ * Set the Central API Key for Edge Mode.
+ * @param apiKey - The API key to store, or null to remove it
+ */
+export async function setCentralApiKey(apiKey: string | null): Promise<void> {
+  await secureStorage.setItem(CENTRAL_API_KEY, apiKey);
+}
+
+/**
+ * Remove the Central API Key from storage.
+ */
+export async function removeCentralApiKey(): Promise<void> {
+  await secureStorage.removeItem(CENTRAL_API_KEY);
+}
+
+/**
+ * Check if Edge Mode is configured (Central API Key exists).
+ */
+export async function isEdgeModeConfigured(): Promise<boolean> {
+  const apiKey = await getCentralApiKey();
+  return apiKey !== null && apiKey.length > 0;
+}

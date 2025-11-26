@@ -75,10 +75,14 @@ export default function ApiKeysPage() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
+                            console.log('[API Keys] Deleting key:', id);
                             await revokeApiKey(id);
-                            loadKeys();
-                        } catch (e) {
-                            Alert.alert('Error', 'Gagal menghapus API Key.');
+                            console.log('[API Keys] Delete successful, reloading...');
+                            await loadKeys();
+                            Alert.alert('Berhasil', 'API Key berhasil dihapus.');
+                        } catch (e: any) {
+                            console.error('[API Keys] Delete failed:', e);
+                            Alert.alert('Error', e?.message || 'Gagal menghapus API Key.');
                         }
                     },
                 },
@@ -152,9 +156,9 @@ export default function ApiKeysPage() {
                                 <View className="flex-1 mr-4">
                                     <View className="flex-row items-center gap-2 mb-1">
                                         <Text className="font-bold text-gray-900 text-base">{key.name}</Text>
-                                        <View className={`px-2 py-0.5 rounded-full ${key.status === 'active' ? 'bg-green-100' : 'bg-gray-100'}`}>
-                                            <Text className={`text-xs font-medium ${key.status === 'active' ? 'text-green-700' : 'text-gray-600'}`}>
-                                                {key.status === 'active' ? 'Aktif' : 'Nonaktif'}
+                                        <View className={`px-2 py-0.5 rounded-full ${key.is_active ? 'bg-green-100' : 'bg-gray-100'}`}>
+                                            <Text className={`text-xs font-medium ${key.is_active ? 'text-green-700' : 'text-gray-600'}`}>
+                                                {key.is_active ? 'Aktif' : 'Nonaktif'}
                                             </Text>
                                         </View>
                                     </View>
