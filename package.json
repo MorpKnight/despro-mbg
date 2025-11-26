@@ -59,8 +59,31 @@
     "tailwindcss": "^3.4.18",
     "zod": "^4.1.12"
   },
+  "description": "Despro MBG Frontend",
+  "author": "Despro Team",
+  "build": {
+    "appId": "com.despro.mbg",
+    "productName": "Despro MBG",
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "package.json"
+    ],
+    "directories": {
+      "output": "electron-dist"
+    },
+    "extraMetadata": {
+      "main": "main.js"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Education"
+    }
+  },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
