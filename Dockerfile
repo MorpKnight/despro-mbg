@@ -1,5 +1,4 @@
-# Stage 1: Builder
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -11,20 +10,15 @@ RUN npm install
 COPY . .
 
 # Build for web
-# This creates a 'dist' folder (default for Expo Router web export)
 ARG EXPO_PUBLIC_API_URL
 ENV EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL
 RUN npx expo export -p web
 
-# Stage 2: Production
-FROM nginx:alpine
+# Install serve to serve the static files
+RUN npm install -g serve
 
-# Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Expose port (default for serve is 3000, but we can configure it)
+EXPOSE 8080
 
-# Copy custom nginx config if needed (optional, using default for now but good to have placeholder)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+# Serve the 'dist' folder on port 8080
+CMD ["serve", "-s", "dist", "-l", "8080"]
