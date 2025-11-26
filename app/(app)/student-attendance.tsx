@@ -261,8 +261,7 @@ export default function StudentAttendancePage() {
         data={listData}
         renderItem={renderAttendanceItem}
         keyExtractor={(item) => item.id}
-        // @ts-ignore
-        estimatedItemSize={112}
+
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListEmptyComponent={renderEmptyComponent}

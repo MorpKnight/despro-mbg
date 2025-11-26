@@ -1,5 +1,5 @@
 import { getSession, setSession, type Session } from './session';
-import { getServerUrl } from './storage';
+import { getCentralApiKey, getServerUrl } from './storage';
 
 export interface ApiOptions extends Omit<RequestInit, 'body'> {
   baseURL?: string;
@@ -97,6 +97,12 @@ async function makeRequest(
   }
   if (token && !('Authorization' in finalHeaders)) {
     finalHeaders.Authorization = `Bearer ${token}`;
+  }
+
+  // Inject Central API Key for Edge Mode if configured
+  const centralApiKey = await getCentralApiKey();
+  if (centralApiKey && !('X-School-Token' in finalHeaders)) {
+    finalHeaders['X-School-Token'] = centralApiKey;
   }
 
   return fetch(url, {
