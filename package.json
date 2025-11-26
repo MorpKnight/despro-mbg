@@ -78,6 +78,21 @@
     "linux": {
       "target": "AppImage",
       "category": "Education"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/images/icon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.education",
+      "icon": "assets/images/icon.png"
     }
   },
   "devDependencies": {
