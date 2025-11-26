@@ -8,8 +8,8 @@ services:
       dockerfile: Dockerfile
       args:
         - EXPO_PUBLIC_API_URL=https://mbg-be.mrt.qzz.io/api/v1/docs
-    ports:
-      - "8080:80"
+    # ports:
+    #   - "8080:80"
     environment:
       - EXPO_PUBLIC_API_URL=https://mbg-be.mrt.qzz.io/api/v1/docs
     networks:
