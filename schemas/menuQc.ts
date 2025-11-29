@@ -26,17 +26,12 @@ export const MenuQCIngredientPayloadSchema = z.object({
 });
 export type MenuQCIngredientPayload = z.infer<typeof MenuQCIngredientPayloadSchema>;
 
+// [UBAH] Schema photos sekarang adalah array string (URL dari CDN)
 export const MenuQCEntrySchema = z.object({
   date: z.string(),
   menuName: z.string(),
   ingredients: z.array(MenuQCIngredientPayloadSchema),
   notes: z.string().optional(),
-  photos: z.array(
-    z.object({
-      uri: z.string(),
-      name: z.string().optional(),
-      type: z.string().optional(),
-    }),
-  ),
+  photos: z.array(z.string().url()), 
 });
 export type MenuQCEntry = z.infer<typeof MenuQCEntrySchema>;
