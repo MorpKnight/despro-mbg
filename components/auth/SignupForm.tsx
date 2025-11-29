@@ -118,21 +118,21 @@ export const SignupForm = () => {
     return (
         <View>
             <View className="mb-8">
-                <Text className="text-3xl font-bold text-gray-900 mb-2">
+                <Text className="text-4xl font-extrabold text-gray-900 mb-3">
                     Buat Akun
                 </Text>
-                <Text className="text-gray-500 text-lg">
-                    Lengkapi data diri Anda di bawah ini
+                <Text className="text-gray-600 text-base leading-relaxed">
+                    Lengkapi data diri Anda untuk memulai
                 </Text>
             </View>
 
-            <View className="gap-5">
+            <View className="gap-6">
                 {/* FULL NAME */}
                 <View>
-                    <Text className="text-sm font-semibold text-gray-700 mb-2">Nama Lengkap</Text>
+                    <Text className="text-sm font-bold text-gray-700 mb-2.5">Nama Lengkap</Text>
                     <TextInput
-                        className="h-12 bg-white border border-gray-200 rounded-lg px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
-                        placeholder="Masukkan nama lengkap"
+                        className="h-14 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-base focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all"
+                        placeholder="Masukkan nama lengkap Anda"
                         value={fullName}
                         onChangeText={setFullName}
                     />
@@ -140,10 +140,10 @@ export const SignupForm = () => {
 
                 {/* USERNAME */}
                 <View>
-                    <Text className="text-sm font-semibold text-gray-700 mb-2">Username</Text>
+                    <Text className="text-sm font-bold text-gray-700 mb-2.5">Username</Text>
                     <TextInput
-                        className="h-12 bg-white border border-gray-200 rounded-lg px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
-                        placeholder="Masukkan username"
+                        className="h-14 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-base focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all"
+                        placeholder="Masukkan username Anda"
                         autoCapitalize="none"
                         value={username}
                         onChangeText={setUsername}
@@ -200,22 +200,22 @@ export const SignupForm = () => {
 
                 {/* PASSWORD */}
                 <View>
-                    <Text className="text-sm font-semibold text-gray-700 mb-2">Password</Text>
+                    <Text className="text-sm font-bold text-gray-700 mb-2.5">Password</Text>
                     <View className="relative">
                         <TextInput
-                            className="h-12 bg-white border border-gray-200 rounded-lg px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all pr-12"
+                            className="h-14 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-base focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all pr-14"
                             placeholder="Minimal 8 karakter"
                             secureTextEntry={!showPassword}
                             value={password}
                             onChangeText={setPassword}
                         />
                         <TouchableOpacity
-                            className="absolute right-0 top-0 h-12 w-12 items-center justify-center"
+                            className="absolute right-0 top-0 h-14 w-14 items-center justify-center"
                             onPress={() => setShowPassword(!showPassword)}
                         >
                             <Ionicons
                                 name={showPassword ? "eye-off-outline" : "eye-outline"}
-                                size={20}
+                                size={22}
                                 color="#9CA3AF"
                             />
                         </TouchableOpacity>
@@ -224,22 +224,32 @@ export const SignupForm = () => {
 
                 {/* CONFIRM PASSWORD */}
                 <View>
-                    <Text className="text-sm font-semibold text-gray-700 mb-2">Konfirmasi Password</Text>
+                    <Text className="text-sm font-bold text-gray-700 mb-2.5">Konfirmasi Password</Text>
                     <View className="relative">
                         <TextInput
-                            className="h-12 bg-white border border-gray-200 rounded-lg px-4 text-base focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+                            className="h-14 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-base focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all pr-14"
                             placeholder="Ulangi password"
                             secureTextEntry={!showPassword}
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
                         />
+                        <TouchableOpacity
+                            className="absolute right-0 top-0 h-14 w-14 items-center justify-center"
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            <Ionicons
+                                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                size={22}
+                                color="#9CA3AF"
+                            />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
                 {error && (
-                    <Animated.View entering={FadeInDown} className="bg-red-50 p-4 rounded-xl border border-red-200 flex-row items-center gap-3">
-                        <Ionicons name="alert-circle" size={20} color="#DC2626" />
-                        <Text className="text-red-700 font-medium flex-1">{error}</Text>
+                    <Animated.View entering={FadeInDown} className="bg-red-50 p-4 rounded-2xl border-2 border-red-200 flex-row items-center gap-3 shadow-sm">
+                        <Ionicons name="alert-circle" size={22} color="#DC2626" />
+                        <Text className="text-red-700 font-semibold flex-1">{error}</Text>
                     </Animated.View>
                 )}
 
@@ -248,13 +258,13 @@ export const SignupForm = () => {
                     title="Daftar"
                     onPress={handleSignUp}
                     loading={loading}
-                    className="mt-4 shadow-lg shadow-emerald-600/20"
+                    className="mt-4 h-14 shadow-xl shadow-emerald-600/25 rounded-xl"
                     size="lg"
                 />
 
                 {/* LOGIN LINK */}
                 <View className="items-center mt-6">
-                    <Text className="text-gray-500">
+                    <Text className="text-gray-600 text-base">
                         Sudah punya akun?{" "}
                         <Text
                             className="text-emerald-600 font-bold hover:underline cursor-pointer"

@@ -22,10 +22,10 @@ export const AuthLayout = ({
     // Mobile Layout
     if (Platform.OS !== "web") {
         return (
-            <View className="flex-1 bg-gray-50">
+            <View className="flex-1 bg-gradient-to-br from-gray-50 to-gray-100">
                 <Image
                     source={require("../../assets/images/logo.png")}
-                    style={{ width: 400, height: 400, position: 'absolute', top: -100, right: -100, opacity: 0.05 }}
+                    style={{ width: 450, height: 450, position: 'absolute', top: -120, right: -120, opacity: 0.04 }}
                     resizeMode="contain"
                 />
                 <SafeAreaView className="flex-1">
@@ -33,19 +33,31 @@ export const AuthLayout = ({
                         behavior={Platform.OS === "ios" ? "padding" : "height"}
                         className="flex-1"
                     >
-                        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: 'center' }}>
+                        <ScrollView
+                            contentContainerStyle={{
+                                flexGrow: 1,
+                                paddingHorizontal: 24,
+                                paddingVertical: 32,
+                                justifyContent: 'center'
+                            }}
+                            showsVerticalScrollIndicator={false}
+                        >
                             <Animated.View
                                 entering={FadeInUp.delay(200).duration(1000).springify()}
-                                className="items-center mb-8"
+                                className="items-center mb-12"
                             >
                                 {mobileIcon && (
-                                    <View className="w-24 h-24 bg-white rounded-3xl shadow-lg items-center justify-center mb-4 border border-gray-100">
+                                    <View className="w-28 h-28 bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl items-center justify-center mb-6 border-2 border-white">
                                         {mobileIcon}
                                     </View>
                                 )}
-                                {mobileTitle && <Text className="text-3xl font-bold text-gray-900 text-center">{mobileTitle}</Text>}
+                                {mobileTitle && (
+                                    <Text className="text-4xl font-extrabold text-gray-900 text-center mb-3">
+                                        {mobileTitle}
+                                    </Text>
+                                )}
                                 {mobileSubtitle && (
-                                    <Text className="text-gray-500 mt-2 text-center px-8">
+                                    <Text className="text-gray-600 text-base mt-1 text-center px-4 leading-relaxed">
                                         {mobileSubtitle}
                                     </Text>
                                 )}
@@ -53,7 +65,7 @@ export const AuthLayout = ({
 
                             <Animated.View
                                 entering={FadeInDown.delay(400).duration(1000).springify()}
-                                className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 gap-4"
+                                className="bg-white px-7 py-8 rounded-3xl shadow-xl border border-gray-100"
                             >
                                 {children}
                             </Animated.View>
@@ -66,30 +78,39 @@ export const AuthLayout = ({
 
     // Web Layout
     return (
-        <View className="bg-gray-50 min-h-screen flex-row">
+        <View className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen flex-row">
             {/* Left hero panel */}
             <View className="hidden md:flex flex-1 relative overflow-hidden bg-blue-600 items-center justify-center">
-                <View className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-800" />
+                <View className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900" />
                 <Image
                     source={require("../../assets/images/logo.png")}
-                    style={{ width: 600, height: 600, position: 'absolute', bottom: -100, left: -100, opacity: 0.1 }}
+                    style={{ width: 700, height: 700, position: 'absolute', bottom: -150, left: -150, opacity: 0.08 }}
                     resizeMode="contain"
                 />
 
                 <Animated.View
                     entering={FadeInUp.delay(200).duration(1000).springify()}
-                    className="z-10 px-16 max-w-2xl text-center items-center"
+                    className="z-10 px-20 max-w-2xl text-center items-center"
                 >
                     {heroContent}
                 </Animated.View>
             </View>
 
             {/* Right form panel */}
-            <View className="flex-1 items-center justify-center p-12 relative h-screen">
-                <ScrollView className="w-full h-full" contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <View className="flex-1 items-center justify-center p-16 relative min-h-screen">
+                <ScrollView
+                    className="w-full h-full"
+                    contentContainerStyle={{
+                        flexGrow: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        paddingVertical: 40
+                    }}
+                    showsVerticalScrollIndicator={false}
+                >
                     <Animated.View
                         entering={FadeInDown.delay(400).duration(1000).springify()}
-                        className="w-full max-w-md"
+                        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-10 border border-gray-100"
                     >
                         {children}
                     </Animated.View>
