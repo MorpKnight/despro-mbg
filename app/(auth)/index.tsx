@@ -369,11 +369,11 @@ export default function AuthIndex() {
             </Text>
             <View className="flex-row flex-wrap justify-center gap-2">
               {[
-                { label: 'Super Admin', u: 'superadmin', p: 'Admin123!' },
-                { label: 'Sekolah', u: 'admin_school_1', p: 'School1Pass!' },
-                { label: 'Catering', u: 'admin_catering_1', p: 'Catering1Pass!' },
-                { label: 'Dinkes', u: 'admin_dinkes_1', p: 'Dinkes1Pass!' },
-                { label: 'Siswa', u: 'student_001', p: 'Student1!' },
+                { label: 'Super Admin', u: 'superadmin', p: 'password' },
+                { label: 'Sekolah', u: 'admin_sekolah_active_1', p: 'password' },
+                { label: 'Catering', u: 'admin_catering_active_1', p: 'password' },
+                { label: 'Dinkes', u: 'admin_dinkes_active_1', p: 'password' },
+                { label: 'Siswa', u: 'siswa_active_1', p: 'password' },
               ].map((demo) => (
                 <TouchableOpacity
                   key={demo.label}
