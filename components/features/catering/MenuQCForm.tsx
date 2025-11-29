@@ -2,24 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import {
-  ActivityIndicator,
   Alert,
   Platform,
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import { Chip } from '../../../components/ui/Chip';
 import { OfflineBadge } from '../../../components/ui/OfflineBadge';
 import TextInput from '../../../components/ui/TextInput';
+import UploadImage from '../../../components/ui/UploadImage'; // [BARU]
 import { useOffline } from '../../../hooks/useOffline';
 import { useSnackbar } from '../../../hooks/useSnackbar';
 import { formatDate } from '../../../lib/utils';
@@ -78,10 +76,14 @@ export default function MenuQCForm() {
   const { fields: ingredientFields, append, remove: removeIngredientField } = useFieldArray({ control, name: 'ingredients' });
   const date = watch('date');
   const ingredients = watch('ingredients');
-  const [photos, setPhotos] = useState<MenuQCEntry['photos']>([]);
+  
+  // [UBAH] photos state sekarang array of string URL
+  const [photos, setPhotos] = useState<string[]>([]);
+  // [BARU] Key untuk mereset komponen UploadImage setelah sukses upload
+  const [uploadKey, setUploadKey] = useState(0); 
+  
   const [submitting, setSubmitting] = useState(false);
   const [pickerExpanded, setPickerExpanded] = useState(Platform.OS === 'ios');
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   const dateShortcuts = useMemo(
     () => [
@@ -94,18 +96,6 @@ export default function MenuQCForm() {
 
   const canAddMorePhotos = photos.length < MAX_PHOTOS;
   const photosRemaining = MAX_PHOTOS - photos.length;
-
-  useEffect(() => {
-    if (!submitting) {
-      setUploadProgress(0);
-      return;
-    }
-    setUploadProgress(0.1);
-    const timer = setInterval(() => {
-      setUploadProgress((prev) => (prev < 0.9 ? prev + 0.1 : prev));
-    }, 400);
-    return () => clearInterval(timer);
-  }, [submitting]);
 
   function updateIngredient(i: number, patch: Partial<IngredientInput>) {
     const current = ingredients?.[i] ?? EMPTY_INGREDIENT;
@@ -143,57 +133,11 @@ export default function MenuQCForm() {
     setPhotos((prev) => prev.filter((_, idx) => idx !== index));
   }
 
-  async function pickImage() {
-    if (!canAddMorePhotos) {
-      Alert.alert('Batas foto tercapai', `Maksimal ${MAX_PHOTOS} foto per menu.`);
-      return;
-    }
-    const res = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: false, quality: 0.5 });
-    if (!res.canceled) {
-      const asset = res.assets[0];
-      let optimizedUri = asset.uri;
-      try {
-        const optimized = await manipulateAsync(
-          asset.uri,
-          [{ resize: { width: 1280 } }],
-          { compress: 0.6, format: SaveFormat.JPEG },
-        );
-        optimizedUri = optimized.uri;
-      } catch (error) {
-        console.warn('[menu-qc] gagal kompres gambar', error);
-      }
-      setPhotos((prev) => [
-        ...prev,
-        { uri: optimizedUri, name: asset.fileName || `photo_${prev.length + 1}.jpg`, type: asset.mimeType || 'image/jpeg' },
-      ]);
-    }
-  }
-
-  async function captureImage() {
-    if (!canAddMorePhotos) {
-      Alert.alert('Batas foto tercapai', `Maksimal ${MAX_PHOTOS} foto per menu.`);
-      return;
-    }
-    const res = await ImagePicker.launchCameraAsync({ quality: 0.5 });
-    if (!res.canceled) {
-      const asset = res.assets[0];
-      let optimizedUri = asset.uri;
-      try {
-        const optimized = await manipulateAsync(
-          asset.uri,
-          [{ resize: { width: 1280 } }],
-          { compress: 0.6, format: SaveFormat.JPEG },
-        );
-        optimizedUri = optimized.uri;
-      } catch (error) {
-        console.warn('[menu-qc] gagal kompres gambar kamera', error);
-      }
-      setPhotos((prev) => [
-        ...prev,
-        { uri: optimizedUri, name: asset.fileName || `photo_${prev.length + 1}.jpg`, type: asset.mimeType || 'image/jpeg' },
-      ]);
-    }
-  }
+  // [BARU] Handler ketika upload CDN sukses
+  const handlePhotoUploaded = (url: string) => {
+    setPhotos(prev => [...prev, url]);
+    setUploadKey(prev => prev + 1); // Reset uploader component
+  };
 
   const submit = handleSubmit(async (values) => {
     if (submitting) return;
@@ -220,27 +164,25 @@ export default function MenuQCForm() {
       menuName: values.menuName.trim(),
       notes: values.notes?.trim() ? values.notes.trim() : undefined,
       ingredients: preparedIngredients,
-      photos,
+      photos, // Array URL
     });
 
     setSubmitting(true);
     try {
-      const form = new FormData();
-      form.append('nama_menu', payload.menuName);
-      form.append('tanggal', payload.date);
-      form.append('ingredients', JSON.stringify(payload.ingredients));
-      if (payload.notes) form.append('notes', payload.notes);
-      photos.forEach((p, idx) => {
-        // @ts-ignore React Native FormData file support
-        form.append('files', {
-          uri: p.uri,
-          name: p.name || `photo_${idx + 1}.jpg`,
-          type: p.type || 'image/jpeg',
-        } as any);
+      // [UBAH] Kirim JSON payload karena foto sudah berupa URL
+      const body = {
+        nama_menu: payload.menuName,
+        tanggal: payload.date,
+        ingredients: payload.ingredients, // Backend diharapkan bisa handle JSON array
+        notes: payload.notes,
+        photos: payload.photos // Array string URL
+      };
+
+      await api('menus/', { 
+        method: 'POST', 
+        body: JSON.stringify(body) 
       });
 
-      await api('menus/', { method: 'POST', body: form });
-      setUploadProgress(1);
       showSnackbar({ message: 'Menu harian & QC berhasil dikirim.', variant: 'success' });
       reset({
         date: values.date,
@@ -249,15 +191,16 @@ export default function MenuQCForm() {
         ingredients: [{ ...EMPTY_INGREDIENT }],
       });
       setPhotos([]);
-    } catch {
-      // Offline or error -> queue locally
+    } catch (e) {
+      console.warn('Submit error', e);
+      // Offline queueing logic (simpan payload JSON)
       try {
         const key = 'menu_qc_queue';
         const existingRaw = await (await import('../../../services/storage')).storage.get<any[]>(key);
         const queue = Array.isArray(existingRaw) ? existingRaw : [];
         queue.push(payload);
         await (await import('../../../services/storage')).storage.set(key, queue);
-        showSnackbar({ message: 'Anda offline. Data diantrikan untuk sinkron otomatis.', variant: 'info' });
+        showSnackbar({ message: 'Anda offline atau gagal. Data diantrikan.', variant: 'info' });
       } catch { }
     } finally {
       setSubmitting(false);
@@ -331,7 +274,6 @@ export default function MenuQCForm() {
             )}
           />
           {errors.menuName ? <Text className="text-xs text-red-500 mt-1">{errors.menuName.message}</Text> : null}
-          <Text className="text-xs text-gray-500 mt-1">Pastikan nama menu sesuai dengan yang akan tampil di portal orang tua.</Text>
         </View>
       </Section>
 
@@ -441,11 +383,13 @@ export default function MenuQCForm() {
 
         <Text className="mb-2 text-gray-800">Dokumentasi Foto</Text>
         <Text className="text-xs text-gray-500 mb-3">Anda dapat menambahkan hingga {MAX_PHOTOS} foto (sisa {photosRemaining}).</Text>
+        
+        {/* Render foto yang SUDAH diupload ke CDN */}
         <View className="flex-row flex-wrap gap-3 mb-3">
-          {photos.map((p, idx) => (
-            <View key={idx} className="relative">
+          {photos.map((url, idx) => (
+            <View key={url} className="relative">
               <Image
-                source={{ uri: p.uri }}
+                source={{ uri: url }}
                 style={{ width: 96, height: 96, borderRadius: 14, backgroundColor: '#e5e7eb' }}
                 contentFit="cover"
                 transition={500}
@@ -458,24 +402,19 @@ export default function MenuQCForm() {
               >
                 <Ionicons name="close" size={14} color="#fff" />
               </TouchableOpacity>
-              {submitting && (
-                <View className="absolute inset-0 bg-black/30 rounded-2xl items-center justify-center">
-                  <ActivityIndicator color="#fff" />
-                </View>
-              )}
             </View>
           ))}
-          {photos.length === 0 && (
-            <View className="w-full border border-dashed border-gray-300 rounded-2xl p-4 items-center">
-              <Ionicons name="image" size={28} color="#9CA3AF" />
-              <Text className="text-sm text-gray-500 mt-1">Belum ada foto</Text>
-            </View>
-          )}
         </View>
-        <View className="flex-row gap-2">
-          <Button title="Ambil Foto" variant="secondary" onPress={captureImage} disabled={!canAddMorePhotos} className="flex-1" />
-          <Button title="Pilih dari Galeri" variant="secondary" onPress={pickImage} disabled={!canAddMorePhotos} className="flex-1" />
-        </View>
+
+        {/* Komponen Upload untuk menambah foto baru */}
+        {canAddMorePhotos && (
+          <UploadImage 
+            key={uploadKey} // Hack untuk reset state internal UploadImage setelah sukses
+            label="Tambah Foto Baru"
+            onUploaded={handlePhotoUploaded}
+            disabled={submitting}
+          />
+        )}
       </Section>
 
       <Card variant="elevated" className="mb-6">
@@ -494,14 +433,6 @@ export default function MenuQCForm() {
         />
         {!isValid && (
           <Text className="text-xs text-red-500 mt-2">Isi tanggal dan nama menu untuk mengaktifkan tombol simpan.</Text>
-        )}
-        {submitting && (
-          <View className="mt-3">
-            <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <View className="h-full bg-blue-500" style={{ width: `${Math.round(uploadProgress * 100)}%` }} />
-            </View>
-            <Text className="text-xs text-gray-600 mt-1">Mengunggah dokumentasi…</Text>
-          </View>
         )}
       </Card>
     </ScrollView>
