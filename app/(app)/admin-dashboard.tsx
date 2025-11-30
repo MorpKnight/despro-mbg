@@ -1,15 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Grid from '../../components/layout/Grid';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { Chip } from '../../components/ui/Chip';
+import EmptyState from '../../components/ui/EmptyState';
 import KPICard from '../../components/ui/KPICard';
+import LoadingState from '../../components/ui/LoadingState';
+import PageHeader from '../../components/ui/PageHeader';
+import SearchInput from '../../components/ui/SearchInput';
 import Skeleton from '../../components/ui/Skeleton';
 import { StatusPill } from '../../components/ui/StatusPill';
-import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '../../hooks/useResponsive';
 import { fetchGlobalKpi, type GlobalKpi } from '../../services/analytics';
@@ -185,14 +189,12 @@ export default function AdminDashboard() {
         showsVerticalScrollIndicator={false}
       >
         {/* Page Header */}
-        <View className={isMobile ? "mb-6" : "mb-8"}>
-          <Text className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold text-gray-900 mb-2`}>
-            Dashboard Super Admin
-          </Text>
-          <Text className={`${isMobile ? 'text-base' : 'text-lg'} text-gray-600`}>
-            Selamat datang kembali, {user?.username}
-          </Text>
-        </View>
+        <PageHeader
+          title="Dashboard Super Admin"
+          subtitle={`Selamat datang kembali, ${user?.username}`}
+          showBackButton={false}
+          className={isMobile ? "mb-6" : "mb-8"}
+        />
 
         {/* KPI Cards */}
         {!isEdgeMode && (
@@ -282,7 +284,7 @@ export default function AdminDashboard() {
           <Text className="text-sm text-gray-600 mb-4">
             Filter cepat berdasarkan nama untuk mempercepat navigasi.
           </Text>
-          <TextInput
+          <SearchInput
             value={searchInput}
             onChangeText={setSearchInput}
             placeholder="Cari minimal 2 karakter..."
@@ -293,16 +295,12 @@ export default function AdminDashboard() {
             {ENTITY_OPTIONS.map((option) => {
               const isActive = entityFilter === option.value;
               return (
-                <Pressable
+                <Chip
                   key={option.value}
+                  label={option.label}
+                  active={isActive}
                   onPress={() => setEntityFilter(option.value)}
-                  className={`px-4 py-2 rounded-full border ${isActive ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200'
-                    }`}
-                >
-                  <Text className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-gray-700'}`}>
-                    {option.label}
-                  </Text>
-                </Pressable>
+                />
               );
             })}
           </View>
@@ -313,16 +311,15 @@ export default function AdminDashboard() {
                 Masukkan minimal 2 karakter untuk mulai mencari.
               </Text>
             ) : searchLoading ? (
-              <View className="gap-3">
-                <Skeleton height={56} rounded={14} />
-                <Skeleton height={56} rounded={14} />
-              </View>
+              <LoadingState />
             ) : searchError ? (
               <Text className="text-sm text-red-600">{searchError}</Text>
             ) : searchResults.length === 0 ? (
-              <Text className="text-sm text-gray-500">
-                Tidak ada hasil untuk “{debouncedSearch}”.
-              </Text>
+              <EmptyState
+                title="Tidak ada hasil"
+                description={`Tidak ada hasil untuk "${debouncedSearch}".`}
+                className="py-6"
+              />
             ) : (
               searchResults.map((result) => (
                 <View

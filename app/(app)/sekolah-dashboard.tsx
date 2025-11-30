@@ -4,7 +4,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Chip } from '../../components/ui/Chip';
-import TextInput from '../../components/ui/TextInput';
+import EmptyState from '../../components/ui/EmptyState';
+import LoadingState from '../../components/ui/LoadingState';
+import PageHeader from '../../components/ui/PageHeader';
+import SearchInput from '../../components/ui/SearchInput';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchAttendanceSummary, type AttendanceSummary } from '../../services/attendance';
 import { fetchEmergencyReports, type EmergencyReport, type ReportStatus } from '../../services/emergency';
@@ -331,16 +334,20 @@ export default function SekolahDashboard() {
       <ScrollView className="flex-1 bg-neutral-gray">
         <View className="p-6">
           {/* Header */}
-          <View className="mb-6">
-            <Text className="text-2xl font-bold text-gray-900 mb-1">Dashboard Sekolah</Text>
-            <Text className="text-gray-600">Ringkasan Aktivitas & Laporan</Text>
-            {selectedSchoolMeta && (
-              <Text className="text-sm text-gray-500 mt-1">
+          <PageHeader
+            title="Dashboard Sekolah"
+            subtitle="Ringkasan Aktivitas & Laporan"
+            showBackButton={false}
+            className="mb-6"
+          />
+          {selectedSchoolMeta && (
+            <View className="mb-6">
+              <Text className="text-sm text-gray-500 -mt-4">
                 {selectedSchoolMeta.name}
                 {selectedSchoolMeta.kotaKabupaten ? ` • ${selectedSchoolMeta.kotaKabupaten}` : ''}
               </Text>
-            )}
-          </View>
+            </View>
+          )}
 
           {selectedSchoolMeta && (
             <View className={`${isMobile ? 'flex-col space-y-3' : 'flex-row gap-3'} mb-6`}>
@@ -390,12 +397,12 @@ export default function SekolahDashboard() {
               <View className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
                 <View className="gap-2">
                   <Text className="text-xs font-semibold uppercase text-gray-500">Pencarian Sekolah</Text>
-                  <TextInput
+                  <SearchInput
                     placeholder="Cari nama atau NPSN sekolah"
                     value={schoolSearchInput}
+                    onChangeText={setSchoolSearchInput}
                     autoCorrect={false}
                     autoCapitalize="none"
-                    onChangeText={setSchoolSearchInput}
                   />
                 </View>
 
@@ -424,15 +431,15 @@ export default function SekolahDashboard() {
                 <View className="gap-3">
                   <Text className="text-sm font-semibold text-gray-700">Daftar Sekolah</Text>
                   {schoolsLoading ? (
-                    <View className="py-2 items-center">
-                      <ActivityIndicator color="#2563EB" />
-                    </View>
+                    <LoadingState />
                   ) : schoolsError ? (
                     <Text className="text-sm text-red-600">{schoolsError}</Text>
                   ) : filteredSchools.length === 0 ? (
-                    <Text className="text-sm text-gray-500">
-                      Tidak ada sekolah yang cocok dengan kata kunci atau lokasi yang dipilih.
-                    </Text>
+                    <EmptyState
+                      title="Tidak ada sekolah"
+                      description="Tidak ada sekolah yang cocok dengan kata kunci atau lokasi yang dipilih."
+                      className="py-6"
+                    />
                   ) : (
                     <View className="space-y-2">
                       {paginatedSchools.map((school) => (
