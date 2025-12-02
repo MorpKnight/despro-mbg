@@ -201,6 +201,15 @@ export default function AuthIndex() {
               Belum punya akun? <Text className="text-primary font-bold" onPress={() => router.push("/(auth)/signup")}>Daftar</Text>
             </Text>
           </Animated.View>
+          <View className="mt-4">
+  <Button
+    title="Test Notifikasi"
+    variant="outline"
+    fullWidth
+    onPress={() => router.push('/(auth)/test')}
+  />
+</View>
+
         </KeyboardAvoidingView>
       </View>
     );

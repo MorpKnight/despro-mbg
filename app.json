@@ -23,6 +23,7 @@
       "permissions": [
         "android.permission.NFC"
       ],
+      "googleServicesFile": "./google-services.json",
       "package": "com.anonymous.desprofe"
     },
     "web": {
