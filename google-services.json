@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1052539671408",
+    "project_id": "despro-notif",
+    "storage_bucket": "despro-notif.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052539671408:android:629aee8f5a43d643a7b5b5",
+        "android_client_info": {
+          "package_name": "com.anonymous.desprofe"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKQao9vdG_ycsq_JkDStcDu0YZwy21hZY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
