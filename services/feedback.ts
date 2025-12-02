@@ -43,15 +43,12 @@ export interface FeedbackListParams {
   schoolId?: string;
 }
 
+// [UBAH] Payload sekarang menerima photoUrl string
 export interface SubmitFeedbackPayload {
   rating: FeedbackRating;
   comment?: string;
   menuId?: string;
-  photo?: {
-    uri: string;
-    name?: string;
-    type?: string;
-  };
+  photoUrl?: string; 
 }
 
 function toStudent(raw: RawFeedbackStudent | null | undefined): FeedbackStudent {
@@ -88,27 +85,20 @@ export async function fetchFeedbackList(params: FeedbackListParams = {}): Promis
   return list.map((item) => toFeedbackItem(item as RawFeedbackItem));
 }
 
+// [UBAH] Implementasi submit menggunakan JSON body, bukan FormData lagi
 export async function submitFeedback(payload: SubmitFeedbackPayload): Promise<FeedbackItem> {
-  const formData = new FormData();
-  formData.append('rating', String(payload.rating));
-  if (payload.comment) {
-    formData.append('comment', payload.comment);
-  }
-  if (payload.menuId) {
-    formData.append('menu_id', payload.menuId);
-  }
-  if (payload.photo) {
-    const photoFile = {
-      uri: payload.photo.uri,
-      name: payload.photo.name ?? `feedback-${Date.now()}.jpg`,
-      type: payload.photo.type ?? 'image/jpeg',
-    } as any;
-    formData.append('file', photoFile);
-  }
+  // Kita kirim sebagai JSON karena sekarang hanya data teks & URL
+  const body: Record<string, any> = {
+    rating: payload.rating,
+  };
+
+  if (payload.comment) body.comment = payload.comment;
+  if (payload.menuId) body.menu_id = payload.menuId;
+  if (payload.photoUrl) body.photo_url = payload.photoUrl; // Kirim URL CDN
 
   const data = await api('feedback/', {
     method: 'POST',
-    body: formData,
+    body: JSON.stringify(body), // Pastikan headers di api.ts otomatis handle Content-Type: application/json
   });
 
   return toFeedbackItem(data as RawFeedbackItem);
