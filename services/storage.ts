@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 type SecureStoreModule = typeof import('expo-secure-store');
 
@@ -39,10 +40,37 @@ const extraConfig = (Constants?.expoConfig as any)?.extra || (Constants as any)?
 const extraApiUrl = typeof extraConfig?.apiUrl === 'string' ? extraConfig.apiUrl : undefined;
 const nestedApiUrl = typeof extraConfig?.api?.baseUrl === 'string' ? extraConfig.api.baseUrl : undefined;
 
-export const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL
+const rawDefaultBaseUrl = process.env.EXPO_PUBLIC_API_URL
   || extraApiUrl
   || nestedApiUrl
-  || 'http://localhost:8000/api/v1';
+  || 'https://mbg-be.mrt.qzz.io/api/v1';
+
+const ALLOW_LOCALHOST_ON_WEB = process.env.EXPO_PUBLIC_ALLOW_LOCALHOST === 'true';
+
+function appendApiSuffix(input: string): string {
+  const trimmed = input.trim();
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const withoutTrailingSlash = withScheme.replace(/\/+$/, '');
+  if (withoutTrailingSlash.toLowerCase().endsWith('/api/v1')) {
+    return withoutTrailingSlash;
+  }
+  return `${withoutTrailingSlash}/api/v1`;
+}
+
+export function normalizeServerUrl(input?: string | null): string {
+  if (!input?.trim()) {
+    return appendApiSuffix(rawDefaultBaseUrl);
+  }
+  return appendApiSuffix(input);
+}
+
+function shouldForceCloudUrl(url: string): boolean {
+  if (ALLOW_LOCALHOST_ON_WEB) return false;
+  if (Platform.OS !== 'web') return false;
+  return /^(?:https?:\/\/)?(?:localhost|127\.0\.0\.1)(?::\d+)?(\/|$)/i.test(url);
+}
+
+export const DEFAULT_BASE_URL = normalizeServerUrl(rawDefaultBaseUrl);
 
 export const SERVER_URL_KEY = 'server_url';
 const LOCAL_IP_KEY = 'network:local_ip';
@@ -53,7 +81,12 @@ export type NetworkMode = 'CLOUD' | 'LOCAL';
 export async function getServerUrl(): Promise<string> {
   try {
     const storedUrl = await AsyncStorage.getItem(SERVER_URL_KEY);
-    return storedUrl || DEFAULT_BASE_URL;
+    const normalized = storedUrl ? normalizeServerUrl(storedUrl) : DEFAULT_BASE_URL;
+    if (shouldForceCloudUrl(normalized)) {
+      console.warn('[storage] forcing cloud server URL on web build');
+      return DEFAULT_BASE_URL;
+    }
+    return normalized;
   } catch {
     return DEFAULT_BASE_URL;
   }
@@ -61,7 +94,8 @@ export async function getServerUrl(): Promise<string> {
 
 export async function setServerUrl(url: string): Promise<void> {
   try {
-    await AsyncStorage.setItem(SERVER_URL_KEY, url);
+    const normalized = normalizeServerUrl(url);
+    await AsyncStorage.setItem(SERVER_URL_KEY, normalized);
   } catch (err) {
     console.warn('[storage] failed to set server url', err);
   }

@@ -53,7 +53,7 @@
       "reactCompiler": false
     },
     "extra": {
-      "apiUrl": "http://localhost:8000/api/v1",
+      "apiUrl": "https://mbg-be.mrt.qzz.io/api/v1",
       "MODE": "pusat",
       "auth": {
         "users": [
