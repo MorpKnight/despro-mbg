@@ -92,6 +92,11 @@ async function makeRequest(
   body: any,
   isFormData: boolean,
 ) {
+  // --- TAMBAHKAN INI UNTUK DEBUGGING ---
+  console.log("------------------------------------------");
+  console.log("Trying to fetch URL:", url); 
+  console.log("------------------------------------------");
+  // ---------------------------------------
   const { headers, ...rest } = options;
   const finalHeaders = normalizeHeaders(headers);
 
