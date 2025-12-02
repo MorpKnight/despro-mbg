@@ -1,5 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { processQueue } from '../services/syncQueue';
 
 interface OfflineState {
   isOnline: boolean;
@@ -44,18 +45,14 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Trigger sync when transitioning from offline -> online
-  // REMOVED: Thin Client architecture does not sync queue automatically.
-  /*
   useEffect(() => {
     const prev = prevOnlineRef.current;
     if (!prev && isOnline) {
-      console.log('[offline] back online, triggering sync');
-      // syncOfflineData().catch(err => console.log('[offline] sync error', err));
+      console.log('[offline] back online, processing offline queue');
+      processQueue().catch(err => console.warn('[offline] queue processing failed', err));
     }
     prevOnlineRef.current = isOnline;
   }, [isOnline]);
-  */
 
   const value = useMemo(() => ({ isOnline }), [isOnline]);
 

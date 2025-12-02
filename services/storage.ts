@@ -39,12 +39,16 @@ const extraConfig = (Constants?.expoConfig as any)?.extra || (Constants as any)?
 const extraApiUrl = typeof extraConfig?.apiUrl === 'string' ? extraConfig.apiUrl : undefined;
 const nestedApiUrl = typeof extraConfig?.api?.baseUrl === 'string' ? extraConfig.api.baseUrl : undefined;
 
-const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL
+export const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL
   || extraApiUrl
   || nestedApiUrl
-  || 'http://10.0.2.2:8000/api/v1';
+  || 'http://localhost:8000/api/v1';
 
 export const SERVER_URL_KEY = 'server_url';
+const LOCAL_IP_KEY = 'network:local_ip';
+const NETWORK_MODE_KEY = 'network:mode';
+
+export type NetworkMode = 'CLOUD' | 'LOCAL';
 
 export async function getServerUrl(): Promise<string> {
   try {
@@ -60,6 +64,48 @@ export async function setServerUrl(url: string): Promise<void> {
     await AsyncStorage.setItem(SERVER_URL_KEY, url);
   } catch (err) {
     console.warn('[storage] failed to set server url', err);
+  }
+}
+
+export async function saveLocalIp(ip: string): Promise<void> {
+  try {
+    const sanitized = (ip ?? '').trim();
+    if (!sanitized) {
+      await AsyncStorage.removeItem(LOCAL_IP_KEY);
+      return;
+    }
+    await AsyncStorage.setItem(LOCAL_IP_KEY, sanitized);
+  } catch (err) {
+    console.warn('[storage] failed to persist local ip', err);
+  }
+}
+
+export async function getLocalIp(): Promise<string | null> {
+  try {
+    const value = await AsyncStorage.getItem(LOCAL_IP_KEY);
+    return value ?? null;
+  } catch (err) {
+    console.warn('[storage] failed to read local ip', err);
+    return null;
+  }
+}
+
+export async function setNetworkMode(mode: NetworkMode): Promise<void> {
+  try {
+    await AsyncStorage.setItem(NETWORK_MODE_KEY, mode);
+  } catch (err) {
+    console.warn('[storage] failed to persist network mode', err);
+  }
+}
+
+export async function getNetworkMode(): Promise<NetworkMode> {
+  try {
+    const value = await AsyncStorage.getItem(NETWORK_MODE_KEY);
+    if (value === 'LOCAL') return 'LOCAL';
+    return 'CLOUD';
+  } catch (err) {
+    console.warn('[storage] failed to read network mode', err);
+    return 'CLOUD';
   }
 }
 

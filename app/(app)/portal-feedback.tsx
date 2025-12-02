@@ -5,7 +5,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import EmojiRating from '../../components/features/feedback/EmojiRating';
 import UploadImage from '../../components/ui/UploadImage'; // [BARU] Import komponen
 import { useAuthContext } from '../../context/AuthContext';
-import { submitFeedback, type FeedbackRating } from '../../services/feedback';
+import { useOfflineMutation } from '../../hooks/useOfflineMutation';
+import { useSnackbar } from '../../hooks/useSnackbar';
+import { submitFeedback, type FeedbackItem, type FeedbackRating, type SubmitFeedbackPayload } from '../../services/feedback';
 
 export default function PortalFeedback() {
   const { user } = useAuthContext();
@@ -18,6 +20,26 @@ export default function PortalFeedback() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   
   const [submitting, setSubmitting] = useState(false);
+  const { showSnackbar } = useSnackbar();
+
+  const { mutate: sendFeedback } = useOfflineMutation<SubmitFeedbackPayload, FeedbackItem>({
+    mutationFn: (variables) => submitFeedback(variables),
+    endpoint: 'feedback/',
+    method: 'POST',
+    serializeBody: (payload) => {
+      const body: Record<string, any> = { rating: payload.rating };
+      if (payload.comment) body.comment = payload.comment;
+      if (payload.menuId) body.menu_id = payload.menuId;
+      if (payload.photoUrl) body.photo_url = payload.photoUrl;
+      return body;
+    },
+    onSuccess: () => showSnackbar({ message: 'Masukan berhasil dikirim.', variant: 'success' }),
+    onError: (error) => showSnackbar({
+      message: error instanceof Error ? error.message : 'Tidak dapat mengirim masukan',
+      variant: 'error',
+    }),
+    onQueuedMessage: 'Masukan tersimpan offline dan akan terkirim otomatis ketika online.',
+  });
 
   // Proteksi akses - hanya siswa yang bisa mengakses
   useEffect(() => {
@@ -60,23 +82,24 @@ export default function PortalFeedback() {
 
     const commentParts = [title, description];
     if (categoryLabel) commentParts.unshift(`Kategori: ${categoryLabel}`);
-    const comment = commentParts.filter(Boolean).join(' — ');
+    const commentText = commentParts.filter(Boolean).join(' — ');
 
     setSubmitting(true);
+    const payload: SubmitFeedbackPayload = {
+      rating: Math.min(Math.max(rating, 1), 5) as FeedbackRating,
+      comment: commentText,
+      photoUrl: photoUrl || undefined,
+    };
     try {
-      await submitFeedback({
-        rating: Math.min(Math.max(rating, 1), 5) as FeedbackRating,
-        comment,
-        photoUrl: photoUrl || undefined, // [UBAH] Kirim URL
-      });
-      Alert.alert('Berhasil', 'Masukan berhasil dikirim!');
-      
-      // Reset Form
+      const sendPromise = sendFeedback(payload);
+      // Optimistic reset
       setTitle('');
       setDescription('');
       setSelectedCategory('');
       setRating(0);
-      setPhotoUrl(null); // Reset URL
+      setPhotoUrl(null);
+      await sendPromise;
+      Alert.alert('Berhasil', 'Masukan Anda diterima.');
     } catch (err: any) {
       console.warn('[feedback] submit failed', err);
       const rawMessage = String(err?.message || '');
@@ -84,7 +107,7 @@ export default function PortalFeedback() {
     } finally {
       setSubmitting(false);
     }
-  }, [categoryLabel, description, photoUrl, rating, selectedCategory, submitting, title]);
+  }, [categoryLabel, description, photoUrl, rating, selectedCategory, sendFeedback, submitting, title]);
 
   if (!user || user.role !== 'siswa') {
     return (
