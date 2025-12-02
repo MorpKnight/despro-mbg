@@ -8,7 +8,9 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
 import PageHeader from '../../components/ui/PageHeader';
 import SearchInput from '../../components/ui/SearchInput';
+import TrendChart from '../../components/ui/TrendChart';
 import { useAuth } from '../../hooks/useAuth';
+import { fetchSatisfactionTrend, type SatisfactionTrend } from '../../services/analytics';
 import { fetchAttendanceSummary, type AttendanceSummary } from '../../services/attendance';
 import { fetchEmergencyReports, type EmergencyReport, type ReportStatus } from '../../services/emergency';
 import { fetchFeedbackList, type FeedbackItem } from '../../services/feedback';
@@ -253,6 +255,17 @@ export default function SekolahDashboard() {
     return filteredSchools.slice(start, start + SCHOOL_PAGE_SIZE);
   }, [filteredSchools, schoolPage]);
 
+  const trendQuery = useQuery<SatisfactionTrend>(
+    {
+      queryKey: ['satisfaction-trend', resolvedSchoolId],
+      queryFn: () => fetchSatisfactionTrend({ school_id: resolvedSchoolId ?? undefined }),
+      enabled: shouldFetchData && Boolean(resolvedSchoolId),
+      staleTime: 5 * 60 * 1000, // 5 menit
+    }
+  );
+  const trendData = trendQuery.data?.data ?? [];
+  const trendLoading = shouldFetchData ? trendQuery.isPending : false;
+
   useEffect(() => {
     if (totalSchoolPages === 0) {
       setSchoolPage(0);
@@ -387,6 +400,18 @@ export default function SekolahDashboard() {
                   ))}
                 </View>
               </View>
+            </View>
+          )}
+
+          {/* Grafik Tren Kepuasan */}
+          {shouldFetchData && (
+            <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+              <TrendChart
+                data={trendData}
+                loading={trendLoading}
+                color="#F59E0B"
+                title="Tren Kualitas Makanan"
+              />
             </View>
           )}
 
