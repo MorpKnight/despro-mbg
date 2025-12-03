@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { Text, View, Button, Platform } from "react-native";
-import * as Notifications from "expo-notifications";
-import * as Device from "expo-device";
 import Constants from "expo-constants";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import { useEffect, useState } from "react";
+import { Button, Platform, Text, View } from "react-native";
 
 // Notification handler
 Notifications.setNotificationHandler({
@@ -10,6 +10,8 @@ Notifications.setNotificationHandler({
     shouldPlaySound: true,
     shouldSetBadge: true,
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
