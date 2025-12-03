@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Alert, Platform, AppState } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, AppState, FlatList, Platform, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../hooks/useAuth';
-import { startScan, stopScan, NFCSource } from '../(app)/nfc-handler/index';
+import { startScan, stopScan, type NFCSource } from '../../lib/nfc';
 
 type NFCScan = {
   uid: string;

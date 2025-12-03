@@ -7,8 +7,9 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
 import TextInput from '../../components/ui/TextInput';
+import TrendChart from '../../components/ui/TrendChart';
 import { useAuth } from '../../hooks/useAuth';
-import { fetchCateringKpi, type CateringKpi } from '../../services/analytics';
+import { fetchCateringKpi, fetchSatisfactionTrend, type CateringKpi, type SatisfactionTrend } from '../../services/analytics';
 import { fetchCaterings, type CateringListItem } from '../../services/caterings';
 
 const ALL_LOCATIONS = 'ALL_LOCATIONS';
@@ -38,6 +39,8 @@ export default function CateringDashboard() {
   const [caterings, setCaterings] = useState<CateringListItem[]>([]);
   const [selectedCateringId, setSelectedCateringId] = useState<string | null>(null);
   const [kpi, setKpi] = useState<CateringKpi | null>(null);
+  const [trendData, setTrendData] = useState<SatisfactionTrend['data']>([]);
+  const [trendLoading, setTrendLoading] = useState(false);
   const [loadingCaterings, setLoadingCaterings] = useState(false);
   const [loadingKpi, setLoadingKpi] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,26 +151,36 @@ export default function CateringDashboard() {
     let active = true;
     if (!selectedCateringId) {
       setKpi(null);
+      setTrendData([]);
+      setTrendLoading(false);
       return () => {
         active = false;
       };
     }
 
     setLoadingKpi(true);
+    setTrendLoading(true);
     setError(null);
-    fetchCateringKpi(selectedCateringId)
-      .then((data) => {
+    Promise.all([
+      fetchCateringKpi(selectedCateringId),
+      fetchSatisfactionTrend({ catering_id: selectedCateringId }),
+    ])
+      .then(([kpiData, trendRes]) => {
         if (!active) return;
-        setKpi(data);
+        setKpi(kpiData);
+        setTrendData(trendRes?.data ?? []);
       })
       .catch((err) => {
-        console.warn('[catering-dashboard] gagal memuat KPI katering', err);
+        console.warn('[catering-dashboard] error loading data', err);
         if (!active) return;
         setKpi(null);
-        setError('Tidak dapat memuat KPI katering untuk pilihan ini.');
+        setTrendData([]);
+        setError('Gagal memuat data analitik.');
       })
       .finally(() => {
-        if (active) setLoadingKpi(false);
+        if (!active) return;
+        setLoadingKpi(false);
+        setTrendLoading(false);
       });
 
     return () => {
@@ -369,6 +382,16 @@ export default function CateringDashboard() {
                 </Text>
               </>
             )}
+          </Card>
+
+          {/* Grafik Tren Kepuasan */}
+          <Card className="mb-6">
+            <TrendChart
+              data={trendData}
+              loading={trendLoading}
+              color="#059669"
+              title="Tren Rating Menu (30 Hari)"
+            />
           </Card>
 
           {/* Menu Highlights */}
