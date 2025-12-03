@@ -2,18 +2,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
     Alert,
     FlatList,
     Modal,
-    TextInput as RNTextInput,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import DataCard from '../../components/ui/DataCard';
+import EmptyState from '../../components/ui/EmptyState';
+import LoadingState from '../../components/ui/LoadingState';
+import PageHeader from '../../components/ui/PageHeader';
+import SearchInput from '../../components/ui/SearchInput';
 import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -166,12 +168,12 @@ export default function CateringManagementPage() {
     };
 
     const renderItem = ({ item }: { item: CateringListItem }) => (
-        <Card className="mb-3">
-            <View className="flex-row justify-between items-start">
-                <View className="flex-1 gap-1">
-                    <Text className="text-lg font-bold text-gray-900">{item.name}</Text>
-                    {item.alamat ? <Text className="text-sm text-gray-600">{item.alamat}</Text> : null}
-                    <View className="flex-row flex-wrap gap-x-3 gap-y-1 mt-1">
+        <DataCard
+            title={item.name}
+            subtitle={item.alamat || undefined}
+            content={
+                <View className="gap-1 mt-1">
+                    <View className="flex-row flex-wrap gap-x-3 gap-y-1">
                         {item.provinsi ? <Text className="text-xs text-gray-500">Provinsi: {item.provinsi}</Text> : null}
                         {item.kotaKabupaten ? <Text className="text-xs text-gray-500">Kota/Kab: {item.kotaKabupaten}</Text> : null}
                         {item.kecamatan ? <Text className="text-xs text-gray-500">Kec: {item.kecamatan}</Text> : null}
@@ -179,26 +181,28 @@ export default function CateringManagementPage() {
                     </View>
                     {item.contactPhone ? <Text className="text-xs text-gray-500 mt-1">Kontak: {item.contactPhone}</Text> : null}
                 </View>
-                {!isEdgeMode && (
+            }
+            actions={
+                !isEdgeMode ? (
                     <View className="flex-row gap-2">
                         <TouchableOpacity
                             accessibilityRole="button"
                             onPress={() => openEditModal(item)}
-                            className="p-2 bg-blue-50 rounded-full"
+                            className="p-2 bg-blue-50 rounded-full active:bg-blue-100"
                         >
                             <Ionicons name="create-outline" size={20} color="#1976D2" />
                         </TouchableOpacity>
                         <TouchableOpacity
                             accessibilityRole="button"
                             onPress={() => confirmDelete(item)}
-                            className="p-2 bg-red-50 rounded-full"
+                            className="p-2 bg-red-50 rounded-full active:bg-red-100"
                         >
                             <Ionicons name="trash-outline" size={20} color="#EF4444" />
                         </TouchableOpacity>
                     </View>
-                )}
-            </View>
-        </Card>
+                ) : undefined
+            }
+        />
     );
 
     if (user && user.role !== 'super_admin') {
@@ -215,54 +219,48 @@ export default function CateringManagementPage() {
     return (
         <SafeAreaView className="flex-1 bg-[#f5f7fb]">
             <View className="flex-1 p-6">
-                <View className="flex-row items-center justify-between mb-6">
-                    <View className="flex-row items-center">
-                        <TouchableOpacity onPress={() => router.back()} className="mr-4" accessibilityRole="button">
-                            <Ionicons name="arrow-back" size={24} color="#111827" />
-                        </TouchableOpacity>
-                        <View>
-                            <Text className="text-2xl font-bold text-gray-900">Manajemen Katering</Text>
-                            {isEdgeMode && (
-                                <Text className="text-orange-600 font-bold text-sm">Read Only - Edge Mode</Text>
-                            )}
-                        </View>
-                    </View>
-                    {!isEdgeMode && (
-                        <Button
-                            title="+ Tambah"
-                            size="sm"
-                            onPress={openCreateModal}
-                        />
-                    )}
-                </View>
+                <PageHeader
+                    title="Manajemen Katering"
+                    subtitle={isEdgeMode ? "Read Only - Edge Mode" : undefined}
+                    showBackButton={true}
+                    rightAction={
+                        !isEdgeMode ? (
+                            <Button
+                                title="Tambah"
+                                size="sm"
+                                onPress={openCreateModal}
+                                icon={<Ionicons name="add" size={18} color="white" />}
+                            />
+                        ) : undefined
+                    }
+                />
 
-                <View className="mb-4 flex-row items-center bg-white border border-gray-200 rounded-xl px-3 h-12">
-                    <Ionicons name="search" size={20} color="#9CA3AF" />
-                    <RNTextInput
-                        placeholder="Cari katering..."
-                        placeholderTextColor="#9CA3AF"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        className="flex-1 ml-2 text-base text-gray-900"
-                    />
-                </View>
+                <SearchInput
+                    placeholder="Cari katering..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    containerClassName="mb-6"
+                />
 
                 {loading ? (
-                    <View className="flex-1 items-center justify-center">
-                        <ActivityIndicator size="large" color="#1976D2" />
-                    </View>
+                    <LoadingState />
                 ) : (
                     <FlatList
                         data={filteredList}
                         renderItem={renderItem}
                         keyExtractor={(item) => item.id}
                         ListEmptyComponent={
-                            <Text className="text-center text-gray-500 mt-10">
-                                {searchQuery.trim() ? 'Tidak ada katering yang sesuai.' : 'Belum ada data katering.'}
-                            </Text>
+                            <EmptyState
+                                title="Tidak ada katering"
+                                description={searchQuery ? `Tidak ditemukan katering dengan kata kunci "${searchQuery}"` : "Belum ada data katering."}
+                                actionLabel={!searchQuery && !isEdgeMode ? "Tambah Katering" : undefined}
+                                onAction={openCreateModal}
+                                actionIcon={<Ionicons name="add" size={20} color="white" />}
+                            />
                         }
                         refreshing={refreshing}
                         onRefresh={handleRefresh}
+                        contentContainerStyle={{ paddingBottom: 24 }}
                     />
                 )}
             </View>

@@ -2,20 +2,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Modal,
+    Pressable,
+    ScrollView,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import type { TranslationKey } from '../../context/PreferencesContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useNetworkMode } from '../../hooks/useNetworkMode';
 import { usePreferences } from '../../hooks/usePreferences';
 import { useResponsive } from '../../hooks/useResponsive';
 import { changeMyPassword, updateMyProfile } from '../../services/profile';
@@ -102,6 +103,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { setDarkMode, isEnglish, setLanguage, t } = usePreferences();
   const { isMobile } = useResponsive();
+  const { currentMode, localIp, toggleMode, setLocalIpAddress, canUseLocal, isReady } = useNetworkMode();
 
   const [isEditProfileVisible, setIsEditProfileVisible] = useState(false);
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
@@ -114,10 +116,17 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [localIpDraft, setLocalIpDraft] = useState(localIp ?? '');
+  const [ipSaving, setIpSaving] = useState(false);
+  const [modePending, setModePending] = useState(false);
 
   const placeholderColor = '#9CA3AF';
   const canEditHealthOffice = user?.role === 'admin_dinkes';
   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin_sekolah';
+  const canSeeNetworkSection = user?.role === 'admin_sekolah' || user?.role === 'admin_catering';
+  const networkToggleDisabled = !canUseLocal || !isReady || modePending;
+  const isLocalMode = currentMode === 'LOCAL';
+  const canSaveLocalIp = localIpDraft.trim().length > 0;
 
   useEffect(() => {
     if (isEditProfileVisible) {
@@ -125,6 +134,10 @@ export default function SettingsScreen() {
       setHealthOfficeAreaInput(user?.healthOfficeArea ?? '');
     }
   }, [isEditProfileVisible, user?.fullName, user?.healthOfficeArea]);
+
+  useEffect(() => {
+    setLocalIpDraft(localIp ?? '');
+  }, [localIp]);
 
   const roleLabel = useMemo(() => {
     if (!user?.role) return t('roles.siswa');
@@ -135,6 +148,11 @@ export default function SettingsScreen() {
   const accountStatusLabel = useMemo(
     () => t(getAccountStatusKey(user?.accountStatus)),
     [user?.accountStatus, t],
+  );
+
+  const networkModeLabel = useMemo(
+    () => (currentMode === 'LOCAL' ? t('network.modeValue.local') : t('network.modeValue.cloud')),
+    [currentMode, t],
   );
 
   const schoolDisplay = useMemo(() => {
@@ -192,6 +210,46 @@ export default function SettingsScreen() {
       await setLanguage(value ? 'en' : 'id');
     } catch (error) {
       console.warn('[settings] failed to toggle language', error);
+    }
+  };
+
+  const handleToggleNetworkMode = async () => {
+    if (!canUseLocal || !isReady || modePending) return;
+    if (currentMode === 'CLOUD') {
+      const targetIp = (localIpDraft || localIp || '').trim();
+      if (!targetIp) {
+        Alert.alert(t('network.requireIpAlertTitle'), t('network.requireIpAlertMessage'));
+        return;
+      }
+    }
+
+    setModePending(true);
+    try {
+      await toggleMode();
+    } catch (error: any) {
+      console.warn('[settings] toggle network mode failed', error);
+      Alert.alert(t('network.toggleErrorTitle'), error?.message ?? t('network.toggleErrorMessage'));
+    } finally {
+      setModePending(false);
+    }
+  };
+
+  const handleSaveLocalIp = async () => {
+    const trimmed = localIpDraft.trim();
+    if (!trimmed) {
+      Alert.alert(t('network.requireIpAlertTitle'), t('network.requireIpAlertMessage'));
+      return;
+    }
+
+    setIpSaving(true);
+    try {
+      await setLocalIpAddress(trimmed);
+      Alert.alert(t('network.saveSuccessTitle'), t('network.saveSuccessMessage'));
+    } catch (error: any) {
+      console.warn('[settings] save local ip failed', error);
+      Alert.alert(t('network.saveErrorTitle'), error?.message ?? t('network.saveErrorTitle'));
+    } finally {
+      setIpSaving(false);
     }
   };
 
@@ -334,6 +392,52 @@ export default function SettingsScreen() {
               }
             />
           </View>
+
+          {canSeeNetworkSection && canUseLocal && (
+            <>
+              <SectionHeader title={t('network.sectionTitle')} />
+              <View className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                <SettingItem
+                  icon="wifi"
+                  iconColor="#0EA5E9"
+                  iconBg="bg-sky-50"
+                  label={t('network.localToggle')}
+                  value={networkModeLabel}
+                  rightElement={
+                    <Switch
+                      value={isLocalMode}
+                      onValueChange={handleToggleNetworkMode}
+                      disabled={networkToggleDisabled}
+                      trackColor={{ false: '#E5E7EB', true: '#7DD3FC' }}
+                      thumbColor={currentMode === 'LOCAL' ? '#0EA5E9' : '#F3F4F6'}
+                    />
+                  }
+                />
+                <View className="px-4 pt-4 pb-5 border-t border-gray-100">
+                  <Text className="text-sm font-semibold text-gray-900">{t('network.localIpLabel')}</Text>
+                  <TextInput
+                    value={localIpDraft}
+                    onChangeText={setLocalIpDraft}
+                    placeholder={t('network.localIpPlaceholder')}
+                    placeholderTextColor={placeholderColor}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="numbers-and-punctuation"
+                    editable={isLocalMode}
+                    className={`mt-2 border border-gray-200 rounded-2xl px-4 py-3 text-base ${isLocalMode ? 'text-gray-900 bg-white' : 'text-gray-400 bg-gray-50'}`}
+                  />
+                  <Text className="text-xs text-gray-500 mt-2">{t('network.localIpDescription')}</Text>
+                  <Button
+                    title={t('network.saveIpButton')}
+                    onPress={handleSaveLocalIp}
+                    loading={ipSaving}
+                    disabled={!canSaveLocalIp || ipSaving}
+                    className="mt-3"
+                  />
+                </View>
+              </View>
+            </>
+          )}
 
           {/* Server Sync - Admin Only & Not Edge */}
           {isAdmin && !isEdgeMode && (

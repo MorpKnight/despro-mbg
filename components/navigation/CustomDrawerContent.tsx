@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DrawerContentComponentProps, DrawerContentScrollView } from '@react-navigation/drawer';
 import Constants from 'expo-constants';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../ui/Button';
@@ -164,6 +164,8 @@ const getIconAppearance = (routeName: string) => iconPalette[routeName] ?? {
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
     const version = Constants?.expoConfig?.version ?? (Constants as any)?.manifest?.version ?? '0.0.0';
     const { user, signOut } = useAuth();
+    const { width } = useWindowDimensions();
+    const isDesktop = Platform.OS === 'web' && width >= 1024;
 
     const { navigation, state } = props;
     const { routes, index } = state;
@@ -295,53 +297,80 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
                 </View>
 
                 {quickLinks.length > 0 && (
-                    <View style={{ flexDirection: 'row' }}>
-                        {quickLinks.slice(0, 3).map((action, index) => {
-                            const focused = currentRoute === action.route;
-                            const isLast = index === Math.min(quickLinks.length, 3) - 1;
-                            return (
-                                <Pressable
-                                    key={action.route}
-                                    onPress={() => navigation.navigate(action.route as never)}
-                                    style={{
-                                        flex: 1,
-                                        borderRadius: 14,
-                                        paddingVertical: 12,
-                                        paddingHorizontal: 12,
-                                        backgroundColor: focused ? action.accent : action.background,
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginRight: isLast ? 0 : 10,
-                                    }}
-                                >
-                                    <View
+                    <View
+                        style={{
+                            flexDirection: isDesktop ? 'column' : 'row',
+                        }}
+                    >
+                        {quickLinks
+                            .slice(0, isDesktop ? quickLinks.length : 3)
+                            .map((action, index, arr) => {
+                                const focused = currentRoute === action.route;
+                                const isLast = index === arr.length - 1;
+                                return (
+                                    <Pressable
+                                        key={action.route}
+                                        onPress={() => navigation.navigate(action.route as never)}
                                         style={{
-                                            backgroundColor: focused ? 'rgba(255, 255, 255, 0.25)' : '#FFFFFF',
-                                            borderRadius: 999,
-                                            padding: 4,
-                                            marginRight: 8,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            paddingVertical: isDesktop ? 16 : 12,
+                                            paddingHorizontal: isDesktop ? 16 : 12,
+                                            borderRadius: 16,
+                                            backgroundColor: focused ? action.accent : action.background,
+                                            marginRight: !isDesktop && !isLast ? 10 : 0,
+                                            marginBottom: isDesktop && !isLast ? 12 : 0,
+                                            width: isDesktop ? '100%' : undefined,
+                                            shadowColor: '#0F172A',
+                                            shadowOpacity: focused ? 0.15 : 0.08,
+                                            shadowOffset: { width: 0, height: 8 },
+                                            shadowRadius: 12,
+                                            elevation: focused ? 6 : 2,
                                         }}
                                     >
+                                        <View
+                                            style={{
+                                                backgroundColor: focused ? 'rgba(255, 255, 255, 0.28)' : '#FFFFFF',
+                                                borderRadius: 999,
+                                                padding: 8,
+                                                marginRight: 12,
+                                            }}
+                                        >
+                                            <Ionicons
+                                                name={action.icon}
+                                                size={18}
+                                                color={focused ? '#FFFFFF' : action.accent}
+                                            />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text
+                                                style={{
+                                                    color: focused ? '#FFFFFF' : '#0F172A',
+                                                    fontSize: isDesktop ? 14 : 12,
+                                                    fontWeight: '700',
+                                                    letterSpacing: 0.2,
+                                                }}
+                                                numberOfLines={1}
+                                            >
+                                                {action.label}
+                                            </Text>
+                                            <Text
+                                                style={{
+                                                    color: focused ? 'rgba(241, 245, 249, 0.85)' : '#475569',
+                                                    fontSize: 11,
+                                                }}
+                                            >
+                                                Akses cepat
+                                            </Text>
+                                        </View>
                                         <Ionicons
-                                            name={action.icon}
-                                            size={18}
+                                            name="arrow-forward"
+                                            size={16}
                                             color={focused ? '#FFFFFF' : action.accent}
                                         />
-                                    </View>
-                                    <Text
-                                        style={{
-                                            color: focused ? '#FFFFFF' : action.accent,
-                                            fontSize: 12,
-                                            fontWeight: '600',
-                                            letterSpacing: 0.2,
-                                        }}
-                                    >
-                                        {action.label}
-                                    </Text>
-                                </Pressable>
-                            );
-                        })}
+                                    </Pressable>
+                                );
+                            })}
                     </View>
                 )}
             </View>
