@@ -94,7 +94,7 @@ async function makeRequest(
 ) {
   // --- TAMBAHKAN INI UNTUK DEBUGGING ---
   console.log("------------------------------------------");
-  console.log("Trying to fetch URL:", url); 
+  console.log("Trying to fetch URL:", url);
   console.log("------------------------------------------");
   // ---------------------------------------
   const { headers, ...rest } = options;
@@ -108,6 +108,9 @@ async function makeRequest(
   }
   if (token && !('Authorization' in finalHeaders)) {
     finalHeaders.Authorization = `Bearer ${token}`;
+    console.log('[api] attached token:', token.slice(0, 10) + '...');
+  } else {
+    console.warn('[api] no token attached or already present');
   }
 
   // Inject Central API Key for Edge Mode if configured

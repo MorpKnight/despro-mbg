@@ -101,7 +101,7 @@ export default function CateringDashboard() {
     const uniques = Array.from(
       new Set(
         caterings
-          .map((catering) => (catering.kotaKabupaten || catering.provinsi || catering.kecamatan || '')?.trim())
+          .map((catering) => (catering.administrativeAreaLevel2 || catering.administrativeAreaLevel1 || '')?.trim())
           .filter((value) => Boolean(value))
       )
     ) as string[];
@@ -111,7 +111,7 @@ export default function CateringDashboard() {
   const filteredCaterings = useMemo(() => {
     if (locationFilter === ALL_LOCATIONS) return caterings;
     return caterings.filter((catering) => {
-      const location = catering.kotaKabupaten || catering.provinsi || catering.kecamatan || '';
+      const location = catering.administrativeAreaLevel2 || catering.administrativeAreaLevel1 || '';
       return location.trim() === locationFilter;
     });
   }, [caterings, locationFilter]);
@@ -278,13 +278,12 @@ export default function CateringDashboard() {
                         <Pressable
                           key={catering.id}
                           onPress={() => setSelectedCateringId(catering.id)}
-                          className={`rounded-xl border px-4 py-3 ${
-                            catering.id === selectedCateringId ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
-                          }`}
+                          className={`rounded-xl border px-4 py-3 ${catering.id === selectedCateringId ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                            }`}
                         >
                           <Text className="text-base font-semibold text-gray-800">{catering.name}</Text>
                           <Text className="text-xs text-gray-500">
-                            {catering.kotaKabupaten || catering.provinsi || 'Lokasi tidak tersedia'}
+                            {catering.administrativeAreaLevel2 || catering.administrativeAreaLevel1 || 'Lokasi tidak tersedia'}
                           </Text>
                         </Pressable>
                       ))}
@@ -298,23 +297,20 @@ export default function CateringDashboard() {
                             <Pressable
                               disabled={cateringPage === 0}
                               onPress={() => setCateringPage((prev) => Math.max(prev - 1, 0))}
-                              className={`px-3 py-2 rounded-lg border ${
-                                cateringPage === 0 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
-                              }`}
+                              className={`px-3 py-2 rounded-lg border ${cateringPage === 0 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
+                                }`}
                             >
                               <Text className={`text-sm font-semibold ${cateringPage === 0 ? 'text-gray-400' : 'text-gray-700'}`}>Prev</Text>
                             </Pressable>
                             <Pressable
                               disabled={cateringPage >= totalCateringPages - 1}
                               onPress={() => setCateringPage((prev) => Math.min(prev + 1, totalCateringPages - 1))}
-                              className={`px-3 py-2 rounded-lg border ${
-                                cateringPage >= totalCateringPages - 1 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
-                              }`}
+                              className={`px-3 py-2 rounded-lg border ${cateringPage >= totalCateringPages - 1 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
+                                }`}
                             >
                               <Text
-                                className={`text-sm font-semibold ${
-                                  cateringPage >= totalCateringPages - 1 ? 'text-gray-400' : 'text-gray-700'
-                                }`}
+                                className={`text-sm font-semibold ${cateringPage >= totalCateringPages - 1 ? 'text-gray-400' : 'text-gray-700'
+                                  }`}
                               >
                                 Next
                               </Text>
@@ -333,8 +329,8 @@ export default function CateringDashboard() {
             <Card className="mb-6">
               <Text className="text-sm text-gray-500 uppercase">Katering aktif</Text>
               <Text className="text-xl font-semibold text-gray-900 mt-1">{selectedCatering.name}</Text>
-              {selectedCatering.alamat ? (
-                <Text className="text-xs text-gray-500 mt-1">{selectedCatering.alamat}</Text>
+              {selectedCatering.addressLine ? (
+                <Text className="text-xs text-gray-500 mt-1">{selectedCatering.addressLine}</Text>
               ) : null}
             </Card>
           )}

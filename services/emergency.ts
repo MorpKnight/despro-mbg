@@ -40,7 +40,7 @@ type RawEmergencyReport = {
   school?: {
     id: string;
     name: string;
-    alamat?: string | null;
+    address_line?: string | null;
   } | null;
   reported_by?: {
     full_name?: string | null;
@@ -109,7 +109,7 @@ function mapEmergencyReport(raw: RawEmergencyReport): EmergencyReport {
     date: raw.created_at,
     schoolId: raw.school?.id,
     schoolName: raw.school?.name ?? 'Sekolah tidak dikenal',
-    schoolAddress: raw.school?.alamat ?? null,
+    schoolAddress: raw.school?.address_line ?? null,
     reportedBy: raw.reported_by?.full_name ?? null,
     followUps:
       raw.follow_ups?.map((fu) => ({
