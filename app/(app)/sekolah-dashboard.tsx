@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Chip } from '../../components/ui/Chip';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
@@ -11,6 +12,7 @@ import SearchInput from '../../components/ui/SearchInput';
 import TrendChart from '../../components/ui/TrendChart';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchSatisfactionTrend, type SatisfactionTrend } from '../../services/analytics';
+import { fetchAssociations, type Association } from '../../services/associations';
 import { fetchAttendanceSummary, type AttendanceSummary } from '../../services/attendance';
 import { fetchEmergencyReports, type EmergencyReport, type ReportStatus } from '../../services/emergency';
 import { fetchFeedbackList, type FeedbackItem } from '../../services/feedback';
@@ -102,11 +104,11 @@ export default function SekolahDashboard() {
     return {
       id: user.schoolId ?? profile.id ?? 'unknown-school',
       name: profile.name ?? 'Sekolah Tanpa Nama',
-      alamat: profile.alamat ?? null,
-      provinsi: profile.provinsi ?? null,
-      kotaKabupaten: profile.kotaKabupaten ?? null,
-      kecamatan: profile.kecamatan ?? null,
-      kelurahan: profile.kelurahan ?? null,
+      addressLine: profile.addressLine ?? null,
+      postalCode: profile.postalCode ?? null,
+      countryCode: profile.countryCode ?? null,
+      administrativeAreaLevel1: profile.administrativeAreaLevel1 ?? null,
+      administrativeAreaLevel2: profile.administrativeAreaLevel2 ?? null,
       contactPhone: profile.contactPhone ?? null,
       healthOfficeAreaId: profile.healthOfficeAreaId ?? null,
       healthOfficeArea: profile.healthOfficeArea ?? null,
@@ -220,7 +222,7 @@ export default function SekolahDashboard() {
     const uniques = Array.from(
       new Set(
         schools
-          .map((school) => (school.kotaKabupaten || school.provinsi || school.kecamatan || '')?.trim())
+          .map((school) => (school.administrativeAreaLevel2 || school.administrativeAreaLevel1 || '')?.trim())
           .filter((value) => Boolean(value))
       )
     ) as string[];
@@ -230,7 +232,7 @@ export default function SekolahDashboard() {
   const filteredSchools = useMemo(() => {
     if (locationFilter === ALL_LOCATIONS) return schools;
     return schools.filter((school) => {
-      const location = school.kotaKabupaten || school.provinsi || school.kecamatan || '';
+      const location = school.administrativeAreaLevel2 || school.administrativeAreaLevel1 || '';
       return location.trim() === locationFilter;
     });
   }, [locationFilter, schools]);
@@ -265,6 +267,14 @@ export default function SekolahDashboard() {
   );
   const trendData = trendQuery.data?.data ?? [];
   const trendLoading = shouldFetchData ? trendQuery.isPending : false;
+
+  const associationsQuery = useQuery<Association[]>({
+    queryKey: ['associations', resolvedSchoolId],
+    queryFn: () => fetchAssociations({ sekolah_id: resolvedSchoolId ?? undefined }),
+    enabled: shouldFetchData && Boolean(resolvedSchoolId) && (isSchoolAdmin || isSuperAdmin),
+  });
+  const associations = associationsQuery.data ?? [];
+  const associationsLoading = associationsQuery.isLoading;
 
   useEffect(() => {
     if (totalSchoolPages === 0) {
@@ -309,11 +319,9 @@ export default function SekolahDashboard() {
   const unresolvedReports = reports.filter((report) => report.status !== 'selesai').length;
   const attendancePercentage = attendance && attendanceTotal > 0 ? Math.round((attendancePresent / attendanceTotal) * 100) : null;
   const averageRating = feedbackItems.length > 0 ? (feedbackItems.reduce((total, current) => total + current.rating, 0) / feedbackItems.length) : null;
-  const schoolAddress = selectedSchoolMeta?.alamat || [selectedSchoolMeta?.kelurahan, selectedSchoolMeta?.kecamatan, selectedSchoolMeta?.kotaKabupaten]
-    .filter(Boolean)
-    .join(', ');
+  const schoolAddress = selectedSchoolMeta?.addressLine || '-';
   const schoolContact = selectedSchoolMeta?.contactPhone || '-';
-  const locationDisplay = [selectedSchoolMeta?.kotaKabupaten, selectedSchoolMeta?.provinsi].filter(Boolean).join(', ');
+  const locationDisplay = [selectedSchoolMeta?.administrativeAreaLevel2, selectedSchoolMeta?.administrativeAreaLevel1].filter(Boolean).join(', ');
 
   const quickStats: StatCardProps[] = [
     {
@@ -357,7 +365,7 @@ export default function SekolahDashboard() {
             <View className="mb-6">
               <Text className="text-sm text-gray-500 -mt-4">
                 {selectedSchoolMeta.name}
-                {selectedSchoolMeta.kotaKabupaten ? ` • ${selectedSchoolMeta.kotaKabupaten}` : ''}
+                {selectedSchoolMeta.administrativeAreaLevel2 ? ` • ${selectedSchoolMeta.administrativeAreaLevel2}` : ''}
               </Text>
             </View>
           )}
@@ -399,6 +407,70 @@ export default function SekolahDashboard() {
                     <StatCard key={stat.label} {...stat} />
                   ))}
                 </View>
+              </View>
+            </View>
+          )}
+
+          {/* Quick Actions & Affiliations */}
+          {isSchoolAdmin && (
+            <View className="mb-6">
+              <View className="flex-row gap-3 mb-6">
+                <TouchableOpacity
+                  className="flex-1 bg-white p-4 rounded-2xl shadow-sm flex-row items-center gap-3"
+                  onPress={() => router.push('/(app)/student-management')}
+                >
+                  <View className="w-10 h-10 bg-blue-50 rounded-full items-center justify-center">
+                    <Ionicons name="people" size={20} color="#2563EB" />
+                  </View>
+                  <View>
+                    <Text className="font-semibold text-gray-900">Kelola Siswa</Text>
+                    <Text className="text-xs text-gray-500">Tambah/Edit Data</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 bg-white p-4 rounded-2xl shadow-sm flex-row items-center gap-3"
+                  onPress={() => router.push('/(app)/attendance-history')}
+                >
+                  <View className="w-10 h-10 bg-emerald-50 rounded-full items-center justify-center">
+                    <Ionicons name="calendar" size={20} color="#059669" />
+                  </View>
+                  <View>
+                    <Text className="font-semibold text-gray-900">Riwayat Absensi</Text>
+                    <Text className="text-xs text-gray-500">Lihat Log</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <View className="bg-white rounded-2xl p-6 shadow-sm">
+                <View className="flex-row items-center justify-between mb-4">
+                  <View className="flex-row items-center">
+                    <View className="w-9 h-9 rounded-full bg-orange-50 items-center justify-center mr-2">
+                      <Text className="text-orange-500 text-lg">🍽️</Text>
+                    </View>
+                    <Text className="text-base font-semibold text-gray-900">Katering Terhubung</Text>
+                  </View>
+                </View>
+
+                {associationsLoading ? (
+                  <ActivityIndicator />
+                ) : associations.length === 0 ? (
+                  <Text className="text-gray-500 italic">Belum ada katering yang terhubung.</Text>
+                ) : (
+                  <View className="space-y-3">
+                    {associations.map(assoc => (
+                      <View key={assoc.id} className="border border-gray-100 rounded-xl p-3 flex-row items-center justify-between">
+                        <View>
+                          <Text className="font-semibold text-gray-800">{assoc.catering?.name ?? "Katering Tanpa Nama"}</Text>
+                          <Text className="text-xs text-gray-500">{assoc.catering?.address_line ?? "Alamat tidak tersedia"}</Text>
+                        </View>
+                        <View className="bg-green-100 px-2 py-1 rounded text-xs">
+                          <Text className="text-green-700 text-xs font-medium">Aktif</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -476,7 +548,7 @@ export default function SekolahDashboard() {
                         >
                           <Text className="text-base font-semibold text-gray-800">{school.name}</Text>
                           <Text className="text-xs text-gray-500">
-                            {school.kotaKabupaten || school.provinsi || 'Lokasi tidak tersedia'}
+                            {school.administrativeAreaLevel2 || school.administrativeAreaLevel1 || 'Lokasi tidak tersedia'}
                           </Text>
                         </Pressable>
                       ))}

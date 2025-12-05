@@ -4,15 +4,17 @@ import type { Role } from './session';
 export interface RelatedEntity {
   id: string;
   name: string;
-  province?: string | null;
-  city?: string | null;
+  addressLine?: string | null;
+  administrativeAreaLevel1?: string | null;
+  administrativeAreaLevel2?: string | null;
 }
 
 interface RawRelatedEntity {
   id?: string;
   name?: string;
-  provinsi?: string | null;
-  kota_kabupaten?: string | null;
+  address_line?: string | null;
+  administrative_area_level_1?: string | null;
+  administrative_area_level_2?: string | null;
 }
 
 interface RawProfile {
@@ -46,8 +48,9 @@ function mapRelated(raw: RawRelatedEntity | null | undefined): RelatedEntity | n
   return {
     id: raw.id,
     name: raw.name,
-    province: raw.provinsi ?? null,
-    city: raw.kota_kabupaten ?? null,
+    addressLine: raw.address_line ?? null,
+    administrativeAreaLevel1: raw.administrative_area_level_1 ?? null,
+    administrativeAreaLevel2: raw.administrative_area_level_2 ?? null,
   };
 }
 

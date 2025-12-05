@@ -227,15 +227,9 @@ export default function UserManagementPage() {
             title="Manajemen Pengguna"
             subtitle="Kelola akun, peran, dan akses sistem"
             showBackButton={false}
-            rightAction={
-              <Button
-                title="Refresh"
-                variant="ghost"
-                icon={<Ionicons name="refresh" size={20} color="#4B5563" />}
-                onPress={handleRefresh}
-                loading={refreshing}
-              />
-            }
+            onRefresh={handleRefresh}
+            isRefreshing={refreshing}
+            rightAction={null}
           />
 
           {/* Role Tabs */}

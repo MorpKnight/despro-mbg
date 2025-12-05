@@ -124,7 +124,7 @@ export function SuperAdminHome({ username }: Props) {
           results = data.map((school: SchoolListItem) => ({
             id: school.id,
             title: school.name,
-            subtitle: school.kotaKabupaten || school.provinsi || school.alamat || undefined,
+            subtitle: school.administrativeAreaLevel2 || school.administrativeAreaLevel1 || school.addressLine || undefined,
             badge: 'Sekolah',
             icon: 'school',
           }));
@@ -133,7 +133,7 @@ export function SuperAdminHome({ username }: Props) {
           results = data.map((catering: CateringListItem) => ({
             id: catering.id,
             title: catering.name,
-            subtitle: catering.kotaKabupaten || catering.provinsi || catering.alamat || undefined,
+            subtitle: catering.administrativeAreaLevel2 || catering.administrativeAreaLevel1 || catering.addressLine || undefined,
             badge: 'Katering',
             icon: 'restaurant',
           }));
@@ -294,9 +294,8 @@ export function SuperAdminHome({ username }: Props) {
                 <Pressable
                   key={option.value}
                   onPress={() => setEntityFilter(option.value)}
-                  className={`px-4 py-2 rounded-full border ${
-                    isActive ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200'
-                  }`}
+                  className={`px-4 py-2 rounded-full border ${isActive ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200'
+                    }`}
                 >
                   <Text className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-gray-700'}`}>
                     {option.label}

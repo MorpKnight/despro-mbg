@@ -126,7 +126,7 @@ export default function AdminDashboard() {
           results = data.map((school: SchoolListItem) => ({
             id: school.id,
             title: school.name,
-            subtitle: school.kotaKabupaten || school.provinsi || school.alamat || undefined,
+            subtitle: school.administrativeAreaLevel2 || school.administrativeAreaLevel1 || school.addressLine || undefined,
             badge: 'Sekolah',
             icon: 'school',
           }));
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
           results = data.map((catering: CateringListItem) => ({
             id: catering.id,
             title: catering.name,
-            subtitle: catering.kotaKabupaten || catering.provinsi || catering.alamat || undefined,
+            subtitle: catering.administrativeAreaLevel2 || catering.administrativeAreaLevel1 || catering.addressLine || undefined,
             badge: 'Katering',
             icon: 'restaurant',
           }));
