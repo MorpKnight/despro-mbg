@@ -32,12 +32,22 @@ interface Props {
     cateringId?: string;
 }
 
+import { useDebounce } from '../../hooks/useDebounce';
+import SearchInput from '../../components/ui/SearchInput';
+
 export default function CateringFoodHistoryPage({ cateringId }: Props) {
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
     const { data: menus, isLoading, isRefetching, refetch } = useQuery({
-        queryKey: ['catering-food-history', selectedDate, cateringId],
-        queryFn: () => fetchCateringFoodHistory({ startDate: selectedDate, endDate: selectedDate, cateringId }),
+        queryKey: ['catering-food-history', selectedDate, cateringId, debouncedSearchQuery],
+        queryFn: () => fetchCateringFoodHistory({
+            startDate: debouncedSearchQuery ? undefined : selectedDate,
+            endDate: debouncedSearchQuery ? undefined : selectedDate,
+            cateringId,
+            search: debouncedSearchQuery
+        }),
     });
 
     const hasData = menus && menus.length > 0;
@@ -54,7 +64,12 @@ export default function CateringFoodHistoryPage({ cateringId }: Props) {
             />
 
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 24 }}>
-                <View className="px-6 py-4">
+                <View className="px-6 py-4 space-y-4">
+                    <SearchInput
+                        placeholder="Cari menu atau bahan..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
                     <View className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <Calendar
                             current={selectedDate}
@@ -84,7 +99,11 @@ export default function CateringFoodHistoryPage({ cateringId }: Props) {
                     ) : !hasData ? (
                         <EmptyState
                             title="Tidak ada menu"
-                            description={`Anda tidak membuat menu pada tanggal ${selectedDate}.`}
+                            description={
+                                debouncedSearchQuery
+                                    ? `Tidak ditemukan menu dengan kata kunci "${debouncedSearchQuery}".`
+                                    : `Anda tidak membuat menu pada tanggal ${selectedDate}.`
+                            }
                         />
                     ) : (
                         <View className="space-y-4">

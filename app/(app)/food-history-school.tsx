@@ -33,12 +33,22 @@ interface Props {
     schoolId?: string;
 }
 
+import { useDebounce } from '../../hooks/useDebounce';
+import SearchInput from '../../components/ui/SearchInput';
+
 export default function SchoolFoodHistoryPage({ schoolId }: Props) {
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
     const { data: menus, isLoading, isRefetching, refetch } = useQuery({
-        queryKey: ['school-food-history', selectedDate, schoolId],
-        queryFn: () => fetchSchoolFoodHistory({ startDate: selectedDate, endDate: selectedDate, schoolId }),
+        queryKey: ['school-food-history', selectedDate, schoolId, debouncedSearchQuery],
+        queryFn: () => fetchSchoolFoodHistory({
+            startDate: debouncedSearchQuery ? undefined : selectedDate,
+            endDate: debouncedSearchQuery ? undefined : selectedDate,
+            schoolId,
+            search: debouncedSearchQuery
+        }),
     });
 
     const hasData = menus && menus.length > 0;
@@ -55,7 +65,12 @@ export default function SchoolFoodHistoryPage({ schoolId }: Props) {
             />
 
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 24 }}>
-                <View className="px-6 py-4">
+                <View className="px-6 py-4 space-y-4">
+                    <SearchInput
+                        placeholder="Cari menu atau bahan..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
                     <View className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <Calendar
                             current={selectedDate}
@@ -85,7 +100,11 @@ export default function SchoolFoodHistoryPage({ schoolId }: Props) {
                     ) : !hasData ? (
                         <EmptyState
                             title="Tidak ada menu"
-                            description={`Tidak ada data menu untuk tanggal ${selectedDate}.`}
+                            description={
+                                debouncedSearchQuery
+                                    ? `Tidak ditemukan menu dengan kata kunci "${debouncedSearchQuery}".`
+                                    : `Tidak ada data menu untuk tanggal ${selectedDate}.`
+                            }
                         />
                     ) : (
                         <View className="space-y-4">
@@ -94,9 +113,8 @@ export default function SchoolFoodHistoryPage({ schoolId }: Props) {
                                     <View className="flex-row justify-between items-start mb-2">
                                         <View className="flex-1">
                                             <Text className="text-lg font-bold text-gray-900">{menu.namaMenu}</Text>
-                                            {/* Ideally fetch catering name via association or include in API */}
                                             <Text className="text-xs text-gray-500 mt-1">
-                                                Catering ID: {menu.cateringId.substring(0, 8)}...
+                                                {menu.cateringName ? `Provided by: ${menu.cateringName}` : `Catering ID: ${menu.cateringId.substring(0, 8)}...`}
                                             </Text>
                                         </View>
                                         <View className="bg-blue-100 px-3 py-1 rounded-full">
