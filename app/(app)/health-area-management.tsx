@@ -2,27 +2,30 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    TextInput as RNTextInput,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Grid from '../../components/layout/Grid';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import DataCard from '../../components/ui/DataCard';
+import EmptyState from '../../components/ui/EmptyState';
+import LoadingState from '../../components/ui/LoadingState';
+import PageHeader from '../../components/ui/PageHeader';
+import SearchInput from '../../components/ui/SearchInput';
 import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
 import {
-    HealthOfficeAreaItem,
-    HealthOfficeAreaPayload,
-    createHealthOfficeArea,
-    deleteHealthOfficeArea,
-    fetchHealthOfficeAreas,
-    updateHealthOfficeArea,
+  HealthOfficeAreaItem,
+  HealthOfficeAreaPayload,
+  createHealthOfficeArea,
+  deleteHealthOfficeArea,
+  fetchHealthOfficeAreas,
+  updateHealthOfficeArea,
 } from '../../services/healthOfficeAreas';
 
 type HealthAreaFormState = {
@@ -156,38 +159,6 @@ export default function HealthAreaManagementPage() {
     );
   };
 
-  const renderItem = ({ item }: { item: HealthOfficeAreaItem }) => (
-    <Card className="mb-3 p-4">
-      <View className="flex-row justify-between items-start gap-3">
-        <View className="flex-1 gap-1">
-          <Text className="text-lg font-bold text-gray-900">{item.name}</Text>
-          {item.code ? <Text className="text-sm text-blue-700">Kode: {item.code}</Text> : null}
-          {item.coverageNotes ? (
-            <Text className="text-sm text-gray-600" numberOfLines={3}>
-              {item.coverageNotes}
-            </Text>
-          ) : null}
-        </View>
-        <View className="flex-row gap-2">
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={() => openEditModal(item)}
-            className="p-2 bg-blue-50 rounded-full"
-          >
-            <Ionicons name="create-outline" size={20} color="#1976D2" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={() => confirmDelete(item)}
-            className="p-2 bg-red-50 rounded-full"
-          >
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Card>
-  );
-
   if (user && user.role !== 'super_admin') {
     return (
       <SafeAreaView className="flex-1 bg-[#f5f7fb] items-center justify-center px-6">
@@ -202,46 +173,75 @@ export default function HealthAreaManagementPage() {
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <View className="flex-1 p-6">
-        <View className="flex-row items-center justify-between mb-6">
-          <View className="flex-row items-center">
-            <TouchableOpacity onPress={() => router.back()} className="mr-4" accessibilityRole="button">
-              <Ionicons name="arrow-back" size={24} color="#111827" />
-            </TouchableOpacity>
-            <Text className="text-2xl font-bold text-gray-900">Manajemen Area Dinkes</Text>
-          </View>
-          <Button
-            title="+ Tambah"
-            size="sm"
-            onPress={openCreateModal}
-          />
-        </View>
+        <PageHeader
+          title="Manajemen Area Dinkes"
+          subtitle="Kelola wilayah kerja dinas kesehatan"
+          showBackButton={true}
+          rightAction={
+            <Button
+              title="Tambah"
+              size="sm"
+              onPress={openCreateModal}
+              icon={<Ionicons name="add" size={18} color="white" />}
+            />
+          }
+        />
 
-        <View className="mb-4 flex-row items-center bg-white border border-gray-200 rounded-xl px-3 h-12">
-          <Ionicons name="search" size={20} color="#9CA3AF" />
-          <RNTextInput
-            placeholder="Cari area Dinkes..."
-            placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            className="flex-1 ml-2 text-base text-gray-900"
-          />
-        </View>
+        <SearchInput
+          placeholder="Cari area Dinkes..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          containerClassName="mb-6"
+        />
 
         {loading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#1976D2" />
-          </View>
-        ) : (
-          <FlatList
-            data={filteredList}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={
-              <Text className="text-center text-gray-500 mt-10">
-                {searchQuery.trim() ? 'Tidak ada area yang sesuai.' : 'Belum ada data area.'}
-              </Text>
-            }
+          <LoadingState />
+        ) : filteredList.length === 0 ? (
+          <EmptyState
+            title="Tidak ada area"
+            description={searchQuery ? `Tidak ditemukan area dengan kata kunci "${searchQuery}"` : "Belum ada data area."}
+            actionLabel={!searchQuery ? "Tambah Area" : undefined}
+            onAction={openCreateModal}
+            actionIcon={<Ionicons name="add" size={20} color="white" />}
           />
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Grid desktopColumns={3} mobileColumns={1} gap={4}>
+              {filteredList.map((item) => (
+                <DataCard
+                  key={item.id}
+                  title={item.name}
+                  subtitle={item.code ? `Kode: ${item.code}` : undefined}
+                  content={
+                    item.coverageNotes ? (
+                      <Text className="text-sm text-gray-600 mt-1" numberOfLines={3}>
+                        {item.coverageNotes}
+                      </Text>
+                    ) : undefined
+                  }
+                  actions={
+                    <View className="flex-row gap-2">
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        onPress={() => openEditModal(item)}
+                        className="p-2 bg-blue-50 rounded-full active:bg-blue-100"
+                      >
+                        <Ionicons name="create-outline" size={20} color="#1976D2" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        onPress={() => confirmDelete(item)}
+                        className="p-2 bg-red-50 rounded-full active:bg-red-100"
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  }
+                />
+              ))}
+            </Grid>
+            <View className="h-20" />
+          </ScrollView>
         )}
       </View>
 
@@ -257,38 +257,46 @@ export default function HealthAreaManagementPage() {
               </TouchableOpacity>
             </View>
 
-            <View className="gap-4 flex-1">
-              <View>
-                <Text className="text-sm font-medium text-gray-700 mb-1">Nama Area</Text>
-                <TextInput
-                  placeholder="Contoh: Jakarta Pusat"
-                  value={form.name}
-                  onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
-                />
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+              <View className="gap-4 pb-6">
+                <View>
+                  <Text className="text-sm font-medium text-gray-700 mb-1">Nama Area <Text className="text-red-500">*</Text></Text>
+                  <TextInput
+                    placeholder="Contoh: Jakarta Pusat"
+                    value={form.name}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
+                    className="bg-white"
+                  />
+                </View>
+                <View>
+                  <Text className="text-sm font-medium text-gray-700 mb-1">Kode Area (opsional)</Text>
+                  <TextInput
+                    placeholder="Contoh: DKIJKT-PUS"
+                    value={form.code ?? ''}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, code: value }))}
+                    className="bg-white"
+                  />
+                </View>
+                <View>
+                  <Text className="text-sm font-medium text-gray-700 mb-1">Catatan Cakupan (opsional)</Text>
+                  <TextInput
+                    multiline
+                    placeholder="Deskripsikan wilayah cakupan"
+                    value={form.coverageNotes ?? ''}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, coverageNotes: value }))}
+                    className="bg-white h-24"
+                    textAlignVertical="top"
+                  />
+                </View>
               </View>
-              <View>
-                <Text className="text-sm font-medium text-gray-700 mb-1">Kode Area (opsional)</Text>
-                <TextInput
-                  placeholder="Contoh: DKIJKT-PUS"
-                  value={form.code ?? ''}
-                  onChangeText={(value) => setForm((prev) => ({ ...prev, code: value }))}
-                />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-gray-700 mb-1">Catatan Cakupan (opsional)</Text>
-                <TextInput
-                  multiline
-                  placeholder="Deskripsikan wilayah cakupan"
-                  value={form.coverageNotes ?? ''}
-                  onChangeText={(value) => setForm((prev) => ({ ...prev, coverageNotes: value }))}
-                />
-              </View>
+            </ScrollView>
 
+            <View className="pt-4 border-t border-gray-100">
               <Button
                 title="Simpan"
                 onPress={handleSave}
                 loading={saving}
-                className="mt-auto"
+                fullWidth
               />
             </View>
           </View>

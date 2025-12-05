@@ -2,11 +2,7 @@ import { Redirect } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CateringAdminHome } from '../../components/features/home/CateringAdminHome';
-import { DinkesAdminHome } from '../../components/features/home/DinkesAdminHome';
-import { SchoolAdminHome } from '../../components/features/home/SchoolAdminHome';
 import { StudentHome } from '../../components/features/home/StudentHome';
-import { SuperAdminHome } from '../../components/features/home/SuperAdminHome';
 import { useAuth } from '../../hooks/useAuth';
 import type { Role } from '../../services/session';
 
@@ -44,13 +40,13 @@ export default function AppHome() {
 
   switch (role) {
     case 'super_admin':
-      return <SuperAdminHome username={user.username} />;
+      return <Redirect href="/(app)/admin-dashboard" />;
     case 'admin_sekolah':
-      return <SchoolAdminHome username={user.username} />;
+      return <Redirect href="/(app)/sekolah-dashboard" />;
     case 'admin_catering':
-      return <CateringAdminHome username={user.username} cateringId={user.cateringId ?? undefined} />;
+      return <Redirect href="/(app)/catering-dashboard" />;
     case 'admin_dinkes':
-      return <DinkesAdminHome username={user.username} healthOfficeArea={user.healthOfficeArea ?? undefined} />;
+      return <Redirect href="/(app)/dinkes-dashboard" />;
     case 'siswa':
       return <StudentHome username={user.username} />;
     default:

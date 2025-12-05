@@ -2,15 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    Pressable,
-    ScrollView,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
@@ -157,25 +157,25 @@ export default function SettingsScreen() {
 
   const schoolDisplay = useMemo(() => {
     if (user?.sekolah?.name) {
-      const location = user.sekolah.city ?? user.sekolah.province;
+      const location = user.sekolah.administrativeAreaLevel2 ?? user.sekolah.administrativeAreaLevel1;
       return location ? `${user.sekolah.name} • ${location}` : user.sekolah.name;
     }
     if (user?.schoolId) {
       return `ID: ${user.schoolId}`;
     }
     return t('profileModal.noData');
-  }, [user?.sekolah?.name, user?.sekolah?.city, user?.sekolah?.province, user?.schoolId, t]);
+  }, [user?.sekolah?.name, user?.sekolah?.administrativeAreaLevel2, user?.sekolah?.administrativeAreaLevel1, user?.schoolId, t]);
 
   const cateringDisplay = useMemo(() => {
     if (user?.catering?.name) {
-      const location = user.catering.city ?? user.catering.province;
+      const location = user.catering.administrativeAreaLevel2 ?? user.catering.administrativeAreaLevel1;
       return location ? `${user.catering.name} • ${location}` : user.catering.name;
     }
     if (user?.cateringId) {
       return `ID: ${user.cateringId}`;
     }
     return t('profileModal.noData');
-  }, [user?.catering?.name, user?.catering?.city, user?.catering?.province, user?.cateringId, t]);
+  }, [user?.catering?.name, user?.catering?.administrativeAreaLevel2, user?.catering?.administrativeAreaLevel1, user?.cateringId, t]);
 
   const dinkesDisplay = useMemo(() => {
     const area = user?.healthOfficeArea?.trim();

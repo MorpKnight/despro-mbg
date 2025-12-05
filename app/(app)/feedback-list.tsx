@@ -1,4 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import PageHeader from '../../components/ui/PageHeader';
+
+// ... (existing imports)
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { Redirect } from 'expo-router';
@@ -175,9 +178,13 @@ export default function FeedbackListPage() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#1976D2" />}
         ListHeaderComponent={
           <View className="pt-6">
-            <View className="mb-4">
-              <Text className="text-2xl font-bold text-gray-900">Umpan Balik Siswa</Text>
-            </View>
+            <PageHeader
+              title="Umpan Balik Siswa"
+              showBackButton={false}
+              onRefresh={handleRefresh}
+              isRefreshing={refreshing}
+              className="mb-4"
+            />
 
             <Card className="mb-4">
               <View className="flex-col gap-3">
