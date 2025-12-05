@@ -3,12 +3,15 @@ import { useRouter } from 'expo-router';
 import React, { ReactNode } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import RefreshButton from './RefreshButton';
 
 interface PageHeaderProps {
     title: string;
     subtitle?: string;
     showBackButton?: boolean;
     rightAction?: ReactNode;
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
     className?: string;
 }
 
@@ -17,6 +20,8 @@ export default function PageHeader({
     subtitle,
     showBackButton = true,
     rightAction,
+    onRefresh,
+    isRefreshing,
     className = '',
 }: PageHeaderProps) {
     const router = useRouter();
@@ -51,11 +56,17 @@ export default function PageHeader({
                     )}
                 </View>
             </View>
-            {rightAction && (
-                <View>
-                    {rightAction}
-                </View>
-            )}
+
+            <View className="flex-row items-center gap-2">
+                {onRefresh && (
+                    <RefreshButton
+                        onRefresh={onRefresh}
+                        isRefreshing={isRefreshing}
+                        className={rightAction ? "mr-1" : ""}
+                    />
+                )}
+                {rightAction && rightAction}
+            </View>
         </View>
     );
 }

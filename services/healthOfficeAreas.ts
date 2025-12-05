@@ -7,7 +7,7 @@ export interface HealthOfficeAreaItem {
   coverageNotes?: string | null;
 }
 
-interface RawHealthOfficeArea {
+export interface RawHealthOfficeArea {
   id?: string;
   name?: string;
   code?: string | null;
@@ -57,7 +57,7 @@ export async function fetchHealthOfficeAreas(params: FetchHealthOfficeAreasParam
   if (typeof params.skip === 'number') searchParams.set('skip', String(params.skip));
   if (typeof params.limit === 'number') searchParams.set('limit', String(params.limit));
   if (params.search) searchParams.set('search', params.search);
-  const path = `health-areas${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const path = `health-areas/${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
   const data = await api(path, { method: 'GET' });
   return (Array.isArray(data) ? data : [])
     .map((item) => mapHealthOfficeArea(item as RawHealthOfficeArea))

@@ -42,10 +42,10 @@ export const LoginForm = ({ onShowSettings }: LoginFormProps) => {
     // Demo accounts for quick testing
     const demoAccounts = [
         { label: 'Super Admin', u: 'superadmin', p: 'password' },
-        { label: 'Sekolah', u: 'admin_sekolah_active_1', p: 'password' },
-        { label: 'Catering', u: 'admin_catering_active_1', p: 'password' },
-        { label: 'Dinkes', u: 'admin_dinkes_active_1', p: 'password' },
-        { label: 'Siswa', u: 'siswa_active_1', p: 'password' },
+        { label: 'Sekolah', u: 'admin_sekolah_test', p: 'password' },
+        { label: 'Catering', u: 'admin_catering_test', p: 'password' },
+        { label: 'Dinkes', u: 'admin_dinkes_test', p: 'password' },
+        { label: 'Siswa', u: 'siswa_test', p: 'password' },
     ];
 
     return (
