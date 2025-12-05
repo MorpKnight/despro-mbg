@@ -3,6 +3,7 @@ import { api } from './api';
 export interface Menu {
     id: string;
     cateringId: string;
+    cateringName?: string;
     tanggal: string; // YYYY-MM-DD
     namaMenu: string;
     ingredients?: any;
@@ -14,6 +15,7 @@ export interface Menu {
 interface RawMenu {
     id: string;
     catering_id: string;
+    catering_name?: string;
     tanggal: string;
     nama_menu: string;
     ingredients?: any;
@@ -26,6 +28,7 @@ function toMenu(raw: RawMenu): Menu {
     return {
         id: raw.id,
         cateringId: raw.catering_id,
+        cateringName: raw.catering_name,
         tanggal: raw.tanggal,
         namaMenu: raw.nama_menu,
         ingredients: raw.ingredients,
@@ -35,34 +38,100 @@ function toMenu(raw: RawMenu): Menu {
     };
 }
 
-export async function fetchStudentFoodHistory(params: { startDate?: string; endDate?: string }): Promise<Menu[]> {
-    const searchParams = new URLSearchParams();
-    if (params.startDate) searchParams.append('start_date', params.startDate);
-    if (params.endDate) searchParams.append('end_date', params.endDate);
-
-    const data = await api(`food-history/student?${searchParams.toString()}`, { method: 'GET' });
-    const list = Array.isArray(data) ? data : [];
-    return list.map((item: any) => toMenu(item));
+export interface FoodHistoryParams {
+    startDate?: string;
+    endDate?: string;
+    month?: number;
+    year?: number;
+    search?: string;
+    schoolId?: string;   // For Super Admin/School Admin to view specific school history
+    cateringId?: string; // For Super Admin/Catering Admin to view specific catering history
 }
 
-export async function fetchSchoolFoodHistory(params: { startDate?: string; endDate?: string; schoolId?: string }): Promise<Menu[]> {
-    const searchParams = new URLSearchParams();
-    if (params.startDate) searchParams.append('start_date', params.startDate);
-    if (params.endDate) searchParams.append('end_date', params.endDate);
-    if (params.schoolId) searchParams.append('school_id', params.schoolId);
+export const fetchStudentFoodHistory = async ({
+    startDate,
+    endDate,
+    month,
+    year,
+    search
+}: FoodHistoryParams = {}): Promise<Menu[]> => {
+    const params = new URLSearchParams();
 
-    const data = await api(`food-history/school?${searchParams.toString()}`, { method: 'GET' });
-    const list = Array.isArray(data) ? data : [];
-    return list.map((item: any) => toMenu(item));
-}
+    if (startDate && startDate === endDate) {
+        params.append('date', startDate);
+    } else {
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+    }
 
-export async function fetchCateringFoodHistory(params: { startDate?: string; endDate?: string; cateringId?: string }): Promise<Menu[]> {
-    const searchParams = new URLSearchParams();
-    if (params.startDate) searchParams.append('start_date', params.startDate);
-    if (params.endDate) searchParams.append('end_date', params.endDate);
-    if (params.cateringId) searchParams.append('catering_id', params.cateringId);
+    if (month && year) {
+        params.append('month', month.toString());
+        params.append('year', year.toString());
+    }
 
-    const data = await api(`food-history/catering?${searchParams.toString()}`, { method: 'GET' });
-    const list = Array.isArray(data) ? data : [];
-    return list.map((item: any) => toMenu(item));
-}
+    if (search) params.append('search', search);
+
+    const response = await api(`food-history/student?${params.toString()}`, { method: 'GET' });
+    const list = Array.isArray(response) ? response : [];
+    return list.map((item: RawMenu) => toMenu(item));
+};
+
+export const fetchSchoolFoodHistory = async ({
+    startDate,
+    endDate,
+    month,
+    year,
+    search,
+    schoolId
+}: FoodHistoryParams = {}): Promise<Menu[]> => {
+    const params = new URLSearchParams();
+
+    if (startDate && startDate === endDate) {
+        params.append('date', startDate);
+    } else {
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+    }
+
+    if (month && year) {
+        params.append('month', month.toString());
+        params.append('year', year.toString());
+    }
+
+    if (search) params.append('search', search);
+    if (schoolId) params.append('school_id', schoolId);
+
+    const response = await api(`food-history/school?${params.toString()}`, { method: 'GET' });
+    const list = Array.isArray(response) ? response : [];
+    return list.map((item: RawMenu) => toMenu(item));
+};
+
+export const fetchCateringFoodHistory = async ({
+    startDate,
+    endDate,
+    month,
+    year,
+    search,
+    cateringId
+}: FoodHistoryParams = {}): Promise<Menu[]> => {
+    const params = new URLSearchParams();
+
+    if (startDate && startDate === endDate) {
+        params.append('date', startDate);
+    } else {
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+    }
+
+    if (month && year) {
+        params.append('month', month.toString());
+        params.append('year', year.toString());
+    }
+
+    if (search) params.append('search', search);
+    if (cateringId) params.append('catering_id', cateringId);
+
+    const response = await api(`food-history/catering?${params.toString()}`, { method: 'GET' });
+    const list = Array.isArray(response) ? response : [];
+    return list.map((item: RawMenu) => toMenu(item));
+};

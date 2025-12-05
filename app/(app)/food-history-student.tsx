@@ -28,12 +28,21 @@ function formatDate(isoDate: string) {
     });
 }
 
+import { useDebounce } from '../../hooks/useDebounce';
+import SearchInput from '../../components/ui/SearchInput';
+
 export default function StudentFoodHistoryPage() {
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
     const { data: menus, isLoading, isRefetching, refetch } = useQuery({
-        queryKey: ['student-food-history', selectedDate],
-        queryFn: () => fetchStudentFoodHistory({ startDate: selectedDate, endDate: selectedDate }),
+        queryKey: ['student-food-history', selectedDate, debouncedSearchQuery],
+        queryFn: () => fetchStudentFoodHistory({
+            startDate: debouncedSearchQuery ? undefined : selectedDate,
+            endDate: debouncedSearchQuery ? undefined : selectedDate,
+            search: debouncedSearchQuery
+        }),
     });
 
     const hasData = menus && menus.length > 0;
@@ -50,7 +59,13 @@ export default function StudentFoodHistoryPage() {
             />
 
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 24 }}>
-                <View className="px-6 py-4">
+                <View className="px-6 py-4 space-y-4">
+                    <SearchInput
+                        placeholder="Cari menu atau bahan..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+
                     <View className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <Calendar
                             current={selectedDate}
@@ -80,7 +95,11 @@ export default function StudentFoodHistoryPage() {
                     ) : !hasData ? (
                         <EmptyState
                             title="Tidak ada catatan"
-                            description={`Tidak ada data menu pada tanggal ${selectedDate} (atau Anda tidak hadir).`}
+                            description={
+                                debouncedSearchQuery
+                                    ? `Tidak ditemukan menu dengan kata kunci "${debouncedSearchQuery}".`
+                                    : `Tidak ada data menu pada tanggal ${selectedDate} (atau Anda tidak hadir).`
+                            }
                         />
                     ) : (
                         <View className="space-y-4">
@@ -92,7 +111,9 @@ export default function StudentFoodHistoryPage() {
                                         </View>
                                         <View className="flex-1">
                                             <Text className="text-lg font-bold text-gray-900">{menu.namaMenu}</Text>
-                                            <Text className="text-xs text-gray-500">MBG Resmi</Text>
+                                            <Text className="text-xs text-gray-500">
+                                                {menu.cateringName ? `Oleh: ${menu.cateringName}` : 'MBG Resmi'}
+                                            </Text>
                                         </View>
                                     </View>
 
