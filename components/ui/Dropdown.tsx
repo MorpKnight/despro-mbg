@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
+import SearchInput from './SearchInput';
 
 export interface DropdownOption {
     label: string;
@@ -27,14 +28,26 @@ export default function Dropdown({
     className = '',
 }: DropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const selectedOption = options.find((opt) => opt.value === value);
-    const displayText = selectedOption ? selectedOption.label : placeholder;
+    const displayText = selectedOption ? selectedOption.label : (value || placeholder);
+
+    // Reset search query when modal opens/closes
+    useEffect(() => {
+        if (!isOpen) {
+            setSearchQuery('');
+        }
+    }, [isOpen]);
 
     const handleSelect = (optionValue: string) => {
         onValueChange(optionValue);
         setIsOpen(false);
     };
+
+    const filteredOptions = options.filter((opt) =>
+        opt.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <View className={className}>
@@ -68,50 +81,78 @@ export default function Dropdown({
                 animationType="slide"
                 onRequestClose={() => setIsOpen(false)}
             >
-                <Pressable
-                    className="flex-1 bg-black/50 justify-end"
-                    onPress={() => setIsOpen(false)}
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    className="flex-1"
                 >
-                    <Pressable className="bg-white rounded-t-3xl max-h-[70%]">
-                        <View className="flex-row justify-between items-center p-6 border-b border-gray-100">
-                            <Text className="text-xl font-bold text-gray-900">
-                                {label || 'Pilih Opsi'}
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => setIsOpen(false)}
-                                className="p-2 bg-gray-100 rounded-full"
-                            >
-                                <Ionicons name="close" size={20} color="#6B7280" />
-                            </TouchableOpacity>
-                        </View>
+                    <Pressable
+                        className="flex-1 bg-black/50 justify-end"
+                        onPress={() => setIsOpen(false)}
+                    >
+                        <Pressable className="bg-white rounded-t-3xl h-[85%] flex w-full overflow-hidden">
+                            {/* Handle Indicator */}
+                            <View className="items-center pt-3 pb-2 bg-white">
+                                <View className="w-12 h-1.5 bg-gray-300 rounded-full" />
+                            </View>
 
-                        <ScrollView className="px-4 py-2">
-                            {options.map((option, index) => (
+                            <View className="flex-row justify-between items-center px-6 pb-4 border-b border-gray-100 bg-white">
+                                <Text className="text-xl font-bold text-gray-900">
+                                    {label || 'Pilih Opsi'}
+                                </Text>
                                 <TouchableOpacity
-                                    key={option.value}
-                                    onPress={() => handleSelect(option.value)}
-                                    className={`p-4 rounded-xl flex-row items-center justify-between my-1 ${option.value === value ? 'bg-blue-50 border-2 border-blue-200' : 'bg-gray-50'
-                                        }`}
-                                    activeOpacity={0.7}
+                                    onPress={() => setIsOpen(false)}
+                                    className="p-2 bg-gray-100 rounded-full"
                                 >
-                                    <Text
-                                        className={`text-base ${option.value === value
-                                                ? 'text-blue-700 font-semibold'
-                                                : 'text-gray-900'
-                                            }`}
-                                    >
-                                        {option.label}
-                                    </Text>
-                                    {option.value === value && (
-                                        <View className="bg-blue-600 rounded-full p-1">
-                                            <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                                        </View>
-                                    )}
+                                    <Ionicons name="close" size={20} color="#6B7280" />
                                 </TouchableOpacity>
-                            ))}
-                        </ScrollView>
+                            </View>
+
+                            <View className="px-4 py-3 bg-white">
+                                <SearchInput
+                                    placeholder="Cari..."
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                    containerClassName="mb-1"
+                                />
+                            </View>
+
+                            <ScrollView className="px-4 flex-1 bg-white" showsVerticalScrollIndicator={false}>
+                                {filteredOptions.length > 0 ? (
+                                    filteredOptions.map((option) => (
+                                        <TouchableOpacity
+                                            key={option.value}
+                                            onPress={() => handleSelect(option.value)}
+                                            className={`p-4 rounded-xl flex-row items-center justify-between my-1 ${option.value === value ? 'bg-blue-50 border-2 border-blue-200' : 'bg-gray-50'
+                                                }`}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text
+                                                className={`text-base ${option.value === value
+                                                    ? 'text-blue-700 font-semibold'
+                                                    : 'text-gray-900'
+                                                    }`}
+                                            >
+                                                {option.label}
+                                            </Text>
+                                            {option.value === value && (
+                                                <View className="bg-blue-600 rounded-full p-1">
+                                                    <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+                                    ))
+                                ) : (
+                                    <View className="p-8 items-center justify-center">
+                                        <Text className="text-gray-500 text-center">
+                                            Tidak ditemukan "{searchQuery}"
+                                        </Text>
+                                    </View>
+                                )}
+                                <View className="h-10" />
+                            </ScrollView>
+                        </Pressable>
                     </Pressable>
-                </Pressable>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );

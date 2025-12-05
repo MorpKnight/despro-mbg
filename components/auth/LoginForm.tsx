@@ -1,0 +1,179 @@
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import Button from "../../components/ui/Button";
+import Icon from "../../components/ui/Icon";
+import TextInput from "../../components/ui/TextInput";
+import { useAuth } from "../../hooks/useAuth";
+
+interface LoginFormProps {
+    onShowSettings: () => void;
+}
+
+export const LoginForm = ({ onShowSettings }: LoginFormProps) => {
+    const { loading, signIn } = useAuth();
+    const router = useRouter();
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [usernameError, setUsernameError] = useState<string | null>(null);
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [loginType, setLoginType] = useState<'staff' | 'student'>('staff');
+
+    const handleLogin = async () => {
+        try {
+            setError(null);
+            if (!username.trim()) {
+                setUsernameError("Username wajib diisi");
+                return;
+            }
+            if (!password) {
+                setPasswordError("Password wajib diisi");
+                return;
+            }
+            await signIn(username.trim(), password, loginType === 'student' ? 'auth/login/student' : 'auth/login');
+        } catch (e: any) {
+            setError(e?.message || "Gagal masuk");
+        }
+    };
+
+    // Demo accounts for quick testing
+    const demoAccounts = [
+        { label: 'Super Admin', u: 'superadmin', p: 'password' },
+        { label: 'Sekolah', u: 'admin_sekolah_test', p: 'password' },
+        { label: 'Catering', u: 'admin_catering_test', p: 'password' },
+        { label: 'Dinkes', u: 'admin_dinkes_test', p: 'password' },
+        { label: 'Siswa', u: 'siswa_test', p: 'password' },
+    ];
+
+    return (
+        <View>
+            <View className="mb-8">
+                <View className="flex-row justify-between items-center mb-3">
+                    <Text className="text-4xl font-extrabold text-gray-900">
+                        Selamat Datang
+                    </Text>
+                    <TouchableOpacity onPress={onShowSettings} className="p-2.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
+                        <Icon name="settings-outline" size={22} color="#374151" />
+                    </TouchableOpacity>
+                </View>
+                <Text className="text-gray-600 text-base leading-relaxed">
+                    Silakan masuk ke akun Anda untuk melanjutkan
+                </Text>
+            </View>
+
+            {/* Login Type Toggle */}
+            <View className="flex-row mb-8 bg-gray-50 p-1.5 rounded-2xl border border-gray-100 shadow-sm">
+                <TouchableOpacity
+                    className={`flex-1 py-3.5 rounded-xl items-center transition-all ${loginType === 'staff' ? 'bg-white shadow-md' : ''}`}
+                    onPress={() => setLoginType('staff')}
+                >
+                    <Text className={`font-semibold text-base ${loginType === 'staff' ? 'text-blue-600' : 'text-gray-500'}`}>Staf / Admin</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    className={`flex-1 py-3.5 rounded-xl items-center transition-all ${loginType === 'student' ? 'bg-white shadow-md' : ''}`}
+                    onPress={() => setLoginType('student')}
+                >
+                    <Text className={`font-semibold text-base ${loginType === 'student' ? 'text-blue-600' : 'text-gray-500'}`}>Siswa</Text>
+                </TouchableOpacity>
+            </View>
+
+            {error ? (
+                <Animated.View entering={FadeInDown} className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 mb-6 flex-row items-center gap-3 shadow-sm">
+                    <Icon name="alert-circle" size={22} color="#DC2626" />
+                    <Text className="text-red-700 font-semibold flex-1">{error}</Text>
+                </Animated.View>
+            ) : null}
+
+            <View className="gap-6">
+                <View>
+                    <Text className="text-sm font-bold text-gray-700 mb-2.5">Username</Text>
+                    <TextInput
+                        placeholder="Masukkan username Anda"
+                        value={username}
+                        onChangeText={(t) => {
+                            setUsername(t);
+                            if (usernameError) setUsernameError(null);
+                        }}
+                        autoCapitalize="none"
+                        className="h-14 bg-gray-50 border-2 border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all text-base rounded-xl px-4"
+                    />
+                    {usernameError ? (
+                        <Text className="text-red-600 text-sm mt-2 ml-1 font-medium">
+                            {usernameError}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <View>
+                    <Text className="text-sm font-bold text-gray-700 mb-2.5">Password</Text>
+                    <View className="relative">
+                        <TextInput
+                            placeholder="Masukkan password Anda"
+                            value={password}
+                            onChangeText={(t) => {
+                                setPassword(t);
+                                if (passwordError) setPasswordError(null);
+                            }}
+                            secureTextEntry={!showPassword}
+                            className="h-14 bg-gray-50 border-2 border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all text-base rounded-xl px-4 pr-14"
+                        />
+                        <TouchableOpacity
+                            className="absolute right-0 top-0 h-14 w-14 items-center justify-center"
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            <Icon name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color="#9CA3AF" />
+                        </TouchableOpacity>
+                    </View>
+                    {passwordError ? (
+                        <Text className="text-red-600 text-sm mt-2 ml-1 font-medium">
+                            {passwordError}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <Button
+                    className="w-full h-14 mt-2 shadow-xl shadow-blue-600/25 rounded-xl"
+                    title={loading ? "Memproses..." : "Masuk"}
+                    onPress={handleLogin}
+                    disabled={!username.trim() || !password || loading}
+                    size="lg"
+                />
+            </View>
+
+            <View className="mt-10 pt-8 border-t-2 border-gray-100">
+                <Text className="text-gray-400 text-xs text-center mb-5 uppercase tracking-widest font-bold">
+                    Akun Demo
+                </Text>
+                <View className="flex-row flex-wrap justify-center gap-2.5">
+                    {demoAccounts.map((demo) => (
+                        <TouchableOpacity
+                            key={demo.label}
+                            onPress={() => {
+                                setUsername(demo.u);
+                                setPassword(demo.p);
+                            }}
+                            className="px-4 py-2.5 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 hover:border-blue-300 hover:shadow-md transition-all active:scale-95"
+                        >
+                            <Text className="text-xs font-bold text-gray-700">{demo.label}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+
+            <View className="items-center mt-10">
+                <Text className="text-gray-600 text-base">
+                    Belum punya akun?{" "}
+                    <Text
+                        className="text-blue-600 font-bold hover:underline cursor-pointer"
+                        onPress={() => router.push("/(auth)/signup")}
+                    >
+                        Daftar Sekarang
+                    </Text>
+                </Text>
+            </View>
+        </View>
+    );
+};

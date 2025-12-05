@@ -9,6 +9,7 @@ import { OfflineProvider } from '../context/OfflineContext';
 import { PreferencesProvider } from '../context/PreferencesContext';
 import { SnackbarProvider } from '../context/SnackbarContext';
 import '../global.css';
+import { NetworkModeProvider } from '../hooks/useNetworkMode';
 import { QueryProvider } from '../lib/react-query';
 import { suppressWebWarnings } from '../utils/debug-web-warnings';
 
@@ -28,15 +29,17 @@ export default function RootLayout() {
   return (
     <PreferencesProvider>
       <AuthProvider>
-        <OfflineProvider>
-          <SnackbarProvider>
-            <QueryProvider>
-              <NavigationThemeBoundary>
-                <Stack screenOptions={{ headerShown: false }} />
-              </NavigationThemeBoundary>
-            </QueryProvider>
-          </SnackbarProvider>
-        </OfflineProvider>
+        <NetworkModeProvider>
+          <OfflineProvider>
+            <SnackbarProvider>
+              <QueryProvider>
+                <NavigationThemeBoundary>
+                  <Stack screenOptions={{ headerShown: false }} />
+                </NavigationThemeBoundary>
+              </QueryProvider>
+            </SnackbarProvider>
+          </OfflineProvider>
+        </NetworkModeProvider>
       </AuthProvider>
     </PreferencesProvider>
   );

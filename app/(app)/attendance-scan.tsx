@@ -7,8 +7,11 @@ import { QRScanner } from '../../components/features/attendance';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { useAuth } from '../../hooks/useAuth';
+import { useNetworkMode } from '../../hooks/useNetworkMode';
 import { useOffline } from '../../hooks/useOffline';
-import { recordAttendance } from '../../services/attendance';
+import { useOfflineMutation } from '../../hooks/useOfflineMutation';
+import { useSnackbar } from '../../hooks/useSnackbar';
+import { recordAttendance, type RecordAttendanceResult } from '../../services/attendance';
 // No backend yet: we'll only parse and show the QR contents for now
 
 type ParsedQR = {
@@ -47,10 +50,20 @@ function parseQrPayload(input: string): ParsedQR {
 export default function AttendanceScanPage() {
   const { user } = useAuth();
   const { isOnline } = useOffline();
+  const { currentMode } = useNetworkMode();
+  const { showSnackbar } = useSnackbar();
   const isFocused = useIsFocused();
   const [paused, setPaused] = useState(false); // auto-pause after success
   const [cameraOn, setCameraOn] = useState(true); // user toggles camera hardware
   const [appActive, setAppActive] = useState(true);
+
+  const { mutate: submitAttendance } = useOfflineMutation<{ studentId: string; method: 'qr' }, RecordAttendanceResult>({
+    mutationFn: ({ studentId, method }) => recordAttendance(studentId, method),
+    endpoint: 'attendance/',
+    method: 'POST',
+    serializeBody: ({ studentId, method }) => ({ student_id: studentId, method }),
+    onQueuedMessage: 'Disimpan ke antrian offline. Periksa tab Riwayat setelah koneksi aktif.',
+  });
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
@@ -79,23 +92,37 @@ export default function AttendanceScanPage() {
       if (!parsed.id || parsed.id === 'UNKNOWN') {
         throw new Error('Data QR tidak valid');
       }
-      const result = await recordAttendance(parsed.id, 'qr');
-      const title = result.queued ? 'Disimpan Offline' : 'Kehadiran Tercatat';
-      const timestamp = result.record?.createdAt ?? new Date().toISOString();
-      const timeLabel = new Date(timestamp).toLocaleString('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      const message = result.queued
-        ? `${parsed.name ? `${parsed.name} (${parsed.id})` : parsed.id} akan dikirim saat koneksi kembali tersedia.`
-        : `${parsed.name ? `${parsed.name} (${parsed.id})` : parsed.id} tercatat pada ${timeLabel}.`;
-      Alert.alert(title, message, [
-        { text: 'Scan lagi', onPress: () => setPaused(false) },
-        { text: 'Tutup', style: 'cancel' },
-      ]);
+      const result = await submitAttendance({ studentId: parsed.id, method: 'qr' });
+      const displayName = parsed.name ? `${parsed.name} (${parsed.id})` : parsed.id;
+
+      if (result) {
+        const timestamp = result.record?.createdAt ?? new Date().toISOString();
+        const timeLabel = new Date(timestamp).toLocaleString('id-ID', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        showSnackbar({
+          message: 'Kehadiran tercatat di server.',
+          variant: 'success',
+        });
+        Alert.alert('Kehadiran Tercatat', `${displayName} tercatat pada ${timeLabel}.`, [
+          { text: 'Scan lagi', onPress: () => setPaused(false) },
+          { text: 'Tutup', style: 'cancel' },
+        ]);
+        return;
+      }
+
+      Alert.alert(
+        'Disimpan Offline',
+        `${displayName} akan dikirim otomatis saat koneksi kembali tersedia.`,
+        [
+          { text: 'Scan lagi', onPress: () => setPaused(false) },
+          { text: 'Tutup', style: 'cancel' },
+        ],
+      );
     } catch (err: any) {
       console.warn('[attendance-scan] gagal mencatat', err);
       const rawMessage = String(err?.message || '');
@@ -119,7 +146,9 @@ export default function AttendanceScanPage() {
           <View className="flex-row items-center justify-between">
             <View>
               <Text className="font-semibold text-gray-900">Status Pemindaian</Text>
-              <Text className="text-gray-600">{(cameraOn && isFocused && appActive) ? (paused ? 'Jeda' : 'Aktif') : 'Kamera Off'} • {isOnline ? 'Online' : 'Offline'}</Text>
+              <Text className="text-gray-600">
+                {(cameraOn && isFocused && appActive) ? (paused ? 'Jeda' : 'Aktif') : 'Kamera Off'} • {isOnline ? 'Online' : 'Offline'} • {currentMode === 'LOCAL' ? 'Server Lokal' : 'Server Cloud'}
+              </Text>
             </View>
             <Button
               title={cameraOn ? 'Matikan Kamera' : 'Nyalakan Kamera'}

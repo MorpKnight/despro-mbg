@@ -1,15 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Grid from '../../components/layout/Grid';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import Dropdown, { DropdownOption } from '../../components/ui/Dropdown';
+import DataCard from '../../components/ui/DataCard';
+import Dropdown, { type DropdownOption } from '../../components/ui/Dropdown';
+import EmptyState from '../../components/ui/EmptyState';
+import LoadingState from '../../components/ui/LoadingState';
+import PageHeader from '../../components/ui/PageHeader';
+import SearchInput from '../../components/ui/SearchInput';
+import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '../../hooks/useResponsive';
 import { fetchCaterings, type CateringListItem } from '../../services/caterings';
-import { fetchHealthOfficeAreas, type HealthOfficeAreaListItem } from '../../services/healthAreas';
+import { fetchHealthOfficeAreas, type HealthOfficeAreaItem } from '../../services/healthOfficeAreas';
 import { fetchSchools, type SchoolListItem } from '../../services/schools';
 import {
   createUser,
@@ -69,7 +74,7 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [schools, setSchools] = useState<SchoolListItem[]>([]);
   const [caterings, setCaterings] = useState<CateringListItem[]>([]);
-  const [healthAreas, setHealthAreas] = useState<HealthOfficeAreaListItem[]>([]);
+  const [healthAreas, setHealthAreas] = useState<HealthOfficeAreaItem[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -218,24 +223,14 @@ export default function UserManagementPage() {
       <ScrollView className="flex-1">
         <View className="p-6 pb-24">
           {/* Header */}
-          <View className="flex-row justify-between items-center mb-6">
-            <View>
-              <Text className="text-2xl font-bold text-gray-900">Manajemen Pengguna</Text>
-              <Text className="text-base text-gray-600">
-                Kelola akun, peran, dan akses sistem
-                {isEdgeMode && (
-                  <Text className="text-orange-600 font-bold ml-2"> (Read Only - Edge Mode)</Text>
-                )}
-              </Text>
-            </View>
-            <Button
-              title="Refresh"
-              variant="ghost"
-              icon={<Ionicons name="refresh" size={20} color="#4B5563" />}
-              onPress={handleRefresh}
-              loading={refreshing}
-            />
-          </View>
+          <PageHeader
+            title="Manajemen Pengguna"
+            subtitle="Kelola akun, peran, dan akses sistem"
+            showBackButton={false}
+            onRefresh={handleRefresh}
+            isRefreshing={refreshing}
+            rightAction={null}
+          />
 
           {/* Role Tabs */}
           <View className="flex-row justify-between items-center mb-6">
@@ -262,90 +257,91 @@ export default function UserManagementPage() {
             </ScrollView>
             {!isEdgeMode && (
               <Button
-                title="Tambah Pengguna"
+                title="Tambah"
                 icon={<Ionicons name="person-add" size={18} color="white" />}
                 onPress={handleCreate}
+                size="sm"
               />
             )}
           </View>
 
-          {/* User List */}
-          <View className="mb-4 flex-row items-center bg-white border border-gray-200 rounded-xl px-3 h-12">
-            <Ionicons name="search" size={20} color="#9CA3AF" />
-            <TextInput
-              placeholder="Cari pengguna..."
-              placeholderTextColor="#9CA3AF"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              className="flex-1 ml-2 text-base text-gray-900"
-            />
-          </View>
+          {/* Search */}
+          <SearchInput
+            placeholder="Cari pengguna..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            containerClassName="mb-6"
+          />
 
           {loading ? (
-            <View className="py-10">
-              <ActivityIndicator size="large" color="#1976D2" />
-            </View>
+            <LoadingState />
+          ) : filteredUsers.length === 0 ? (
+            <EmptyState
+              title="Tidak ada pengguna"
+              description={searchQuery ? `Tidak ditemukan pengguna dengan kata kunci "${searchQuery}"` : "Belum ada data pengguna untuk filter ini."}
+              actionLabel={!searchQuery && !isEdgeMode ? "Tambah Pengguna" : undefined}
+              onAction={handleCreate}
+              actionIcon={<Ionicons name="add" size={20} color="white" />}
+            />
           ) : (
             <Grid desktopColumns={3} mobileColumns={1} gap={4}>
               {filteredUsers.map((user) => (
-                <Card key={user.id} className="p-4">
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1 mr-3">
-                      <View className="flex-row items-center gap-2 mb-1">
-                        <Text className="text-lg font-bold text-gray-900">
-                          {user.fullName || user.username}
-                        </Text>
-                        <View
-                          className={`px-2 py-0.5 rounded-full ${user.accountStatus === 'active'
-                            ? 'bg-green-100'
-                            : 'bg-gray-100'
-                            }`}
-                        >
-                          <Text
-                            className={`text-xs font-medium ${user.accountStatus === 'active'
-                              ? 'text-green-700'
-                              : 'text-gray-600'
-                              }`}
-                          >
-                            {user.accountStatus}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text className="text-sm text-gray-500 mb-2">@{user.username}</Text>
-                      <View className="flex-row flex-wrap gap-2">
-                        <View className="bg-blue-50 px-2 py-1 rounded-md">
-                          <Text className="text-xs text-blue-700 font-medium">
-                            {getRoleLabel(user.role)}
-                          </Text>
-                        </View>
-                        {user.sekolah && (
-                          <View className="bg-orange-50 px-2 py-1 rounded-md">
-                            <Text className="text-xs text-orange-700">
-                              {user.sekolah.name}
-                            </Text>
-                          </View>
-                        )}
-                        {user.catering && (
-                          <View className="bg-purple-50 px-2 py-1 rounded-md">
-                            <Text className="text-xs text-purple-700">
-                              {user.catering.name}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
+                <DataCard
+                  key={user.id}
+                  title={user.fullName || user.username}
+                  subtitle={`@${user.username}`}
+                  badges={
+                    <View
+                      className={`px-2 py-0.5 rounded-full ${user.accountStatus === 'active'
+                        ? 'bg-green-100'
+                        : 'bg-gray-100'
+                        }`}
+                    >
+                      <Text
+                        className={`text-xs font-medium ${user.accountStatus === 'active'
+                          ? 'text-green-700'
+                          : 'text-gray-600'
+                          }`}
+                      >
+                        {user.accountStatus}
+                      </Text>
                     </View>
-
-                    {!isEdgeMode && (
+                  }
+                  content={
+                    <View className="flex-row flex-wrap gap-2 mt-1">
+                      <View className="bg-blue-50 px-2 py-1 rounded-md">
+                        <Text className="text-xs text-blue-700 font-medium">
+                          {getRoleLabel(user.role)}
+                        </Text>
+                      </View>
+                      {user.sekolah && (
+                        <View className="bg-orange-50 px-2 py-1 rounded-md">
+                          <Text className="text-xs text-orange-700">
+                            {user.sekolah.name}
+                          </Text>
+                        </View>
+                      )}
+                      {user.catering && (
+                        <View className="bg-purple-50 px-2 py-1 rounded-md">
+                          <Text className="text-xs text-purple-700">
+                            {user.catering.name}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  }
+                  actions={
+                    !isEdgeMode ? (
                       <TouchableOpacity
                         onPress={() => handleEdit(user)}
-                        className="p-3 bg-blue-50 rounded-xl active:bg-blue-100"
+                        className="p-2 bg-blue-50 rounded-full active:bg-blue-100"
                         activeOpacity={0.7}
                       >
-                        <Ionicons name="create-outline" size={22} color="#1976D2" />
+                        <Ionicons name="create-outline" size={20} color="#1976D2" />
                       </TouchableOpacity>
-                    )}
-                  </View>
-                </Card>
+                    ) : undefined
+                  }
+                />
               ))}
             </Grid>
           )}
