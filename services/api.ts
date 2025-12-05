@@ -1,5 +1,11 @@
-import { getSession, setSession, type Session } from './session';
-import { getCentralApiKey, getServerUrl } from './storage';
+import { USER_ROLES } from '../constants/roles';
+import { getSession, setSession, type Role, type Session } from './session';
+import {
+  getCentralApiKey,
+  getLocalIp,
+  getNetworkMode,
+  getServerUrl,
+} from './storage';
 
 export interface ApiOptions extends Omit<RequestInit, 'body'> {
   baseURL?: string;
@@ -86,6 +92,11 @@ async function makeRequest(
   body: any,
   isFormData: boolean,
 ) {
+  // --- TAMBAHKAN INI UNTUK DEBUGGING ---
+  console.log("------------------------------------------");
+  console.log("Trying to fetch URL:", url);
+  console.log("------------------------------------------");
+  // ---------------------------------------
   const { headers, ...rest } = options;
   const finalHeaders = normalizeHeaders(headers);
 
@@ -97,6 +108,9 @@ async function makeRequest(
   }
   if (token && !('Authorization' in finalHeaders)) {
     finalHeaders.Authorization = `Bearer ${token}`;
+    console.log('[api] attached token:', token.slice(0, 10) + '...');
+  } else {
+    console.warn('[api] no token attached or already present');
   }
 
   // Inject Central API Key for Edge Mode if configured
@@ -112,14 +126,58 @@ async function makeRequest(
   });
 }
 
+const LOCAL_ELIGIBLE_ROLES = new Set<Role>([
+  USER_ROLES.ADMIN_SEKOLAH,
+  USER_ROLES.ADMIN_CATERING,
+]);
+
+function buildLocalBaseUrl(localIp: string | null): string | null {
+  if (!localIp) return null;
+  const trimmed = localIp.trim();
+  if (!trimmed) return null;
+  const sanitized = trimmed.replace(/\/+$/, '');
+  const withoutSuffix = sanitized.replace(/\/api\/v1$/i, '');
+  if (/^https?:\/\//i.test(withoutSuffix)) {
+    return `${withoutSuffix}/api/v1`;
+  }
+  const needsPort = !/:[0-9]+$/.test(withoutSuffix);
+  const hostWithPort = needsPort ? `${withoutSuffix}:8000` : withoutSuffix;
+  return `http://${hostWithPort}/api/v1`;
+}
+
+async function determineBaseUrl(override: string | undefined, role: Role | null): Promise<string> {
+  if (override) {
+    return override;
+  }
+
+  const cloudBase = await getServerUrl();
+  const roleAllowsLocal = role ? LOCAL_ELIGIBLE_ROLES.has(role) : true;
+  if (role && !roleAllowsLocal) {
+    return cloudBase;
+  }
+
+  const [mode, localIp] = await Promise.all([getNetworkMode(), getLocalIp()]);
+  if (mode === 'LOCAL' && roleAllowsLocal) {
+    const localBase = buildLocalBaseUrl(localIp);
+    if (localBase) {
+      return localBase;
+    }
+  }
+
+  return cloudBase;
+}
+
 export async function api(path: string, options: ApiOptions = {}) {
   const {
-    baseURL = await getServerUrl(),
+    baseURL,
     body,
     auth = true,
     ...requestOptions
   } = options;
-  const url = buildUrl(baseURL, path);
+
+  const session = await getSession();
+  const resolvedBaseURL = await determineBaseUrl(baseURL, session?.role ?? null);
+  const url = buildUrl(resolvedBaseURL, path);
 
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
@@ -132,7 +190,7 @@ export async function api(path: string, options: ApiOptions = {}) {
     }
   }
 
-  let session = auth ? await getSession() : null;
+  let authSession = auth ? session : null;
 
   const attempt = async (token?: string) =>
     makeRequest(
@@ -145,7 +203,7 @@ export async function api(path: string, options: ApiOptions = {}) {
 
   let response;
   try {
-    response = await attempt(session?.access_token);
+    response = await attempt(authSession?.access_token);
   } catch (err: any) {
     // Check for network error (fetch failure)
     if (err.message === 'Network request failed' || err.name === 'TypeError') {
@@ -155,10 +213,10 @@ export async function api(path: string, options: ApiOptions = {}) {
   }
 
   if (response.status === 401 && auth) {
-    if (session) {
-      const refreshed = await performRefresh(session, baseURL);
+    if (authSession) {
+      const refreshed = await performRefresh(authSession, resolvedBaseURL);
       if (refreshed?.access_token) {
-        session = refreshed;
+        authSession = refreshed;
         response = await attempt(refreshed.access_token);
       }
     }

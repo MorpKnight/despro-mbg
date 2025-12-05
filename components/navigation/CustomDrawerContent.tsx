@@ -1,480 +1,266 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerContentComponentProps, DrawerContentScrollView } from '@react-navigation/drawer';
-import Constants from 'expo-constants';
+import { Image } from 'expo-image';
+import { usePathname, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { USER_ROLES, type UserRoleValue } from '../../constants/roles';
 import { useAuth } from '../../hooks/useAuth';
-import Button from '../ui/Button';
 
-type RoleValue = string;
-
-type DrawerItemConfig = {
-    route: string;
-    label: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    description?: string;
-    roles?: RoleValue[];
+type DrawerItem = {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  route: string;
+  roles?: UserRoleValue[];
 };
 
-type DrawerSectionConfig = {
-    key: string;
-    title: string;
-    subtitle?: string;
-    roles?: RoleValue[];
-    items: DrawerItemConfig[];
+type DrawerSection = {
+  title: string;
+  items: DrawerItem[];
+  roles?: UserRoleValue[];
 };
 
-type QuickActionConfig = {
-    route: string;
-    label: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    roles?: RoleValue[];
-    accent: string;
-    background: string;
-};
-
-const ROLE_LABEL_ID: Record<RoleValue, string> = {
-    super_admin: 'Super Admin',
-    admin_sekolah: 'Admin Sekolah',
-    admin_catering: 'Admin Catering',
-    admin_dinkes: 'Admin Dinkes',
-    siswa: 'Siswa',
-};
-
-const drawerSections: DrawerSectionConfig[] = [
-    {
-        key: 'overview',
-        title: 'Ringkasan',
-        subtitle: 'Akses cepat ke dashboard',
-        items: [
-            { route: 'index', label: 'Beranda', icon: 'home-outline' },
-            { route: 'admin-dashboard', label: 'Dashboard Super Admin', icon: 'shield-checkmark-outline', roles: ['super_admin'] },
-            { route: 'sekolah-dashboard', label: 'Dashboard Sekolah', icon: 'school-outline', roles: ['admin_sekolah', 'super_admin'] },
-            { route: 'catering-dashboard', label: 'Dashboard Catering', icon: 'restaurant-outline', roles: ['admin_catering', 'super_admin'] },
-            { route: 'dinkes-dashboard', label: 'Dashboard Dinkes', icon: 'medkit-outline', roles: ['admin_dinkes', 'super_admin'] },
-        ],
-    },
-    {
-        key: 'operations',
-        title: 'Operasional',
-        subtitle: 'Absensi, laporan, dan monitoring',
-        items: [
-            { route: 'student-attendance', label: 'Absensi Harian', icon: 'checkmark-done-outline', roles: ['admin_sekolah', 'super_admin'] },
-            { route: 'attendance-scan', label: 'Scan Kehadiran', icon: 'qr-code-outline', roles: ['admin_sekolah', 'super_admin'] },
-            { route: 'assisted-attendance', label: 'Bantuan Presensi', icon: 'hand-left-outline', roles: ['admin_sekolah', 'super_admin'] },
-            { route: 'emergency-report', label: 'Laporan Darurat Sekolah', icon: 'warning-outline', roles: ['admin_sekolah', 'super_admin'] },
-            { route: 'feedback-list', label: 'Umpan Balik Siswa', icon: 'chatbubbles-outline', roles: ['admin_sekolah', 'super_admin'] },
-            { route: 'catering-menu-qc', label: 'Menu & QC Katering', icon: 'create-outline', roles: ['admin_catering', 'super_admin'] },
-            { route: 'dinkes-emergency', label: 'Kelola Laporan Darurat', icon: 'medkit-outline', roles: ['admin_dinkes', 'super_admin'] },
-            { route: 'analytics', label: 'Analitik Global', icon: 'analytics-outline', roles: ['super_admin', 'admin_dinkes'] },
-            { route: 'portal-feedback', label: 'Portal Feedback', icon: 'chatbox-outline', roles: ['siswa'] },
-        ],
-    },
-    {
-        key: 'admin-tools',
-        title: 'Administrasi',
-        subtitle: 'Kelola pengguna dan master data',
-        roles: ['super_admin'],
-        items: [
-            { route: 'pending-approvals', label: 'Persetujuan Pengguna', icon: 'shield-outline', roles: ['super_admin'] },
-            { route: 'user-management', label: 'Manajemen Pengguna', icon: 'people-outline', roles: ['super_admin'] },
-            { route: 'school-management', label: 'Manajemen Sekolah', icon: 'business-outline', roles: ['super_admin'] },
-            { route: 'catering-management', label: 'Manajemen Katering', icon: 'pizza-outline', roles: ['super_admin'] },
-            { route: 'health-area-management', label: 'Area Dinas Kesehatan', icon: 'medkit-outline', roles: ['super_admin'] },
-            { route: 'system-health', label: 'Kesehatan & Log Sistem', icon: 'pulse-outline', roles: ['super_admin'] },
-        ],
-    },
-    {
-        key: 'communication',
-        title: 'Komunikasi',
-        subtitle: 'Notifikasi dan pengumuman',
-        items: [
-            { route: 'notifications/broadcast', label: 'Siarkan Notifikasi', icon: 'megaphone-outline', roles: ['super_admin', 'admin_sekolah', 'admin_catering', 'admin_dinkes'] },
-        ],
-    },
-    {
-        key: 'account',
-        title: 'Akun & Preferensi',
-        subtitle: 'Notifikasi dan pengaturan personal',
-        items: [
-            { route: 'notifications', label: 'Notifikasi', icon: 'notifications-outline' },
-            { route: 'settings', label: 'Pengaturan Profil', icon: 'settings-outline' },
-        ],
-    },
+const MENU_STRUCTURE: DrawerSection[] = [
+  {
+    title: 'Dashboard',
+    items: [
+      { label: 'Overview', icon: 'grid-outline', route: 'index', roles: [USER_ROLES.SISWA] },
+      { label: 'Admin Dashboard', icon: 'speedometer-outline', route: 'admin-dashboard', roles: [USER_ROLES.SUPER_ADMIN] },
+      { label: 'School Dashboard', icon: 'school-outline', route: 'sekolah-dashboard', roles: [USER_ROLES.ADMIN_SEKOLAH] },
+      { label: 'Catering Dashboard', icon: 'restaurant-outline', route: 'catering-dashboard', roles: [USER_ROLES.ADMIN_CATERING] },
+      { label: 'Health Dashboard', icon: 'medkit-outline', route: 'dinkes-dashboard', roles: [USER_ROLES.ADMIN_DINKES] },
+    ],
+  },
+  {
+    title: 'Menu Siswa',
+    roles: [USER_ROLES.SISWA],
+    items: [
+      { label: 'Riwayat Absensi', icon: 'calendar-outline', route: 'my-attendance' },
+      { label: 'History Makanan', icon: 'fast-food-outline', route: 'food-history-student' },
+    ],
+  },
+  {
+    title: 'School Administration',
+    roles: [USER_ROLES.ADMIN_SEKOLAH],
+    items: [
+      { label: 'Kelola Siswa', icon: 'people-outline', route: 'student-management' },
+      { label: 'Riwayat Absensi', icon: 'calendar-outline', route: 'attendance-history' },
+      { label: 'History Makanan', icon: 'fast-food-outline', route: 'food-history-school' },
+    ],
+  },
+  {
+    title: 'Management',
+    roles: [USER_ROLES.SUPER_ADMIN],
+    items: [
+      { label: 'User Management', icon: 'people-outline', route: 'user-management' },
+      { label: 'School Management', icon: 'business-outline', route: 'school-management' },
+      { label: 'Catering Management', icon: 'nutrition-outline', route: 'catering-management' },
+      { label: 'Health Areas', icon: 'map-outline', route: 'health-area-management' },
+      { label: 'Associations', icon: 'git-network-outline', route: 'association-management' },
+      { label: 'API Keys', icon: 'key-outline', route: 'api-keys' },
+      { label: 'Approvals', icon: 'shield-checkmark-outline', route: 'pending-approvals' },
+      // Super Admin Access to specific features
+      { label: 'Kelola Siswa (Sekolah)', icon: 'people-outline', route: 'admin-student-management' },
+      { label: 'History Makanan (Sekolah)', icon: 'fast-food-outline', route: 'admin-food-history-school' },
+      { label: 'History Menu (Katering)', icon: 'restaurant-outline', route: 'admin-food-history-catering' },
+      { label: 'Riwayat Absensi (Sekolah)', icon: 'calendar-outline', route: 'admin-attendance-history' },
+    ],
+  },
+  {
+    title: 'Operations',
+    items: [
+      { label: 'Attendance Scan', icon: 'qr-code-outline', route: 'attendance-scan', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
+      { label: 'Daily Attendance', icon: 'calendar-outline', route: 'student-attendance', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
+      { label: 'Menu QC', icon: 'clipboard-outline', route: 'catering-menu-qc', roles: [USER_ROLES.ADMIN_CATERING, USER_ROLES.SUPER_ADMIN] },
+      { label: 'Food History', icon: 'fast-food-outline', route: 'food-history-catering', roles: [USER_ROLES.ADMIN_CATERING] },
+      { label: 'Emergency Reports', icon: 'warning-outline', route: 'emergency-report', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
+      { label: 'Health Reports', icon: 'document-text-outline', route: 'dinkes-emergency', roles: [USER_ROLES.ADMIN_DINKES, USER_ROLES.SUPER_ADMIN] },
+      { label: 'Feedback', icon: 'chatbubbles-outline', route: 'feedback-list', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
+      { label: 'My Feedback', icon: 'chatbox-outline', route: 'portal-feedback', roles: [USER_ROLES.SISWA] },
+    ],
+  },
+  {
+    title: 'Reports & Analytics',
+    roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN_DINKES],
+    items: [
+      { label: 'Analytics', icon: 'bar-chart-outline', route: 'analytics' },
+      { label: 'System Health', icon: 'pulse-outline', route: 'system-health', roles: [USER_ROLES.SUPER_ADMIN] },
+    ],
+  },
+  {
+    title: 'Settings',
+    items: [
+      { label: 'Profile', icon: 'person-outline', route: 'settings' },
+      { label: 'Notifications', icon: 'notifications-outline', route: 'notifications' },
+    ],
+  },
 ];
-
-const quickActions: QuickActionConfig[] = [
-    {
-        route: 'pending-approvals',
-        label: 'Approvals',
-        icon: 'shield-checkmark-outline',
-        roles: ['super_admin'],
-        accent: '#1D4ED8',
-        background: 'rgba(29, 78, 216, 0.12)',
-    },
-    {
-        route: 'analytics',
-        label: 'Analytics',
-        icon: 'analytics-outline',
-        roles: ['super_admin', 'admin_dinkes'],
-        accent: '#0F766E',
-        background: 'rgba(15, 118, 110, 0.12)',
-    },
-    {
-        route: 'notifications',
-        label: 'Notifikasi',
-        icon: 'notifications-outline',
-        roles: ['super_admin', 'admin_sekolah', 'admin_catering', 'admin_dinkes'],
-        accent: '#C026D3',
-        background: 'rgba(192, 38, 211, 0.12)',
-    },
-];
-
-const iconPalette: Record<string, { background: string; color: string }> = {
-    index: { background: 'rgba(14, 116, 144, 0.12)', color: '#0E7490' },
-    'admin-dashboard': { background: 'rgba(79, 70, 229, 0.15)', color: '#4F46E5' },
-    'sekolah-dashboard': { background: 'rgba(59, 130, 246, 0.15)', color: '#3B82F6' },
-    'catering-dashboard': { background: 'rgba(249, 115, 22, 0.15)', color: '#F97316' },
-    'dinkes-dashboard': { background: 'rgba(16, 185, 129, 0.15)', color: '#10B981' },
-    'student-attendance': { background: 'rgba(59, 130, 246, 0.12)', color: '#1D4ED8' },
-    'attendance-scan': { background: 'rgba(99, 102, 241, 0.12)', color: '#6366F1' },
-    'assisted-attendance': { background: 'rgba(14, 165, 233, 0.12)', color: '#0EA5E9' },
-    'emergency-report': { background: 'rgba(239, 68, 68, 0.12)', color: '#DC2626' },
-    'feedback-list': { background: 'rgba(236, 72, 153, 0.12)', color: '#DB2777' },
-    'catering-menu-qc': { background: 'rgba(249, 115, 22, 0.12)', color: '#EA580C' },
-    'dinkes-emergency': { background: 'rgba(56, 189, 248, 0.12)', color: '#0284C7' },
-    analytics: { background: 'rgba(34, 197, 94, 0.12)', color: '#10B981' },
-    'portal-feedback': { background: 'rgba(236, 72, 153, 0.12)', color: '#F472B6' },
-    'pending-approvals': { background: 'rgba(30, 64, 175, 0.12)', color: '#1E40AF' },
-    'user-management': { background: 'rgba(99, 102, 241, 0.12)', color: '#4338CA' },
-    'school-management': { background: 'rgba(59, 130, 246, 0.12)', color: '#2563EB' },
-    'catering-management': { background: 'rgba(249, 115, 22, 0.12)', color: '#C2410C' },
-    'health-area-management': { background: 'rgba(56, 189, 248, 0.12)', color: '#0891B2' },
-    'system-health': { background: 'rgba(190, 242, 100, 0.18)', color: '#4D7C0F' },
-    notifications: { background: 'rgba(192, 38, 211, 0.12)', color: '#A21CAF' },
-    settings: { background: 'rgba(148, 163, 184, 0.12)', color: '#475569' },
-};
-
-const getIconAppearance = (routeName: string) => iconPalette[routeName] ?? {
-    background: 'rgba(15, 23, 42, 0.06)',
-    color: '#1F2937',
-};
 
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
-    const version = Constants?.expoConfig?.version ?? (Constants as any)?.manifest?.version ?? '0.0.0';
-    const { user, signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
 
-    const { navigation, state } = props;
-    const { routes, index } = state;
-    const currentRoute = routes[index]?.name;
+  // Filter sections based on user role
+  const filteredSections = useMemo(() => {
+    if (!user?.role) return [];
 
-    const routesMap = useMemo(() => {
-        const map = new Map<string, (typeof routes)[number]>();
-        routes.forEach((route) => {
-            map.set(route.name, route);
-        });
-        return map;
-    }, [routes]);
+    return MENU_STRUCTURE.map(section => {
+      // Check section level role access
+      if (section.roles && !section.roles.includes(user.role as UserRoleValue)) {
+        return null;
+      }
 
-    const filteredSections = useMemo(() => {
-        return drawerSections
-            .map((section) => {
-                if (section.roles && (!user?.role || !section.roles.includes(user.role))) {
-                    return { ...section, items: [] };
-                }
+      // Filter items based on role
+      const items = section.items.filter(item => {
+        if (!item.roles) return true;
+        return item.roles.includes(user.role as UserRoleValue);
+      });
 
-                const items = section.items.filter((item) => {
-                    if (!routesMap.has(item.route)) return false;
-                    if (!item.roles || item.roles.length === 0) {
-                        return true;
-                    }
-                    if (!user?.role) return false;
-                    return item.roles.includes(user.role);
-                });
+      if (items.length === 0) return null;
 
-                return { ...section, items };
-            })
-            .filter((section) => section.items.length > 0);
-    }, [routesMap, user?.role]);
+      return { ...section, items };
+    }).filter(Boolean) as DrawerSection[];
+  }, [user?.role]);
 
-    const quickLinks = useMemo(() => quickActions.filter((action) => {
-        if (!routesMap.has(action.route)) return false;
-        if (!action.roles || action.roles.length === 0) return true;
-        if (!user?.role) return false;
-        return action.roles.includes(user.role);
-    }), [routesMap, user?.role]);
+  // State for collapsible sections (default all expanded)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
-    const sectionKeys = useMemo(() => filteredSections.map((section) => section.key), [filteredSections]);
+  useEffect(() => {
+    // Initialize all sections as expanded
+    const initial: Record<string, boolean> = {};
+    filteredSections.forEach((s: DrawerSection) => {
+      initial[s.title] = true;
+    });
+    setExpandedSections(initial);
+  }, [filteredSections]);
 
-    const [expandedSections, setExpandedSections] = useState<string[]>(sectionKeys);
+  const toggleSection = (title: string) => {
+    setExpandedSections((prev: Record<string, boolean>) => ({ ...prev, [title]: !prev[title] }));
+  };
 
-    useEffect(() => {
-        setExpandedSections((prev) => {
-            const existing = prev.filter((key) => sectionKeys.includes(key));
-            const missing = sectionKeys.filter((key) => !existing.includes(key));
-            return [...existing, ...missing];
-        });
-    }, [sectionKeys]);
+  const handleNavigation = (route: string) => {
+    if (route === 'index') {
+      router.push('/(app)');
+    } else {
+      router.push(`/(app)/${route}` as any);
+    }
+  };
 
-    useEffect(() => {
-        if (!currentRoute) return;
-        const section = filteredSections.find((candidate) =>
-            candidate.items.some((item) => item.route === currentRoute),
-        );
-        if (section && !expandedSections.includes(section.key)) {
-            setExpandedSections((prev) => [...prev, section.key]);
-        }
-    }, [currentRoute, expandedSections, filteredSections]);
+  const isActive = (route: string) => {
+    // Simple check: if pathname ends with the route or contains it
+    // Adjust logic as needed for nested routes
+    if (route === 'index') return pathname === '/' || pathname === '/(app)' || pathname === '/(app)/';
+    return pathname.includes(route);
+  };
 
-    const toggleSection = (sectionKey: string) => {
-        setExpandedSections((prev) =>
-            prev.includes(sectionKey)
-                ? prev.filter((key) => key !== sectionKey)
-                : [...prev, sectionKey],
-        );
-    };
+  return (
+    <View className="flex-1 bg-slate-50 dark:bg-slate-900">
+      {/* Sidebar Header */}
+      <View
+        style={{ paddingTop: insets.top + 20, paddingBottom: 20, paddingHorizontal: 20 }}
+        className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700"
+      >
+        <View className="flex-row items-center space-x-3">
+          <View className="w-10 h-10 bg-blue-600 rounded-xl items-center justify-center shadow-sm">
+            <Ionicons name="grid" size={20} color="white" />
+          </View>
+          <View>
+            <Text className="text-lg font-bold text-slate-900 dark:text-white">MBGlance</Text>
+            <Text className="text-xs text-slate-500 dark:text-slate-400">Management Console</Text>
+          </View>
+        </View>
+      </View>
 
-    const userInitials = useMemo(() => {
-        const base = user?.fullName || user?.username || 'MBG';
-        return base
-            .split(' ')
-            .map((part: string) => part[0])
-            .join('')
-            .slice(0, 2)
-            .toUpperCase();
-    }, [user?.fullName, user?.username]);
-
-    const roleLabel = user?.role ? ROLE_LABEL_ID[user.role] ?? user.role : 'Tidak diketahui';
-
-    return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#0B1F44' }}>
-            <View
-                style={{
-                    backgroundColor: '#0B1F44',
-                    paddingHorizontal: 20,
-                    paddingTop: Platform.select({ ios: 12, android: 16, default: 18 }),
-                    paddingBottom: 24,
-                    borderBottomLeftRadius: 24,
-                    borderBottomRightRadius: 24,
-                }}
+      {/* Scrollable Menu */}
+      <DrawerContentScrollView
+        {...props}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {filteredSections.map((section: DrawerSection, index: number) => (
+          <View key={section.title} className="mb-6">
+            <Pressable
+              onPress={() => toggleSection(section.title)}
+              className="flex-row items-center justify-between mb-2 px-2"
             >
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                    <View
-                        style={{
-                            width: 52,
-                            height: 52,
-                            borderRadius: 26,
-                            backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
+              <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                {section.title}
+              </Text>
+              <Ionicons
+                name={expandedSections[section.title] ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color="#94A3B8"
+              />
+            </Pressable>
+
+            {expandedSections[section.title] && (
+              <View className="space-y-1">
+                {section.items.map((item: DrawerItem) => {
+                  const active = isActive(item.route);
+                  return (
+                    <Pressable
+                      key={item.route}
+                      onPress={() => handleNavigation(item.route)}
+                      className={`flex-row items-center px-3 py-2.5 rounded-lg transition-colors ${active
+                        ? 'bg-blue-50 dark:bg-blue-900/20'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
                     >
-                        <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700' }}>{userInitials}</Text>
-                    </View>
-                    <View style={{ marginLeft: 16, flex: 1 }}>
-                        <Text style={{ color: '#E0F2FE', fontSize: 14, fontWeight: '500' }}>MBGlance Console</Text>
-                        <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }} numberOfLines={1}>
-                            {user?.fullName || user?.username || 'Tamu'}
-                        </Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                            <View
-                                style={{
-                                    paddingHorizontal: 10,
-                                    paddingVertical: 4,
-                                    borderRadius: 999,
-                                    backgroundColor: 'rgba(96, 165, 250, 0.25)',
-                                    marginRight: 8,
-                                }}
-                            >
-                                <Text style={{ color: '#BFDBFE', fontSize: 11, fontWeight: '600' }}>{roleLabel}</Text>
-                            </View>
-                            <Text style={{ color: 'rgba(226, 232, 240, 0.75)', fontSize: 11 }}>v{version}</Text>
-                        </View>
-                    </View>
-                </View>
+                      <Ionicons
+                        name={active ? item.icon : (item.icon as string).replace('-outline', '') + '-outline' as any}
+                        size={20}
+                        color={active ? '#2563EB' : '#64748B'}
+                      />
+                      <Text
+                        className={`ml-3 text-sm font-medium ${active ? 'text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'
+                          }`}
+                      >
+                        {item.label}
+                      </Text>
+                      {active && (
+                        <View className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        ))}
+      </DrawerContentScrollView>
 
-                {quickLinks.length > 0 && (
-                    <View style={{ flexDirection: 'row' }}>
-                        {quickLinks.slice(0, 3).map((action, index) => {
-                            const focused = currentRoute === action.route;
-                            const isLast = index === Math.min(quickLinks.length, 3) - 1;
-                            return (
-                                <Pressable
-                                    key={action.route}
-                                    onPress={() => navigation.navigate(action.route as never)}
-                                    style={{
-                                        flex: 1,
-                                        borderRadius: 14,
-                                        paddingVertical: 12,
-                                        paddingHorizontal: 12,
-                                        backgroundColor: focused ? action.accent : action.background,
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginRight: isLast ? 0 : 10,
-                                    }}
-                                >
-                                    <View
-                                        style={{
-                                            backgroundColor: focused ? 'rgba(255, 255, 255, 0.25)' : '#FFFFFF',
-                                            borderRadius: 999,
-                                            padding: 4,
-                                            marginRight: 8,
-                                        }}
-                                    >
-                                        <Ionicons
-                                            name={action.icon}
-                                            size={18}
-                                            color={focused ? '#FFFFFF' : action.accent}
-                                        />
-                                    </View>
-                                    <Text
-                                        style={{
-                                            color: focused ? '#FFFFFF' : action.accent,
-                                            fontSize: 12,
-                                            fontWeight: '600',
-                                            letterSpacing: 0.2,
-                                        }}
-                                    >
-                                        {action.label}
-                                    </Text>
-                                </Pressable>
-                            );
-                        })}
-                    </View>
-                )}
-            </View>
-
-            <DrawerContentScrollView
-                {...props}
-                contentContainerStyle={{ backgroundColor: '#F8FAFC', paddingBottom: 16 }}
-            >
-                <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-                    {filteredSections.map((section) => {
-                        const isExpanded = expandedSections.includes(section.key);
-                        const sectionContainsActive = section.items.some((item) => item.route === currentRoute);
-
-                        return (
-                            <View
-                                key={section.key}
-                                style={{
-                                    backgroundColor: '#FFFFFF',
-                                    borderRadius: 20,
-                                    padding: 16,
-                                    marginBottom: 20,
-                                    shadowColor: '#0F172A',
-                                    shadowOpacity: 0.05,
-                                    shadowOffset: { width: 0, height: 10 },
-                                    shadowRadius: 18,
-                                    elevation: 4,
-                                }}
-                            >
-                                <Pressable onPress={() => toggleSection(section.key)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={{ fontSize: 16, fontWeight: '700', color: sectionContainsActive ? '#1D4ED8' : '#0F172A' }}>
-                                            {section.title}
-                                        </Text>
-                                        {section.subtitle ? (
-                                            <Text style={{ marginTop: 4, fontSize: 12, color: '#64748B' }}>{section.subtitle}</Text>
-                                        ) : null}
-                                    </View>
-                                    <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#475569" />
-                                </Pressable>
-
-                                {isExpanded && (
-                                    <View style={{ marginTop: 16 }}>
-                                        {section.items.map((item, index) => {
-                                            const focused = currentRoute === item.route;
-                                            const iconColors = getIconAppearance(item.route);
-                                            const isLastItem = index === section.items.length - 1;
-                                            return (
-                                                <Pressable
-                                                    key={item.route}
-                                                    onPress={() => navigation.navigate(item.route as never)}
-                                                    style={{
-                                                        flexDirection: 'row',
-                                                        alignItems: 'center',
-                                                        paddingVertical: 12,
-                                                        paddingHorizontal: 12,
-                                                        borderRadius: 16,
-                                                        backgroundColor: focused ? 'rgba(37, 99, 235, 0.12)' : 'transparent',
-                                                        marginBottom: isLastItem ? 0 : 12,
-                                                    }}
-                                                >
-                                                    <View
-                                                        style={{
-                                                            width: 38,
-                                                            height: 38,
-                                                            borderRadius: 19,
-                                                            backgroundColor: focused ? 'rgba(37, 99, 235, 0.18)' : iconColors.background,
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            marginRight: 12,
-                                                        }}
-                                                    >
-                                                        <Ionicons
-                                                            name={item.icon}
-                                                            size={20}
-                                                            color={focused ? '#2563EB' : iconColors.color}
-                                                        />
-                                                    </View>
-                                                    <View style={{ flex: 1 }}>
-                                                        <Text style={{ fontSize: 15, fontWeight: focused ? '700' : '600', color: focused ? '#1D4ED8' : '#0F172A' }}>
-                                                            {item.label}
-                                                        </Text>
-                                                        {item.description ? (
-                                                            <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
-                                                                {item.description}
-                                                            </Text>
-                                                        ) : null}
-                                                    </View>
-                                                    {focused ? (
-                                                        <View
-                                                            style={{
-                                                                width: 6,
-                                                                height: 6,
-                                                                borderRadius: 999,
-                                                                backgroundColor: '#2563EB',
-                                                            }}
-                                                        />
-                                                    ) : null}
-                                                </Pressable>
-                                            );
-                                        })}
-                                    </View>
-                                )}
-                            </View>
-                        );
-                    })}
-                </View>
-            </DrawerContentScrollView>
-
-            <View
-                style={{
-                    paddingHorizontal: 20,
-                    paddingVertical: 18,
-                    borderTopWidth: 1,
-                    borderTopColor: 'rgba(15, 23, 42, 0.08)',
-                    backgroundColor: '#FFFFFF',
-                }}
-            >
-                <View style={{ marginBottom: 12 }}>
-                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '600' }}>
-                        {user?.username ?? 'guest'}
-                    </Text>
-                    <Text style={{ color: '#94A3B8', fontSize: 11 }}>
-                        {roleLabel}
-                    </Text>
-                </View>
-                <Button
-                    title="Keluar"
-                    variant="ghost"
-                    onPress={signOut}
-                    textClassName="text-red-600"
-                    className="border border-red-500 bg-red-50"
-                />
-            </View>
-        </SafeAreaView>
-    );
+      {/* User Profile Footer */}
+      <View
+        style={{ paddingBottom: insets.bottom + 16, paddingHorizontal: 16, paddingTop: 16 }}
+        className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700"
+      >
+        <Pressable className="flex-row items-center p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700">
+          <Image
+            source={{ uri: 'https://i.pravatar.cc/150?img=3' }}
+            style={{ width: 40, height: 40, borderRadius: 20 }}
+            contentFit="cover"
+          />
+          <View className="ml-3 flex-1">
+            <Text className="text-sm font-semibold text-slate-900 dark:text-white" numberOfLines={1}>
+              {user?.fullName || user?.username || 'User'}
+            </Text>
+            <Text className="text-xs text-slate-500 dark:text-slate-400 capitalize">
+              {user?.role?.replace('_', ' ') || 'Guest'}
+            </Text>
+          </View>
+          <Pressable
+            onPress={signOut}
+            className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
+          >
+            <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+          </Pressable>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
