@@ -84,6 +84,7 @@ export default function AuthIndex() {
   // Mobile keeps the simple centered layout; Web gets a polished split view with a card
   if (Platform.OS !== "web") {
     return (
+      <>
       <View className="flex-1 bg-gray-50">
         <Image
           source={require("../../assets/images/logo.png")}
@@ -304,8 +305,9 @@ export default function AuthIndex() {
         Platform terintegrasi untuk memantau distribusi dan kualitas Makan Bergizi Gratis di seluruh sekolah.
       </Text>
     </>
+    
   );
-
+  }
   return (
     <View className="bg-gray-50 min-h-screen flex-row">
       <SettingsModal
