@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { Link, Redirect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Modal, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Skeleton from '../../components/ui/Skeleton';
+import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
 import {
   fetchAttendanceList,
@@ -14,6 +15,7 @@ import {
   type AttendanceRecord,
   type AttendanceSummary,
 } from '../../services/attendance';
+import { SchoolListItem, fetchSchools } from '../../services/schools';
 
 function formatDateLabel(date: Date) {
   return date.toLocaleDateString('id-ID', {
@@ -86,70 +88,76 @@ export default function StudentAttendancePage() {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
+  // Super Admin specific state
+  const [schools, setSchools] = useState<SchoolListItem[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<SchoolListItem | null>(null);
+  const [schoolModalVisible, setSchoolModalVisible] = useState(false);
+  const [schoolSearchQuery, setSchoolSearchQuery] = useState('');
+
   const isoDate = useMemo(() => formatIsoDate(selectedDate), [selectedDate]);
   const viewingToday = useMemo(() => isSameCalendarDay(selectedDate, new Date()), [selectedDate]);
 
+  // Load schools for Super Admin
   useEffect(() => {
-    if (!isAdminSekolah) {
+    if (isSuperAdmin) {
+      fetchSchools({ limit: 100 }).then((data) => {
+        setSchools(data);
+        if (data.length > 0 && !selectedSchool) {
+          setSelectedSchool(data[0]);
+        }
+      }).catch(err => console.warn('Failed to load schools', err));
+    }
+  }, [isSuperAdmin]);
+
+  const filteredSchools = useMemo(() => {
+    if (!schoolSearchQuery) return schools;
+    return schools.filter(s => s.name.toLowerCase().includes(schoolSearchQuery.toLowerCase()));
+  }, [schools, schoolSearchQuery]);
+
+  const effectiveSchoolId = isSuperAdmin ? selectedSchool?.id : undefined;
+  const canLoadData = isAdminSekolah || (isSuperAdmin && effectiveSchoolId);
+
+  useEffect(() => {
+    if (!canLoadData) {
       setLoading(false);
       setRecords([]);
+      setSummary(null);
+      setSummaryLoading(false);
       return;
     }
 
     let active = true;
     setLoading(true);
-    setError(null);
-
-    fetchAttendanceList({ date: isoDate, limit: 500 })
-      .then((list) => {
-        if (!active) return;
-        setRecords(list);
-      })
-      .catch((err) => {
-        console.warn('[attendance] gagal memuat daftar', err);
-        if (!active) return;
-        setError('Gagal memuat data absensi untuk tanggal ini.');
-        setRecords([]);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [isoDate, isAdminSekolah]);
-
-  useEffect(() => {
-    if (!isAdminSekolah) {
-      setSummaryLoading(false);
-      setSummary(null);
-      return;
-    }
-
-    let active = true;
     setSummaryLoading(true);
+    setError(null);
     setSummaryError(null);
 
-    fetchAttendanceSummary()
-      .then((data) => {
+    Promise.all([
+      fetchAttendanceList({ date: isoDate, limit: 500, schoolId: effectiveSchoolId }),
+      fetchAttendanceSummary({ schoolId: effectiveSchoolId })
+    ])
+      .then(([list, summaryData]) => {
         if (!active) return;
-        setSummary(data);
+        setRecords(list);
+        setSummary(summaryData);
       })
       .catch((err) => {
-        console.warn('[attendance] gagal memuat ringkasan', err);
+        console.warn('[attendance] gagal memuat data', err);
         if (!active) return;
-        setSummaryError('Ringkasan absensi tidak tersedia saat ini.');
-        setSummary(null);
+        setError('Gagal memuat data absensi.');
+        setSummaryError('Ringkasan tidak tersedia.');
       })
       .finally(() => {
-        if (active) setSummaryLoading(false);
+        if (active) {
+          setLoading(false);
+          setSummaryLoading(false);
+        }
       });
 
     return () => {
       active = false;
     };
-  }, [isAdminSekolah]);
+  }, [isoDate, canLoadData, effectiveSchoolId]);
 
   const presentCount = useMemo(() => {
     if (viewingToday && summary) return summary.presentToday;
@@ -167,12 +175,16 @@ export default function StudentAttendancePage() {
   }, [summary, viewingToday]);
 
   const handleRefresh = async () => {
-    if (!isAdminSekolah) return;
+    if (!canLoadData) return;
     setRefreshing(true);
     setError(null);
     try {
-      const list = await fetchAttendanceList({ date: isoDate, limit: 500 });
+      const [list, summaryData] = await Promise.all([
+        fetchAttendanceList({ date: isoDate, limit: 500, schoolId: effectiveSchoolId }),
+        fetchAttendanceSummary({ schoolId: effectiveSchoolId })
+      ]);
       setRecords(list);
+      setSummary(summaryData);
     } catch (err) {
       console.warn('[attendance] refresh gagal', err);
       setError('Tidak dapat memuat ulang data.');
@@ -223,36 +235,34 @@ export default function StudentAttendancePage() {
 
   const renderEmptyComponent = useCallback(() => {
     if (loading) return null;
+    if (isSuperAdmin && !selectedSchool) {
+      return (
+        <View className="items-center justify-center py-12">
+          <Ionicons name="school-outline" size={40} color="#9CA3AF" />
+          <Text className="text-gray-500 mt-2 text-center">
+            Silakan pilih sekolah terlebih dahulu untuk melihat data absensi.
+          </Text>
+          <Button
+            title="Pilih Sekolah"
+            onPress={() => setSchoolModalVisible(true)}
+            className="mt-4"
+            size="sm"
+          />
+        </View>
+      );
+    }
     return (
       <View className="items-center justify-center py-12">
         <Ionicons name="calendar-outline" size={40} color="#9CA3AF" />
         <Text className="text-gray-500 mt-2 text-center">
-          Belum ada catatan kehadiran untuk tanggal ini. Pastikan perangkat pencatatan aktif.
+          Belum ada catatan kehadiran untuk tanggal ini.
         </Text>
       </View>
     );
-  }, [loading]);
+  }, [loading, isSuperAdmin, selectedSchool]);
 
   if (user?.role !== 'admin_sekolah' && user?.role !== 'super_admin') {
     return <Redirect href="/" />;
-  }
-
-  if (isSuperAdmin && !isAdminSekolah) {
-    return (
-      <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-        <ScrollView className="flex-1 bg-neutral-gray">
-          <View className="p-6">
-            <Card>
-              <Text className="text-lg font-semibold text-gray-900 mb-2">Perlu memilih sekolah</Text>
-              <Text className="text-gray-600">
-                Super admin perlu memilih konteks sekolah sebelum melihat data absensi. Silakan masuk sebagai admin sekolah atau
-                gunakan fitur pemilihan sekolah (belum tersedia) untuk melanjutkan.
-              </Text>
-            </Card>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
   }
 
   return (
@@ -261,7 +271,6 @@ export default function StudentAttendancePage() {
         data={listData}
         renderItem={renderAttendanceItem}
         keyExtractor={(item) => item.id}
-
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListEmptyComponent={renderEmptyComponent}
@@ -269,7 +278,19 @@ export default function StudentAttendancePage() {
           <View className="pt-6">
             <View className="mb-4">
               <Text className="text-2xl font-bold text-gray-900">Absensi Makan Harian</Text>
-              <Text className="text-sm text-gray-600">
+              {isSuperAdmin && (
+                <TouchableOpacity
+                  onPress={() => setSchoolModalVisible(true)}
+                  className="flex-row items-center mt-2 bg-white px-3 py-2 rounded-lg border border-gray-200 self-start"
+                >
+                  <Ionicons name="school" size={16} color="#4B5563" />
+                  <Text className="ml-2 text-gray-700 font-medium">
+                    {selectedSchool ? selectedSchool.name : 'Pilih Sekolah'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" className="ml-2" />
+                </TouchableOpacity>
+              )}
+              <Text className="text-sm text-gray-600 mt-2">
                 Data absensi otomatis tersinkron setiap kali siswa melakukan tap NFC, scan QR, atau pencatatan manual.
               </Text>
             </View>
@@ -287,11 +308,13 @@ export default function StudentAttendancePage() {
               </View>
             </View>
 
-            <View className="mb-4">
-              <Link href="/(app)/attendance-scan" asChild>
-                <Button title="Buka Pemindaian" />
-              </Link>
-            </View>
+            {isAdminSekolah && (
+              <View className="mb-4">
+                <Link href="/(app)/attendance-scan" asChild>
+                  <Button title="Buka Pemindaian" />
+                </Link>
+              </View>
+            )}
 
             <View className="flex-row flex-wrap gap-4 mb-4">
               <View className="flex-1 rounded-card bg-primary/10 p-4 shadow-card">
@@ -343,6 +366,50 @@ export default function StudentAttendancePage() {
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32, backgroundColor: '#f5f7fb' }}
         showsVerticalScrollIndicator={false}
       />
+
+      <Modal visible={schoolModalVisible} animationType="slide" transparent>
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-3xl p-6 h-[70%]">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-xl font-bold text-gray-900">Pilih Sekolah</Text>
+              <TouchableOpacity onPress={() => setSchoolModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              placeholder="Cari sekolah..."
+              value={schoolSearchQuery}
+              onChangeText={setSchoolSearchQuery}
+              className="mb-4"
+            />
+
+            <ScrollView>
+              {filteredSchools.map((school) => (
+                <TouchableOpacity
+                  key={school.id}
+                  onPress={() => {
+                    setSelectedSchool(school);
+                    setSchoolModalVisible(false);
+                  }}
+                  className={`py-3 border-b border-gray-100 flex-row justify-between items-center ${selectedSchool?.id === school.id ? 'bg-blue-50 px-2 -mx-2 rounded-lg' : ''
+                    }`}
+                >
+                  <Text className={`text-base ${selectedSchool?.id === school.id ? 'text-blue-700 font-semibold' : 'text-gray-900'}`}>
+                    {school.name}
+                  </Text>
+                  {selectedSchool?.id === school.id && (
+                    <Ionicons name="checkmark" size={20} color="#1976D2" />
+                  )}
+                </TouchableOpacity>
+              ))}
+              {filteredSchools.length === 0 && (
+                <Text className="text-center text-gray-500 py-8">Tidak ada sekolah ditemukan.</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

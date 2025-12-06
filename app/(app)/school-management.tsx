@@ -2,24 +2,31 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
     Alert,
-    FlatList,
     Modal,
-    TextInput as RNTextInput,
+    ScrollView,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Grid from '../../components/layout/Grid';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import DataCard from '../../components/ui/DataCard';
+import Dropdown from '../../components/ui/Dropdown';
+import EmptyState from '../../components/ui/EmptyState';
+import LoadingState from '../../components/ui/LoadingState';
+import PageHeader from '../../components/ui/PageHeader';
+import SearchInput from '../../components/ui/SearchInput';
 import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
+import { useResponsive } from '../../hooks/useResponsive';
 import {
     HealthOfficeAreaItem,
     fetchHealthOfficeAreas,
 } from '../../services/healthOfficeAreas';
+import { DropdownOption } from '../../components/ui/Dropdown';
+import { fetchProvinces, fetchCities } from '../../services/regions';
 import {
     SchoolListItem,
     SchoolPayload,
@@ -32,11 +39,11 @@ import {
 type SchoolFormState = {
     id?: string;
     name: string;
-    alamat?: string | null;
-    provinsi?: string | null;
-    kotaKabupaten?: string | null;
-    kecamatan?: string | null;
-    kelurahan?: string | null;
+    addressLine?: string | null;
+    postalCode?: string | null;
+    countryCode?: string | null;
+    administrativeAreaLevel1?: string | null;
+    administrativeAreaLevel2?: string | null;
     contactPhone?: string | null;
     healthOfficeAreaId?: string | null;
     healthOfficeAreaName?: string | null;
@@ -44,11 +51,11 @@ type SchoolFormState = {
 
 const EMPTY_FORM: SchoolFormState = {
     name: '',
-    alamat: null,
-    provinsi: null,
-    kotaKabupaten: null,
-    kecamatan: null,
-    kelurahan: null,
+    addressLine: null,
+    postalCode: null,
+    countryCode: 'ID', // Default to Indonesia
+    administrativeAreaLevel1: null,
+    administrativeAreaLevel2: null,
     contactPhone: null,
     healthOfficeAreaId: null,
     healthOfficeAreaName: null,
@@ -56,7 +63,8 @@ const EMPTY_FORM: SchoolFormState = {
 
 export default function SchoolManagementPage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, isEdgeMode } = useAuth();
+    const { isDesktop } = useResponsive();
     const [list, setList] = useState<SchoolListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -65,6 +73,36 @@ export default function SchoolManagementPage() {
     const [modalVisible, setModalVisible] = useState(false);
     const [healthAreas, setHealthAreas] = useState<HealthOfficeAreaItem[]>([]);
     const [healthAreaPickerVisible, setHealthAreaPickerVisible] = useState(false);
+
+    // Region State
+    const [provinces, setProvinces] = useState<DropdownOption[]>([]);
+    const [cities, setCities] = useState<DropdownOption[]>([]);
+    const [loadingRegions, setLoadingRegions] = useState(false);
+
+    // Load Provinces on Mount
+    React.useEffect(() => {
+        const loadProvinces = async () => {
+            const data = await fetchProvinces();
+            setProvinces(data);
+        };
+        void loadProvinces();
+    }, []);
+
+    // Load Cities when Province changes
+    React.useEffect(() => {
+        const loadCities = async () => {
+            if (form.administrativeAreaLevel1) {
+                // If we are editing and have cities already, don't clear? 
+                // Actually we should reload to be safe, or cache.
+                // Simple approach: always fetch.
+                const data = await fetchCities(form.administrativeAreaLevel1);
+                setCities(data);
+            } else {
+                setCities([]);
+            }
+        };
+        void loadCities();
+    }, [form.administrativeAreaLevel1]);
 
     const loadSchools = useCallback(async () => {
         setLoading(true);
@@ -102,7 +140,9 @@ export default function SchoolManagementPage() {
         return list.filter((item) => {
             return (
                 item.name.toLowerCase().includes(query)
-                || (item.alamat ?? '').toLowerCase().includes(query)
+                || (item.addressLine ?? '').toLowerCase().includes(query)
+                || (item.administrativeAreaLevel1 ?? '').toLowerCase().includes(query)
+                || (item.administrativeAreaLevel2 ?? '').toLowerCase().includes(query)
                 || (item.contactPhone ?? '').toLowerCase().includes(query)
                 || (item.healthOfficeArea?.name ?? '').toLowerCase().includes(query)
             );
@@ -118,11 +158,11 @@ export default function SchoolManagementPage() {
         setForm({
             id: item.id,
             name: item.name,
-            alamat: item.alamat ?? null,
-            provinsi: item.provinsi ?? null,
-            kotaKabupaten: item.kotaKabupaten ?? null,
-            kecamatan: item.kecamatan ?? null,
-            kelurahan: item.kelurahan ?? null,
+            addressLine: item.addressLine ?? null,
+            postalCode: item.postalCode ?? null,
+            countryCode: item.countryCode ?? 'ID',
+            administrativeAreaLevel1: item.administrativeAreaLevel1 ?? null,
+            administrativeAreaLevel2: item.administrativeAreaLevel2 ?? null,
             contactPhone: item.contactPhone ?? null,
             healthOfficeAreaId: item.healthOfficeAreaId ?? null,
             healthOfficeAreaName: item.healthOfficeArea?.name ?? null,
@@ -143,11 +183,11 @@ export default function SchoolManagementPage() {
 
     const buildPayload = (state: SchoolFormState): SchoolPayload => ({
         name: state.name.trim(),
-        alamat: normalize(state.alamat),
-        provinsi: normalize(state.provinsi),
-        kotaKabupaten: normalize(state.kotaKabupaten),
-        kecamatan: normalize(state.kecamatan),
-        kelurahan: normalize(state.kelurahan),
+        addressLine: normalize(state.addressLine),
+        postalCode: normalize(state.postalCode),
+        countryCode: normalize(state.countryCode),
+        administrativeAreaLevel1: normalize(state.administrativeAreaLevel1),
+        administrativeAreaLevel2: normalize(state.administrativeAreaLevel2),
         contactPhone: normalize(state.contactPhone),
         healthOfficeAreaId: state.healthOfficeAreaId ?? null,
     });
@@ -208,42 +248,10 @@ export default function SchoolManagementPage() {
         setHealthAreaPickerVisible(false);
     };
 
-    const renderItem = ({ item }: { item: SchoolListItem }) => (
-        <Card className="mb-3 p-4">
-            <View className="flex-row justify-between items-start gap-3">
-                <View className="flex-1 gap-1">
-                    <Text className="text-lg font-bold text-gray-900">{item.name}</Text>
-                    {item.healthOfficeArea?.name ? (
-                        <Text className="text-sm text-blue-700">Area Dinkes: {item.healthOfficeArea.name}</Text>
-                    ) : null}
-                    {item.alamat ? <Text className="text-sm text-gray-600">{item.alamat}</Text> : null}
-                    <View className="flex-row flex-wrap gap-x-3 gap-y-1 mt-1">
-                        {item.provinsi ? <Text className="text-xs text-gray-500">Provinsi: {item.provinsi}</Text> : null}
-                        {item.kotaKabupaten ? <Text className="text-xs text-gray-500">Kota/Kab: {item.kotaKabupaten}</Text> : null}
-                        {item.kecamatan ? <Text className="text-xs text-gray-500">Kec: {item.kecamatan}</Text> : null}
-                        {item.kelurahan ? <Text className="text-xs text-gray-500">Kel: {item.kelurahan}</Text> : null}
-                    </View>
-                    {item.contactPhone ? <Text className="text-xs text-gray-500 mt-1">Kontak: {item.contactPhone}</Text> : null}
-                </View>
-                <View className="flex-row gap-2">
-                    <TouchableOpacity
-                        accessibilityRole="button"
-                        onPress={() => openEditModal(item)}
-                        className="p-2 bg-blue-50 rounded-full"
-                    >
-                        <Ionicons name="create-outline" size={20} color="#1976D2" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        accessibilityRole="button"
-                        onPress={() => confirmDelete(item)}
-                        className="p-2 bg-red-50 rounded-full"
-                    >
-                        <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </Card>
-    );
+    const onRefresh = useCallback(() => {
+        void loadSchools();
+        void fetchHealthOfficeAreas().then(setHealthAreas).catch(() => { });
+    }, [loadSchools]);
 
     if (user && user.role !== 'super_admin') {
         return (
@@ -259,52 +267,101 @@ export default function SchoolManagementPage() {
     return (
         <SafeAreaView className="flex-1 bg-[#f5f7fb]">
             <View className="flex-1 p-6">
-                <View className="flex-row items-center justify-between mb-6">
-                    <View className="flex-row items-center">
-                        <TouchableOpacity onPress={() => router.back()} className="mr-4" accessibilityRole="button">
-                            <Ionicons name="arrow-back" size={24} color="#111827" />
-                        </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-gray-900">Manajemen Sekolah</Text>
-                    </View>
-                    <Button
-                        title="+ Tambah"
-                        size="sm"
-                        onPress={openCreateModal}
-                    />
-                </View>
+                <PageHeader
+                    title="Manajemen Sekolah"
+                    subtitle="Kelola data sekolah dan area dinas kesehatan"
+                    showBackButton={true}
+                    onRefresh={onRefresh}
+                    isRefreshing={loading}
+                    rightAction={
+                        !isEdgeMode && (
+                            <Button
+                                title="Tambah"
+                                size="sm"
+                                onPress={openCreateModal}
+                                icon={<Ionicons name="add" size={18} color="white" />}
+                            />
+                        )
+                    }
+                />
 
-                <View className="mb-4 flex-row items-center bg-white border border-gray-200 rounded-xl px-3 h-12">
-                    <Ionicons name="search" size={20} color="#9CA3AF" />
-                    <RNTextInput
-                        placeholder="Cari sekolah atau area Dinkes..."
-                        placeholderTextColor="#9CA3AF"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        className="flex-1 ml-2 text-base text-gray-900"
-                    />
-                </View>
+                <SearchInput
+                    placeholder="Cari sekolah..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    containerClassName="mb-6"
+                />
 
                 {loading ? (
-                    <View className="flex-1 items-center justify-center">
-                        <ActivityIndicator size="large" color="#1976D2" />
-                    </View>
-                ) : (
-                    <FlatList
-                        data={filteredList}
-                        renderItem={renderItem}
-                        keyExtractor={(item) => item.id}
-                        ListEmptyComponent={
-                            <Text className="text-center text-gray-500 mt-10">
-                                {searchQuery.trim() ? 'Tidak ada sekolah yang sesuai.' : 'Belum ada data sekolah.'}
-                            </Text>
-                        }
+                    <LoadingState />
+                ) : filteredList.length === 0 ? (
+                    <EmptyState
+                        title="Tidak ada sekolah"
+                        description={searchQuery ? `Tidak ditemukan sekolah dengan kata kunci "${searchQuery}"` : "Belum ada data sekolah."}
+                        actionLabel={!searchQuery && !isEdgeMode ? "Tambah Sekolah" : undefined}
+                        onAction={openCreateModal}
+                        actionIcon={<Ionicons name="add" size={20} color="white" />}
                     />
+                ) : (
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                        <Grid desktopColumns={3} mobileColumns={1} gap={4}>
+                            {filteredList.map((school) => (
+                                <DataCard
+                                    key={school.id}
+                                    title={school.name}
+                                    subtitle={school.addressLine ?? 'Alamat belum diisi'}
+                                    content={
+                                        <View className="flex-row flex-wrap gap-2 mt-2">
+                                            {(school.administrativeAreaLevel2 || school.administrativeAreaLevel1) && (
+                                                <View className="flex-row items-center bg-gray-100 px-2 py-1 rounded">
+                                                    <Ionicons name="location-outline" size={12} color="#6B7280" />
+                                                    <Text className="text-xs text-gray-600 ml-1">
+                                                        {[school.administrativeAreaLevel2, school.administrativeAreaLevel1].filter(Boolean).join(', ')}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                            {school.healthOfficeArea && (
+                                                <View className="flex-row items-center bg-blue-50 px-2 py-1 rounded">
+                                                    <Ionicons name="medkit-outline" size={12} color="#2563EB" />
+                                                    <Text className="text-xs text-blue-700 ml-1">
+                                                        {school.healthOfficeArea.name}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    }
+                                    actions={
+                                        !isEdgeMode ? (
+                                            <View className="flex-row gap-2">
+                                                <TouchableOpacity
+                                                    accessibilityRole="button"
+                                                    onPress={() => openEditModal(school)}
+                                                    className="p-2 bg-blue-50 rounded-full active:bg-blue-100"
+                                                >
+                                                    <Ionicons name="create-outline" size={20} color="#1976D2" />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    accessibilityRole="button"
+                                                    onPress={() => confirmDelete(school)}
+                                                    className="p-2 bg-red-50 rounded-full active:bg-red-100"
+                                                >
+                                                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        ) : undefined
+                                    }
+                                />
+                            ))}
+                        </Grid>
+                        <View className="h-20" />
+                    </ScrollView>
                 )}
             </View>
 
+            {/* School Form Modal */}
             <Modal visible={modalVisible} animationType="slide" transparent>
                 <View className="flex-1 bg-black/50 justify-end">
-                    <View className="bg-white rounded-t-3xl p-6 h-[80%]">
+                    <View className="bg-white rounded-t-3xl p-6 h-[90%]">
                         <View className="flex-row justify-between items-center mb-6">
                             <Text className="text-xl font-bold text-gray-900">
                                 {form.id ? 'Edit Sekolah' : 'Tambah Sekolah'}
@@ -314,136 +371,140 @@ export default function SchoolManagementPage() {
                             </TouchableOpacity>
                         </View>
 
-                        <View className="gap-4 flex-1">
-                            <View>
-                                <Text className="text-sm font-medium text-gray-700 mb-1">Nama Sekolah</Text>
-                                <TextInput
-                                    placeholder="Contoh: SDN 1 Bogor"
-                                    value={form.name}
-                                    onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
-                                />
-                            </View>
-                            <View>
-                                <Text className="text-sm font-medium text-gray-700 mb-1">Alamat</Text>
-                                <TextInput
-                                    multiline
-                                    placeholder="Alamat lengkap"
-                                    value={form.alamat ?? ''}
-                                    onChangeText={(value) => setForm((prev) => ({ ...prev, alamat: value }))}
-                                />
-                            </View>
-                            <View className="flex-row gap-3">
-                                <View className="flex-1 gap-1">
-                                    <Text className="text-sm font-medium text-gray-700">Provinsi</Text>
+                        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+                            <View className="gap-4 pb-6">
+                                <View>
+                                    <Text className="text-sm font-medium text-gray-700 mb-1">Nama Sekolah <Text className="text-red-500">*</Text></Text>
                                     <TextInput
-                                        placeholder="Provinsi"
-                                        value={form.provinsi ?? ''}
-                                        onChangeText={(value) => setForm((prev) => ({ ...prev, provinsi: value }))}
+                                        placeholder="Contoh: SD Negeri 01 Jakarta"
+                                        value={form.name}
+                                        onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
+                                        className="bg-white"
                                     />
                                 </View>
-                                <View className="flex-1 gap-1">
-                                    <Text className="text-sm font-medium text-gray-700">Kota/Kabupaten</Text>
-                                    <TextInput
-                                        placeholder="Kota atau Kabupaten"
-                                        value={form.kotaKabupaten ?? ''}
-                                        onChangeText={(value) => setForm((prev) => ({ ...prev, kotaKabupaten: value }))}
-                                    />
-                                </View>
-                            </View>
-                            <View className="flex-row gap-3">
-                                <View className="flex-1 gap-1">
-                                    <Text className="text-sm font-medium text-gray-700">Kecamatan</Text>
-                                    <TextInput
-                                        placeholder="Kecamatan"
-                                        value={form.kecamatan ?? ''}
-                                        onChangeText={(value) => setForm((prev) => ({ ...prev, kecamatan: value }))}
-                                    />
-                                </View>
-                                <View className="flex-1 gap-1">
-                                    <Text className="text-sm font-medium text-gray-700">Kelurahan</Text>
-                                    <TextInput
-                                        placeholder="Kelurahan"
-                                        value={form.kelurahan ?? ''}
-                                        onChangeText={(value) => setForm((prev) => ({ ...prev, kelurahan: value }))}
-                                    />
-                                </View>
-                            </View>
-                            <View>
-                                <Text className="text-sm font-medium text-gray-700 mb-1">Kontak</Text>
-                                <TextInput
-                                    placeholder="Nomor telepon (misal 0211234567)"
-                                    keyboardType="phone-pad"
-                                    value={form.contactPhone ?? ''}
-                                    onChangeText={(value) => setForm((prev) => ({ ...prev, contactPhone: value }))}
-                                />
-                            </View>
-                            <View>
-                                <Text className="text-sm font-medium text-gray-700 mb-1">Area Dinas Kesehatan</Text>
-                                <TouchableOpacity
-                                    className="border border-gray-200 rounded-xl px-3 py-3 bg-gray-50"
-                                    onPress={() => setHealthAreaPickerVisible(true)}
-                                >
-                                    <Text className="text-base text-gray-900">
-                                        {form.healthOfficeAreaName ?? 'Pilih area (opsional)'}
-                                    </Text>
-                                    {form.healthOfficeAreaName ? (
-                                        <Text className="text-xs text-gray-500 mt-1">Ketuk untuk mengganti atau kosongkan.</Text>
-                                    ) : null}
-                                </TouchableOpacity>
-                                {form.healthOfficeAreaId ? (
-                                    <TouchableOpacity
-                                        className="mt-2"
-                                        onPress={() => handleSelectHealthArea(null)}
-                                    >
-                                        <Text className="text-sm text-red-500">Kosongkan area terpilih</Text>
-                                    </TouchableOpacity>
-                                ) : null}
-                            </View>
 
+                                <View>
+                                    <Text className="text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</Text>
+                                    <TextInput
+                                        placeholder="Nama jalan, nomor gedung, RT/RW"
+                                        value={form.addressLine ?? ''}
+                                        onChangeText={(value) => setForm((prev) => ({ ...prev, addressLine: value }))}
+                                        className="bg-white"
+                                    />
+                                </View>
+
+                                <Dropdown
+                                    label="Provinsi"
+                                    placeholder="Pilih Provinsi"
+                                    options={provinces}
+                                    value={form.administrativeAreaLevel1 ?? undefined}
+                                    onValueChange={(value) => {
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            administrativeAreaLevel1: value,
+                                            administrativeAreaLevel2: null, // Reset city when province changes
+                                        }));
+                                    }}
+                                    className="mb-0"
+                                />
+
+                                <Dropdown
+                                    label="Kota/Kabupaten"
+                                    placeholder="Pilih Kota/Kabupaten"
+                                    options={cities}
+                                    value={form.administrativeAreaLevel2 ?? undefined}
+                                    onValueChange={(value) => {
+                                        setForm((prev) => ({ ...prev, administrativeAreaLevel2: value }));
+                                    }}
+                                    disabled={!form.administrativeAreaLevel1}
+                                    className="mb-0"
+                                />
+
+                                <View>
+                                    <Text className="text-sm font-medium text-gray-700 mb-1">Kode Pos</Text>
+                                    <TextInput
+                                        placeholder="Kode Pos (5 digit)"
+                                        value={form.postalCode ?? ''}
+                                        onChangeText={(value) => setForm((prev) => ({ ...prev, postalCode: value }))}
+                                        keyboardType="number-pad"
+                                        className="bg-white"
+                                    />
+                                </View>
+
+                                <View>
+                                    <Text className="text-sm font-medium text-gray-700 mb-1">Nomor Telepon</Text>
+                                    <TextInput
+                                        placeholder="Contoh: 021-12345678"
+                                        value={form.contactPhone ?? ''}
+                                        onChangeText={(value) => setForm((prev) => ({ ...prev, contactPhone: value }))}
+                                        keyboardType="phone-pad"
+                                        className="bg-white"
+                                    />
+                                </View>
+
+                                <View>
+                                    <Text className="text-sm font-medium text-gray-700 mb-1">Area Dinkes</Text>
+                                    <TouchableOpacity
+                                        onPress={() => setHealthAreaPickerVisible(true)}
+                                        className="bg-white border border-gray-200 rounded-xl p-4 flex-row justify-between items-center"
+                                    >
+                                        <Text className={form.healthOfficeAreaName ? 'text-gray-900' : 'text-gray-400'}>
+                                            {form.healthOfficeAreaName ?? 'Pilih Area Dinkes'}
+                                        </Text>
+                                        <Ionicons name="chevron-down" size={20} color="#6B7280" />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </ScrollView>
+
+                        <View className="pt-4 border-t border-gray-100">
                             <Button
                                 title="Simpan"
                                 onPress={handleSave}
                                 loading={saving}
-                                className="mt-auto"
+                                fullWidth
                             />
                         </View>
                     </View>
                 </View>
             </Modal>
 
-            <Modal visible={healthAreaPickerVisible} animationType="fade" transparent>
-                <View className="flex-1 bg-black/60 justify-center p-6">
-                    <View className="bg-white rounded-2xl p-4 max-h-[70%]">
-                        <View className="flex-row justify-between items-center mb-3">
-                            <Text className="text-lg font-semibold text-gray-900">Pilih Area Dinkes</Text>
-                            <TouchableOpacity onPress={() => setHealthAreaPickerVisible(false)} accessibilityRole="button">
-                                <Ionicons name="close" size={22} color="#6B7280" />
+            {/* Health Area Picker Modal */}
+            <Modal visible={healthAreaPickerVisible} animationType="slide" transparent>
+                <TouchableOpacity
+                    className="flex-1 bg-black/50 justify-end"
+                    onPress={() => setHealthAreaPickerVisible(false)}
+                >
+                    <View className="bg-white rounded-t-3xl h-[60%]">
+                        <View className="flex-row justify-between items-center p-6 border-b border-gray-100">
+                            <Text className="text-xl font-bold text-gray-900">Pilih Area Dinkes</Text>
+                            <TouchableOpacity onPress={() => setHealthAreaPickerVisible(false)}>
+                                <Ionicons name="close" size={24} color="#6B7280" />
                             </TouchableOpacity>
                         </View>
-                        <FlatList
-                            data={healthAreas}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => (
+                        <ScrollView className="flex-1 p-4">
+                            <TouchableOpacity
+                                onPress={() => handleSelectHealthArea(null)}
+                                className="p-4 border-b border-gray-100 flex-row items-center justify-between"
+                            >
+                                <Text className="text-gray-500 italic">Tidak ada area</Text>
+                                {!form.healthOfficeAreaId && <Ionicons name="checkmark" size={20} color="#3B82F6" />}
+                            </TouchableOpacity>
+                            {healthAreas.map((area) => (
                                 <TouchableOpacity
-                                    onPress={() => handleSelectHealthArea(item)}
-                                    className="py-3 border-b border-gray-100"
+                                    key={area.id}
+                                    onPress={() => handleSelectHealthArea(area)}
+                                    className="p-4 border-b border-gray-100 flex-row items-center justify-between"
                                 >
-                                    <Text className="text-base text-gray-900">{item.name}</Text>
-                                    {item.code ? <Text className="text-xs text-gray-500">Kode: {item.code}</Text> : null}
-                                    {item.coverageNotes ? (
-                                        <Text className="text-xs text-gray-500 mt-0.5" numberOfLines={2}>
-                                            {item.coverageNotes}
-                                        </Text>
-                                    ) : null}
+                                    <Text className="text-gray-900">{area.name}</Text>
+                                    {form.healthOfficeAreaId === area.id && (
+                                        <Ionicons name="checkmark" size={20} color="#3B82F6" />
+                                    )}
                                 </TouchableOpacity>
-                            )}
-                            ListEmptyComponent={
-                                <Text className="text-center text-gray-500 py-10">Belum ada area terdaftar.</Text>
-                            }
-                        />
-                        <Button title="Batalkan" onPress={() => setHealthAreaPickerVisible(false)} className="mt-4" />
+                            ))}
+                        </ScrollView>
                     </View>
-                </View>
+                </TouchableOpacity>
             </Modal>
         </SafeAreaView>
     );

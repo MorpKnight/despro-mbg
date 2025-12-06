@@ -1,9 +1,10 @@
+// app/(app)/notifications/broadcast.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { z } from 'zod';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
@@ -11,6 +12,10 @@ import TextInput from '../../../components/ui/TextInput';
 import { useAuth } from '../../../hooks/useAuth';
 import { useSnackbar } from '../../../hooks/useSnackbar';
 import { api } from '../../../services/api';
+
+// --- IMPORTS BARU UNTUK NOTIFIKASI ---
+import * as Clipboard from 'expo-clipboard'; // Opsional: untuk copy token
+import { usePushNotifications } from '../../../hooks/usePushNotifications';
 
 const BroadcastSchema = z.object({
     title: z.string().min(3, 'Judul minimal 3 karakter'),
@@ -40,12 +45,16 @@ export default function BroadcastPage() {
     const { user } = useAuth();
     const { showSnackbar } = useSnackbar();
     const [submitting, setSubmitting] = useState(false);
+    
+    // 1. Panggil Hook Notifikasi di sini
+    const { expoPushToken, notification } = usePushNotifications();
 
     const {
         control,
         handleSubmit,
         watch,
         setValue,
+        getValues, // Kita butuh ini untuk mengambil nilai form manual
         formState: { errors, isValid },
     } = useForm<BroadcastFormValues>({
         resolver: zodResolver(BroadcastSchema),
@@ -60,6 +69,7 @@ export default function BroadcastPage() {
 
     const currentLevel = watch('level');
 
+    // Fungsi Submit Asli (Ke Backend)
     const submit = handleSubmit(async (values) => {
         if (submitting) return;
         setSubmitting(true);
@@ -87,6 +97,54 @@ export default function BroadcastPage() {
         }
     });
 
+    // 2. Fungsi Testing (Ke HP Sendiri)
+    const handleTestNotification = async () => {
+        const values = getValues();
+        if (!values.title || !values.message) {
+            Alert.alert("Form Kurang", "Isi judul dan pesan dulu untuk testing.");
+            return;
+        }
+
+        if (!expoPushToken) {
+            Alert.alert("Error", "Token perangkat belum ditemukan. Pastikan menggunakan HP fisik.");
+            return;
+        }
+
+        try {
+            // Kita modifikasi sedikit fungsi sendTestPushNotification agar menerima custom title/body
+            // Atau kita buat payload manual di sini untuk test:
+            const message = {
+                to: expoPushToken,
+                sound: "default",
+                title: `[TEST] ${values.title}`,
+                body: values.message,
+                data: { level: values.level },
+            };
+        
+            await fetch("https://exp.host/--/api/v2/push/send", {
+                method: "POST",
+                headers: {
+                  Accept: "application/json",
+                  "Accept-encoding": "gzip, deflate",
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(message),
+            });
+
+            Alert.alert("Terkirim!", "Cek notifikasi di status bar HP Anda.");
+        } catch (error) {
+            Alert.alert("Gagal", "Gagal mengirim test notifikasi.");
+            console.error(error);
+        }
+    };
+
+    const copyToken = async () => {
+        if (expoPushToken) {
+            await Clipboard.setStringAsync(expoPushToken);
+            showSnackbar({ message: 'Token disalin!', variant: 'success' });
+        }
+    };
+
     if (user?.role === 'siswa') {
         return (
             <View className="flex-1 items-center justify-center p-6">
@@ -107,10 +165,27 @@ export default function BroadcastPage() {
                         <Text className="text-sm text-gray-500">Kirim pesan ke pengguna aplikasi.</Text>
                     </View>
                 </View>
+                
+                {/* DEBUG AREA UNTUK TESTING */}
+                <View className="mt-4 p-3 bg-gray-100 rounded-lg border border-gray-200">
+                    <Text className="text-xs font-bold text-gray-500 mb-1">DEBUG: DEVICE TOKEN</Text>
+                    <Text className="text-xs text-gray-800 font-mono mb-2" numberOfLines={2}>
+                        {expoPushToken || "Mengambil token..."}
+                    </Text>
+                    <View className="flex-row gap-2">
+                         <Button 
+                            title="Salin Token" 
+                            onPress={copyToken} 
+                            size="sm" 
+                            variant="outline" 
+                         />
+                    </View>
+                </View>
             </Card>
 
             <Card>
                 <View className="gap-4">
+                    {/* Form Input (Sama seperti sebelumnya) */}
                     <View>
                         <Text className="mb-1 text-gray-800 font-medium">Judul <Text className="text-red-500">*</Text></Text>
                         <Controller
@@ -185,25 +260,28 @@ export default function BroadcastPage() {
                                 );
                             })}
                         </View>
-                        <Text className="text-xs text-gray-500 mt-1">
-                            {watch('target_role')
-                                ? `Hanya dikirim ke ${ROLES.find(r => r.value === watch('target_role'))?.label}`
-                                : 'Dikirim ke SEMUA pengguna'}
-                            {user?.role === 'admin_sekolah' && ' di sekolah Anda'}
-                            {user?.role === 'admin_catering' && ' di sekolah yang Anda layani'}
-                            {user?.role === 'admin_dinkes' && ' di wilayah Anda'}
-                        </Text>
                     </View>
                 </View>
             </Card>
 
-            <Button
-                title={submitting ? 'Mengirim...' : 'Kirim Notifikasi'}
-                onPress={submit}
-                loading={submitting}
-                disabled={!isValid || submitting}
-                variant="primary"
-            />
+            <View className="gap-3">
+                {/* TOMBOL TEST KHUSUS */}
+                <Button
+                    title="Coba Kirim ke HP Ini Saja (Test)"
+                    onPress={handleTestNotification}
+                    variant="outline"
+                    icon={<Ionicons name="phone-portrait-outline" size={18} color="#4B5563" />}
+                />
+                
+                {/* TOMBOL BROADCAST ASLI */}
+                <Button
+                    title={submitting ? 'Menyiarkan...' : 'Siarkan ke Semua User'}
+                    onPress={submit}
+                    loading={submitting}
+                    disabled={!isValid || submitting}
+                    variant="primary"
+                />
+            </View>
         </ScrollView>
     );
 }

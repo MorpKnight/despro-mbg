@@ -1,15 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
 import TextInput from '../../components/ui/TextInput';
+import TrendChart from '../../components/ui/TrendChart';
 import { useAuth } from '../../hooks/useAuth';
-import { fetchCateringKpi, type CateringKpi } from '../../services/analytics';
+import { fetchCateringKpi, fetchSatisfactionTrend, type CateringKpi, type SatisfactionTrend } from '../../services/analytics';
 import { fetchCaterings, type CateringListItem } from '../../services/caterings';
+import { fetchFeedbackList, type FeedbackItem } from '../../services/feedback';
+import { set } from 'zod';
 
 const ALL_LOCATIONS = 'ALL_LOCATIONS';
 const CATERING_PAGE_SIZE = 6;
@@ -38,6 +41,8 @@ export default function CateringDashboard() {
   const [caterings, setCaterings] = useState<CateringListItem[]>([]);
   const [selectedCateringId, setSelectedCateringId] = useState<string | null>(null);
   const [kpi, setKpi] = useState<CateringKpi | null>(null);
+  const [trendData, setTrendData] = useState<SatisfactionTrend['data']>([]);
+  const [trendLoading, setTrendLoading] = useState(false);
   const [loadingCaterings, setLoadingCaterings] = useState(false);
   const [loadingKpi, setLoadingKpi] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +51,10 @@ export default function CateringDashboard() {
   const [debouncedCateringSearch, setDebouncedCateringSearch] = useState('');
   const [locationFilter, setLocationFilter] = useState<string>(ALL_LOCATIONS);
   const [cateringPage, setCateringPage] = useState(0);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedMenu, setSelectedMenu] = useState<CateringKpi['menu_rating_terbaik'] | CateringKpi['menu_rating_terburuk'] | null>(null);
+  const [loadingKomplain, setLoadingKomplain] = useState(false);
+  const [komplain, setKomplain] = useState<FeedbackItem[]>([]);
 
   const isSuperAdmin = user?.role === 'super_admin';
   const isCateringAdmin = user?.role === 'admin_catering';
@@ -98,7 +107,7 @@ export default function CateringDashboard() {
     const uniques = Array.from(
       new Set(
         caterings
-          .map((catering) => (catering.kotaKabupaten || catering.provinsi || catering.kecamatan || '')?.trim())
+          .map((catering) => (catering.administrativeAreaLevel2 || catering.administrativeAreaLevel1 || '')?.trim())
           .filter((value) => Boolean(value))
       )
     ) as string[];
@@ -108,7 +117,7 @@ export default function CateringDashboard() {
   const filteredCaterings = useMemo(() => {
     if (locationFilter === ALL_LOCATIONS) return caterings;
     return caterings.filter((catering) => {
-      const location = catering.kotaKabupaten || catering.provinsi || catering.kecamatan || '';
+      const location = catering.administrativeAreaLevel2 || catering.administrativeAreaLevel1 || '';
       return location.trim() === locationFilter;
     });
   }, [caterings, locationFilter]);
@@ -148,26 +157,36 @@ export default function CateringDashboard() {
     let active = true;
     if (!selectedCateringId) {
       setKpi(null);
+      setTrendData([]);
+      setTrendLoading(false);
       return () => {
         active = false;
       };
     }
 
     setLoadingKpi(true);
+    setTrendLoading(true);
     setError(null);
-    fetchCateringKpi(selectedCateringId)
-      .then((data) => {
+    Promise.all([
+      fetchCateringKpi(selectedCateringId),
+      fetchSatisfactionTrend({ catering_id: selectedCateringId }),
+    ])
+      .then(([kpiData, trendRes]) => {
         if (!active) return;
-        setKpi(data);
+        setKpi(kpiData);
+        setTrendData(trendRes?.data ?? []);
       })
       .catch((err) => {
-        console.warn('[catering-dashboard] gagal memuat KPI katering', err);
+        console.warn('[catering-dashboard] error loading data', err);
         if (!active) return;
         setKpi(null);
-        setError('Tidak dapat memuat KPI katering untuk pilihan ini.');
+        setTrendData([]);
+        setError('Gagal memuat data analitik.');
       })
       .finally(() => {
-        if (active) setLoadingKpi(false);
+        if (!active) return;
+        setLoadingKpi(false);
+        setTrendLoading(false);
       });
 
     return () => {
@@ -179,6 +198,28 @@ export default function CateringDashboard() {
     if (!selectedCateringId) return null;
     return caterings.find((item) => item.id === selectedCateringId) ?? null;
   }, [caterings, selectedCateringId]);
+
+  const handleOpenDetail = async (menu?: CateringKpi['menu_rating_terbaik'] | CateringKpi['menu_rating_terburuk'] | null, type: 'best' | 'worst' = 'worst') => {
+    if (!menu || !selectedCateringId) return;
+    
+    setSelectedMenu(menu);
+    setModalVisible(true);
+    setLoadingKomplain(true);
+
+    try {
+      const list = await fetchFeedbackList();
+      const filtered = list.filter(fb => {
+        if (fb.menuId !== menu.menu_id) return false;
+        return type === 'best' ? fb.rating >= 4 : fb.rating <= 2;
+      });
+      setKomplain(filtered);
+    } catch (error) {
+      console.error("Gagal fetch komplain:", error);
+      setKomplain([]);
+    }
+
+    setLoadingKomplain(false);
+  }
 
   if (!isCateringAdmin && !isSuperAdmin) return <Redirect href="/" />;
 
@@ -265,13 +306,12 @@ export default function CateringDashboard() {
                         <Pressable
                           key={catering.id}
                           onPress={() => setSelectedCateringId(catering.id)}
-                          className={`rounded-xl border px-4 py-3 ${
-                            catering.id === selectedCateringId ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
-                          }`}
+                          className={`rounded-xl border px-4 py-3 ${catering.id === selectedCateringId ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                            }`}
                         >
                           <Text className="text-base font-semibold text-gray-800">{catering.name}</Text>
                           <Text className="text-xs text-gray-500">
-                            {catering.kotaKabupaten || catering.provinsi || 'Lokasi tidak tersedia'}
+                            {catering.administrativeAreaLevel2 || catering.administrativeAreaLevel1 || 'Lokasi tidak tersedia'}
                           </Text>
                         </Pressable>
                       ))}
@@ -285,23 +325,20 @@ export default function CateringDashboard() {
                             <Pressable
                               disabled={cateringPage === 0}
                               onPress={() => setCateringPage((prev) => Math.max(prev - 1, 0))}
-                              className={`px-3 py-2 rounded-lg border ${
-                                cateringPage === 0 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
-                              }`}
+                              className={`px-3 py-2 rounded-lg border ${cateringPage === 0 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
+                                }`}
                             >
                               <Text className={`text-sm font-semibold ${cateringPage === 0 ? 'text-gray-400' : 'text-gray-700'}`}>Prev</Text>
                             </Pressable>
                             <Pressable
                               disabled={cateringPage >= totalCateringPages - 1}
                               onPress={() => setCateringPage((prev) => Math.min(prev + 1, totalCateringPages - 1))}
-                              className={`px-3 py-2 rounded-lg border ${
-                                cateringPage >= totalCateringPages - 1 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
-                              }`}
+                              className={`px-3 py-2 rounded-lg border ${cateringPage >= totalCateringPages - 1 ? 'border-gray-200 bg-gray-100' : 'border-gray-300 bg-white'
+                                }`}
                             >
                               <Text
-                                className={`text-sm font-semibold ${
-                                  cateringPage >= totalCateringPages - 1 ? 'text-gray-400' : 'text-gray-700'
-                                }`}
+                                className={`text-sm font-semibold ${cateringPage >= totalCateringPages - 1 ? 'text-gray-400' : 'text-gray-700'
+                                  }`}
                               >
                                 Next
                               </Text>
@@ -320,8 +357,8 @@ export default function CateringDashboard() {
             <Card className="mb-6">
               <Text className="text-sm text-gray-500 uppercase">Katering aktif</Text>
               <Text className="text-xl font-semibold text-gray-900 mt-1">{selectedCatering.name}</Text>
-              {selectedCatering.alamat ? (
-                <Text className="text-xs text-gray-500 mt-1">{selectedCatering.alamat}</Text>
+              {selectedCatering.addressLine ? (
+                <Text className="text-xs text-gray-500 mt-1">{selectedCatering.addressLine}</Text>
               ) : null}
             </Card>
           )}
@@ -371,6 +408,16 @@ export default function CateringDashboard() {
             )}
           </Card>
 
+          {/* Grafik Tren Kepuasan */}
+          <Card className="mb-6">
+            <TrendChart
+              data={trendData}
+              loading={trendLoading}
+              color="#059669"
+              title="Tren Rating Menu (30 Hari)"
+            />
+          </Card>
+
           {/* Menu Highlights */}
           <Card>
             <Text className="text-lg font-bold text-gray-900 mb-4">Sorotan Menu</Text>
@@ -380,7 +427,11 @@ export default function CateringDashboard() {
               </View>
             ) : (
               <View className="flex-row gap-4">
-                <View className="flex-1">
+                <Pressable
+                  className="flex-1"
+                  onPress={() => handleOpenDetail(kpi?.menu_rating_terbaik)}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
+                >
                   <View className="flex-row items-center mb-3">
                     <View className="w-9 h-9 rounded-full items-center justify-center mr-2" style={{ backgroundColor: '#4CAF5020' }}>
                       <Ionicons name="thumbs-up" size={20} color="#4CAF50" />
@@ -397,9 +448,13 @@ export default function CateringDashboard() {
                   ) : (
                     <Text className="text-sm text-gray-500">Belum ada menu dengan rating tinggi.</Text>
                   )}
-                </View>
+                </Pressable>
 
-                <View className="flex-1">
+                <Pressable
+                  className="flex-1"
+                  onPress={() => handleOpenDetail(kpi?.menu_rating_terburuk)}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
+                >
                   <View className="flex-row items-center mb-3">
                     <View className="w-9 h-9 rounded-full items-center justify-center mr-2" style={{ backgroundColor: '#FBC02D20' }}>
                       <Ionicons name="alert-circle" size={20} color="#FBC02D" />
@@ -416,10 +471,49 @@ export default function CateringDashboard() {
                   ) : (
                     <Text className="text-sm text-gray-500">Belum ada menu yang perlu diinvestigasi.</Text>
                   )}
-                </View>
+                </Pressable>
               </View>
             )}
           </Card>
+
+          <Modal visible={modalVisible} animationType="slide" transparent>
+            <View className="flex-1 bg-black/40 justify-end">
+              <View className="bg-white p-5 rounded-t-2xl max-h-[75%]">
+
+                {/* Header */}
+                <View className="flex-row items-center mb-4">
+                  <Text className="text-lg font-bold flex-1">
+                    {selectedMenu?.nama_menu}
+                  </Text>
+
+                  <Pressable onPress={() => setModalVisible(false)}>
+                    <Ionicons name="close" size={24} color="#444" />
+                  </Pressable>
+                </View>
+
+                {/* Rating */}
+                <Text className="text-gray-600 mb-3">
+                  Rating rata-rata: {formatRating(selectedMenu?.rata_rata_rating)} / 5
+                </Text>
+
+                {/* Komplain */}
+                {loadingKomplain ? (
+                  <ActivityIndicator color="#1976D2" className="my-4" />
+                ) : komplain.length === 0 ? (
+                  <Text className="text-gray-500">Tidak ada komplain dari siswa.</Text>
+                ) : (
+                  <ScrollView className="max-h-[60%]">
+                    {komplain.map((k) => (
+                      <View key={k.id} className="border-b border-gray-200 py-3">
+                        <Text className="font-semibold">{k.student.username}</Text>
+                        <Text className="text-gray-600">{k.comment}</Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            </View>
+          </Modal>
 
           {error && (
             <Card className="mt-6 border border-accent-red bg-red-50">

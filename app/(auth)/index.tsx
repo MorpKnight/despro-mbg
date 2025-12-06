@@ -6,7 +6,7 @@ import Button from "../../components/ui/Button";
 import Icon from "../../components/ui/Icon";
 import TextInput from "../../components/ui/TextInput";
 import { useAuth } from "../../hooks/useAuth";
-import { getServerUrl, setServerUrl } from "../../services/storage";
+import { getServerUrl, normalizeServerUrl, setServerUrl } from "../../services/storage";
 
 export default function AuthIndex() {
   const { user, loading, signIn } = useAuth();
@@ -35,7 +35,9 @@ export default function AuthIndex() {
     try {
       // Basic URL validation
       new URL(serverUrl);
-      await setServerUrl(serverUrl);
+      const normalized = normalizeServerUrl(serverUrl);
+      await setServerUrl(normalized);
+      setServerUrlState(normalized);
       Alert.alert("Success", "Server URL updated successfully");
       setShowSettings(false);
     } catch (e) {

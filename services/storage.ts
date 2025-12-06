@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 type SecureStoreModule = typeof import('expo-secure-store');
 
@@ -39,17 +40,53 @@ const extraConfig = (Constants?.expoConfig as any)?.extra || (Constants as any)?
 const extraApiUrl = typeof extraConfig?.apiUrl === 'string' ? extraConfig.apiUrl : undefined;
 const nestedApiUrl = typeof extraConfig?.api?.baseUrl === 'string' ? extraConfig.api.baseUrl : undefined;
 
-const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL
+const rawDefaultBaseUrl = process.env.EXPO_PUBLIC_API_URL
   || extraApiUrl
   || nestedApiUrl
-  || 'http://10.0.2.2:8000/api/v1';
+  || 'https://mbg-be.mrt.qzz.io/api/v1';
+
+const ALLOW_LOCALHOST_ON_WEB = process.env.EXPO_PUBLIC_ALLOW_LOCALHOST === 'true';
+
+function appendApiSuffix(input: string): string {
+  const trimmed = input.trim();
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const withoutTrailingSlash = withScheme.replace(/\/+$/, '');
+  if (withoutTrailingSlash.toLowerCase().endsWith('/api/v1')) {
+    return withoutTrailingSlash;
+  }
+  return `${withoutTrailingSlash}/api/v1`;
+}
+
+export function normalizeServerUrl(input?: string | null): string {
+  if (!input?.trim()) {
+    return appendApiSuffix(rawDefaultBaseUrl);
+  }
+  return appendApiSuffix(input);
+}
+
+function shouldForceCloudUrl(url: string): boolean {
+  if (ALLOW_LOCALHOST_ON_WEB) return false;
+  if (Platform.OS !== 'web') return false;
+  return /^(?:https?:\/\/)?(?:localhost|127\.0\.0\.1)(?::\d+)?(\/|$)/i.test(url);
+}
+
+export const DEFAULT_BASE_URL = normalizeServerUrl(rawDefaultBaseUrl);
 
 export const SERVER_URL_KEY = 'server_url';
+const LOCAL_IP_KEY = 'network:local_ip';
+const NETWORK_MODE_KEY = 'network:mode';
+
+export type NetworkMode = 'CLOUD' | 'LOCAL';
 
 export async function getServerUrl(): Promise<string> {
   try {
     const storedUrl = await AsyncStorage.getItem(SERVER_URL_KEY);
-    return storedUrl || DEFAULT_BASE_URL;
+    const normalized = storedUrl ? normalizeServerUrl(storedUrl) : DEFAULT_BASE_URL;
+    if (shouldForceCloudUrl(normalized)) {
+      console.warn('[storage] forcing cloud server URL on web build');
+      return DEFAULT_BASE_URL;
+    }
+    return normalized;
   } catch {
     return DEFAULT_BASE_URL;
   }
@@ -57,9 +94,52 @@ export async function getServerUrl(): Promise<string> {
 
 export async function setServerUrl(url: string): Promise<void> {
   try {
-    await AsyncStorage.setItem(SERVER_URL_KEY, url);
+    const normalized = normalizeServerUrl(url);
+    await AsyncStorage.setItem(SERVER_URL_KEY, normalized);
   } catch (err) {
     console.warn('[storage] failed to set server url', err);
+  }
+}
+
+export async function saveLocalIp(ip: string): Promise<void> {
+  try {
+    const sanitized = (ip ?? '').trim();
+    if (!sanitized) {
+      await AsyncStorage.removeItem(LOCAL_IP_KEY);
+      return;
+    }
+    await AsyncStorage.setItem(LOCAL_IP_KEY, sanitized);
+  } catch (err) {
+    console.warn('[storage] failed to persist local ip', err);
+  }
+}
+
+export async function getLocalIp(): Promise<string | null> {
+  try {
+    const value = await AsyncStorage.getItem(LOCAL_IP_KEY);
+    return value ?? null;
+  } catch (err) {
+    console.warn('[storage] failed to read local ip', err);
+    return null;
+  }
+}
+
+export async function setNetworkMode(mode: NetworkMode): Promise<void> {
+  try {
+    await AsyncStorage.setItem(NETWORK_MODE_KEY, mode);
+  } catch (err) {
+    console.warn('[storage] failed to persist network mode', err);
+  }
+}
+
+export async function getNetworkMode(): Promise<NetworkMode> {
+  try {
+    const value = await AsyncStorage.getItem(NETWORK_MODE_KEY);
+    if (value === 'LOCAL') return 'LOCAL';
+    return 'CLOUD';
+  } catch (err) {
+    console.warn('[storage] failed to read network mode', err);
+    return 'CLOUD';
   }
 }
 
