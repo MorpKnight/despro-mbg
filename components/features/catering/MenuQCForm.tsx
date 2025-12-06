@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import {
   Alert,
@@ -18,6 +18,7 @@ import { Chip } from '../../../components/ui/Chip';
 import { OfflineBadge } from '../../../components/ui/OfflineBadge';
 import TextInput from '../../../components/ui/TextInput';
 import UploadImage from '../../../components/ui/UploadImage'; // [BARU]
+import { useAuth } from '../../../hooks/useAuth';
 import { useOffline } from '../../../hooks/useOffline';
 import { useSnackbar } from '../../../hooks/useSnackbar';
 import { formatDate } from '../../../lib/utils';
@@ -76,12 +77,12 @@ export default function MenuQCForm() {
   const { fields: ingredientFields, append, remove: removeIngredientField } = useFieldArray({ control, name: 'ingredients' });
   const date = watch('date');
   const ingredients = watch('ingredients');
-  
+
   // [UBAH] photos state sekarang array of string URL
   const [photos, setPhotos] = useState<string[]>([]);
   // [BARU] Key untuk mereset komponen UploadImage setelah sukses upload
-  const [uploadKey, setUploadKey] = useState(0); 
-  
+  const [uploadKey, setUploadKey] = useState(0);
+
   const [submitting, setSubmitting] = useState(false);
   const [pickerExpanded, setPickerExpanded] = useState(Platform.OS === 'ios');
 
@@ -139,8 +140,49 @@ export default function MenuQCForm() {
     setUploadKey(prev => prev + 1); // Reset uploader component
   };
 
+  // [BARU] State untuk sekolah
+  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+  const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>([]);
+  const [loadingSchools, setLoadingSchools] = useState(false);
+  const { user } = useAuth(); // Asumsi useAuth export user dengan catering_id
+  console.log('MenuQCForm user:', user); // DEBUG
+
+  // [BARU] Fetch associated schools
+  useEffect(() => {
+    async function fetchSchools() {
+      if (!user?.cateringId) return;
+      setLoadingSchools(true);
+      try {
+        const res = await api(`caterings/${user.cateringId}/schools`);
+        setSchools(res);
+        // Default select all schools? Or empty? Let's default to empty or all.
+        // Selecting all by default is convenient.
+        setSchools(res);
+        if (Array.isArray(res)) {
+          setSelectedSchoolIds(res.map((s: any) => s.id));
+        }
+      } catch (error) {
+        console.error('Failed to fetch schools', error);
+      } finally {
+        setLoadingSchools(false);
+      }
+    }
+    fetchSchools();
+  }, [user?.cateringId]);
+
+  function toggleSchool(id: string) {
+    setSelectedSchoolIds(prev =>
+      prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+    );
+  }
+
   const submit = handleSubmit(async (values) => {
     if (submitting) return;
+
+    if (selectedSchoolIds.length === 0) {
+      Alert.alert('Pilih Sekolah', 'Harap pilih minimal satu sekolah penerima menu.');
+      return;
+    }
 
     const preparedIngredients: MenuQCIngredientPayload[] = values.ingredients.map((item) => ({
       name: item.name.trim(),
@@ -173,14 +215,15 @@ export default function MenuQCForm() {
       const body = {
         nama_menu: payload.menuName,
         tanggal: payload.date,
-        ingredients: payload.ingredients, // Backend diharapkan bisa handle JSON array
+        ingredients: payload.ingredients,
         notes: payload.notes,
-        photos: payload.photos // Array string URL
+        photos: payload.photos, // Array string URL
+        school_ids: selectedSchoolIds // [BARU]
       };
 
-      await api('menus/', { 
-        method: 'POST', 
-        body: JSON.stringify(body) 
+      await api('menus/', {
+        method: 'POST',
+        body: JSON.stringify(body)
       });
 
       showSnackbar({ message: 'Menu harian & QC berhasil dikirim.', variant: 'success' });
@@ -191,14 +234,23 @@ export default function MenuQCForm() {
         ingredients: [{ ...EMPTY_INGREDIENT }],
       });
       setPhotos([]);
+      // Select all again for next input? or keep selection.
     } catch (e) {
       console.warn('Submit error', e);
-      // Offline queueing logic (simpan payload JSON)
+      // Offline queueing logic
       try {
         const key = 'menu_qc_queue';
         const existingRaw = await (await import('../../../services/storage')).storage.get<any[]>(key);
         const queue = Array.isArray(existingRaw) ? existingRaw : [];
-        queue.push(payload);
+        // Add school_ids to offline payload too? 
+        // MenuQCEntry needs update if we strictly check types.
+        // For now, payload holds form data. We should probably merge body logic here.
+        // Let's assume offline queue saves the constructed body or similar.
+        // actually existing code pushes `payload`. `payload` (MenuQCEntry) doesn't have school_ids.
+        // I should stick school_ids onto payload or body.
+        const offlinePayload = { ...payload, school_ids: selectedSchoolIds };
+        queue.push(offlinePayload);
+
         await (await import('../../../services/storage')).storage.set(key, queue);
         showSnackbar({ message: 'Anda offline atau gagal. Data diantrikan.', variant: 'info' });
       } catch { }
@@ -358,6 +410,32 @@ export default function MenuQCForm() {
       </Section>
 
       <Section
+        icon={<Ionicons name="school" size={22} color="#8B5CF6" />}
+        title="Distribusi Sekolah"
+        subtitle="Pilih sekolah yang menerima menu ini."
+      >
+        <View className="flex-row flex-wrap gap-2">
+          {loadingSchools ? (
+            <Text className="text-gray-500 italic">Memuat sekolah...</Text>
+          ) : schools.length === 0 ? (
+            <Text className="text-gray-500 italic">Tidak ada data sekolah terhubung.</Text>
+          ) : (
+            schools.map((school) => (
+              <Chip
+                key={school.id}
+                label={school.name}
+                active={selectedSchoolIds.includes(school.id)}
+                onPress={() => toggleSchool(school.id)}
+              />
+            ))
+          )}
+        </View>
+        {selectedSchoolIds.length === 0 && !submitting && !loadingSchools && schools.length > 0 && (
+          <Text className="text-xs text-red-500 mt-2">Wajib pilih minimal satu sekolah.</Text>
+        )}
+      </Section>
+
+      <Section
         icon={<Ionicons name="document-text" size={22} color="#F97316" />}
         title="Catatan & Dokumentasi"
         subtitle="Tambahkan catatan QC serta dokumentasi visual."
@@ -383,7 +461,7 @@ export default function MenuQCForm() {
 
         <Text className="mb-2 text-gray-800">Dokumentasi Foto</Text>
         <Text className="text-xs text-gray-500 mb-3">Anda dapat menambahkan hingga {MAX_PHOTOS} foto (sisa {photosRemaining}).</Text>
-        
+
         {/* Render foto yang SUDAH diupload ke CDN */}
         <View className="flex-row flex-wrap gap-3 mb-3">
           {photos.map((url, idx) => (
@@ -408,7 +486,7 @@ export default function MenuQCForm() {
 
         {/* Komponen Upload untuk menambah foto baru */}
         {canAddMorePhotos && (
-          <UploadImage 
+          <UploadImage
             key={uploadKey} // Hack untuk reset state internal UploadImage setelah sukses
             label="Tambah Foto Baru"
             onUploaded={handlePhotoUploaded}

@@ -97,6 +97,24 @@ const menuItems: MenuSection[] = [
                 color: '#F472B6',
                 background: 'bg-pink-50'
             },
+            {
+                route: '/(app)/food-history-student',
+                label: 'Riwayat Makan',
+                icon: 'restaurant-outline',
+                description: 'Lihat riwayat menu makanan',
+                roles: ['siswa'],
+                color: '#F97316',
+                background: 'bg-orange-50'
+            },
+            {
+                route: '/(app)/my-attendance',
+                label: 'Riwayat Presensi',
+                icon: 'calendar-outline',
+                description: 'Lihat riwayat kehadiran',
+                roles: ['siswa'],
+                color: '#8B5CF6',
+                background: 'bg-violet-50'
+            },
         ]
     },
     {
@@ -201,7 +219,7 @@ export default function ExploreScreen() {
     return (
         <ScrollView className="flex-1 bg-gray-50" contentContainerStyle={{ paddingBottom: 100 }}>
             <View className="px-5 pt-6 pb-4">
-                <Text className="text-2xl font-bold text-gray-900">Eksplorasi</Text>
+                <Text className="text-2xl font-bold text-gray-900">Menu</Text>
                 <Text className="text-gray-500 mt-1">Akses semua fitur MBGlance</Text>
             </View>
 

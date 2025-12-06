@@ -128,13 +128,15 @@ export default function SchoolFoodHistoryPage({ schoolId }: Props) {
                                         </View>
                                     )}
 
-                                    {menu.ingredients && (
+                                    {Array.isArray(menu.ingredients) && menu.ingredients.length > 0 && (
                                         <View>
                                             <Text className="text-xs font-semibold text-gray-500 mb-1">Komposisi:</Text>
                                             <View className="flex-row flex-wrap gap-1">
-                                                {Object.entries(menu.ingredients).map(([key, val]: [string, any]) => (
-                                                    <View key={key} className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                                                        <Text className="text-xs text-slate-700">{key}: {val}</Text>
+                                                {menu.ingredients.map((ing: any, idx: number) => (
+                                                    <View key={idx} className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                                        <Text className="text-xs text-slate-700">
+                                                            {ing.name} {ing.quantity ? `(${ing.quantity} ${ing.unit})` : ''}
+                                                        </Text>
                                                     </View>
                                                 ))}
                                             </View>

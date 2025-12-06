@@ -162,7 +162,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
+          title: 'Menu',
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
           ),
@@ -170,21 +170,12 @@ export default function AppLayout() {
       />
 
       {/* Role specific tabs */}
-      <Tabs.Screen
-        name="feedback-list"
-        options={{
-          title: 'Feedback',
-          href: user?.role === 'siswa' ? '/(app)/feedback-list' : null,
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
-            <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={24} color={color} />
-          ),
-        }}
-      />
+
 
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Account',
+          title: 'Profile',
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
           ),
@@ -193,15 +184,16 @@ export default function AppLayout() {
 
       {/* Hide all other screens from Tab Bar but keep them accessible */}
       {[
-        'admin-dashboard', 'sekolah-dashboard', 'catering-dashboard', 'dinkes-dashboard',
-        'user-management', 'school-management', 'catering-management', 'health-area-management',
-        'association-management', 'api-keys', 'pending-approvals',
-        'attendance-scan', 'student-attendance', 'catering-menu-qc', 'emergency-report',
-        'dinkes-emergency', 'portal-feedback',
-        'analytics', 'system-health', 'notifications', 'details', 'notifications/broadcast', 'assisted-attendance'
+        'admin-attendance-history', 'admin-dashboard', 'admin-food-history-catering', 'admin-food-history-school', 'admin-student-management',
+        'analytics', 'api-keys', 'assisted-attendance', 'association-management', 'attendance-history', 'attendance-nfc', 'attendance-scan',
+        'catering-dashboard', 'catering-management', 'catering-menu-qc', 'details', 'dinkes-dashboard', 'dinkes-emergency', 'dinkes-emergency/[id]',
+        'emergency-report', 'emergency-report/new', 'feedback-list', 'food-history-catering', 'food-history-school', 'food-history-student', 'health-area-management',
+        'menu', 'menu/[id]', 'my-attendance', 'notifications', 'notifications/broadcast', 'pending-approvals', 'portal-feedback',
+        'school-management', 'sekolah-dashboard', 'student-attendance', 'student-management', 'system-health', 'user-management'
       ].map(name => (
         <Tabs.Screen key={name} name={name} options={{ href: null, headerShown: false }} />
       ))}
+
 
     </Tabs>
   );
