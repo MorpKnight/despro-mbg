@@ -188,7 +188,7 @@ export default function AppLayout() {
         'analytics', 'api-keys', 'assisted-attendance', 'association-management', 'attendance-history', 'attendance-nfc', 'attendance-scan',
         'catering-dashboard', 'catering-management', 'catering-menu-qc', 'details', 'dinkes-dashboard', 'dinkes-emergency', 'dinkes-emergency/[id]',
         'emergency-report', 'emergency-report/new', 'feedback-list', 'food-history-catering', 'food-history-school', 'food-history-student', 'health-area-management',
-        'menu', 'menu/[id]', 'my-attendance', 'notifications', 'notifications/broadcast', 'pending-approvals', 'portal-feedback',
+        'menu/[id]', 'my-attendance', 'notifications', 'notifications/broadcast', 'pending-approvals', 'portal-feedback',
         'school-management', 'sekolah-dashboard', 'student-attendance', 'student-management', 'system-health', 'user-management'
       ].map(name => (
         <Tabs.Screen key={name} name={name} options={{ href: null, headerShown: false }} />

@@ -4,7 +4,7 @@ import PageHeader from '../../components/ui/PageHeader';
 // ... (existing imports)
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,6 +29,7 @@ function formatDateParam(date: Date) {
 
 export default function FeedbackListPage() {
   const { user } = useAuth();
+  const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
   const allowed = user?.role === 'admin_sekolah' || user?.role === 'super_admin';
 
   const [onlyNegative, setOnlyNegative] = useState(false);
@@ -180,7 +181,8 @@ export default function FeedbackListPage() {
           <View className="pt-6">
             <PageHeader
               title="Umpan Balik Siswa"
-              showBackButton={false}
+              showBackButton={true}
+              backPath={returnTo}
               onRefresh={handleRefresh}
               isRefreshing={refreshing}
               className="mb-4"

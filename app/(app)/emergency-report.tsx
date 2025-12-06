@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import PageHeader from '../../components/ui/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchEmergencyReports, type EmergencyReport, type ReportStatus } from '../../services/emergency';
 
@@ -25,6 +26,7 @@ const FILTERS: { value: 'all' | ReportStatus; label: string }[] = [
 export default function EmergencyReportPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
   const [reports, setReports] = useState<EmergencyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -105,8 +107,17 @@ export default function EmergencyReportPage() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
+      <PageHeader
+        title="Laporan Darurat"
+        subtitle="Pantau dan tindak lanjuti laporan"
+        backPath={returnTo}
+        onRefresh={onRefresh}
+        isRefreshing={refreshing}
+        className="mx-6 mt-6 mb-4"
+      />
+
       <ScrollView
-        className="flex-1 bg-neutral-gray"
+        className="flex-1"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -115,59 +126,52 @@ export default function EmergencyReportPage() {
             tintColor="#2563EB"
           />
         }
+        contentContainerStyle={{ paddingBottom: 24 }}
       >
-        <View className="p-6">
-          <View className="mb-4">
-            <Text className="text-2xl font-bold text-gray-900">Laporan Darurat Sekolah</Text>
-            <Text className="text-gray-600">Pantau dan tindak lanjuti laporan darurat yang dibuat oleh sekolah Anda</Text>
-          </View>
-
-          <Card className="mb-4">
-            <View className="flex-row">
-              <View className="flex-1">
-                <Button
-                  title="+ Buat Laporan Baru"
-                  className="w-full"
-                  style={{ backgroundColor: '#E53935' }}
-                  onPress={() => {
-                    router.push('/(app)/emergency-report/new');
-                  }}
-                />
+        <View className="px-6">
+          <Card className="mb-4 bg-white p-4">
+            <View className="flex-row items-center justify-between mb-4">
+              <View className="flex-1 mr-4">
+                <Text className="text-base font-semibold text-gray-900">Buat Laporan Baru</Text>
+                <Text className="text-xs text-gray-500 mt-1">Laporkan kejadian darurat segera</Text>
               </View>
-            </View>
-            <View className="absolute left-4 top-4">
-              <Ionicons name="add-circle" size={20} color="#FFFFFF" />
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: '/(app)/emergency-report/new', params: { returnTo: '/(app)/emergency-report' } })}
+                className="w-10 h-10 rounded-full bg-red-500 items-center justify-center shadow-sm active:bg-red-600"
+              >
+                <Ionicons name="add" size={24} color="white" />
+              </TouchableOpacity>
             </View>
           </Card>
 
-          <View className="flex-row gap-2 mb-4">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4 flex-row" contentContainerStyle={{ paddingRight: 20 }}>
             {FILTERS.map((item) => {
               const active = filter === item.value;
               return (
                 <TouchableOpacity
                   key={item.value}
-                  className={`px-3 py-1 rounded-full border ${active ? 'bg-primary border-primary' : 'border-gray-200 bg-white'}`}
+                  className={`px-4 py-2 rounded-full border mr-2 ${active ? 'bg-blue-600 border-blue-600' : 'border-gray-200 bg-white'}`}
                   onPress={() => setFilter(item.value)}
                 >
                   <Text className={`text-xs font-semibold ${active ? 'text-white' : 'text-gray-600'}`}>{item.label}</Text>
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScrollView>
 
           {loading ? (
-            <Card>
-              <Text className="text-gray-600">Memuat laporan darurat…</Text>
-            </Card>
+            <View className="gap-3">
+              <Card className="p-4"><Text>Memuat...</Text></Card>
+            </View>
           ) : error ? (
-            <Card className="border border-accent-red bg-red-50">
-              <Text className="text-accent-red">{error}</Text>
+            <Card className="border border-red-200 bg-red-50 p-4">
+              <Text className="text-red-600">{error}</Text>
             </Card>
           ) : filteredReports.length === 0 ? (
-            <View className="items-center justify-center py-12">
-              <Ionicons name="medkit-outline" size={40} color="#9CA3AF" />
-              <Text className="text-gray-500 mt-2 text-center">
-                Tidak ada laporan dengan kriteria ini. Gunakan tombol di atas untuk membuat laporan baru.
+            <View className="items-center justify-center py-12 bg-white rounded-2xl border border-dashed border-gray-200">
+              <Ionicons name="medkit-outline" size={48} color="#9CA3AF" />
+              <Text className="text-gray-500 mt-3 text-center px-6">
+                Tidak ada laporan dengan filter ini.
               </Text>
             </View>
           ) : (
@@ -180,27 +184,34 @@ export default function EmergencyReportPage() {
                     key={report.id}
                     onPress={() => router.push(`/dinkes-emergency/${report.id}` as never)}
                   >
-                    <Card className="p-4">
+                    <Card className="p-4 border border-gray-100 shadow-sm">
                       <View className="flex-row items-start justify-between">
                         <View className="flex-1 pr-3">
-                          <Text className="text-xs text-gray-500 mb-1">{fmtDate(report.date)}</Text>
-                          <Text className="font-semibold text-gray-900 mb-1">{report.title}</Text>
-                          {report.description && (
-                            <Text className="text-sm text-gray-700 mb-2" numberOfLines={2}>{report.description}</Text>
-                          )}
-                          <View
-                            className="self-start px-3 py-1 rounded-full"
-                            style={{ backgroundColor: meta.bg }}
-                          >
-                            <Text style={{ color: meta.text, fontSize: 12, fontWeight: '700' }}>{meta.label}</Text>
+                          <View className="flex-row items-center gap-2 mb-1">
+                            <View
+                              className="px-2 py-0.5 rounded text-[10px]"
+                              style={{ backgroundColor: meta.bg }}
+                            >
+                              <Text style={{ color: meta.text, fontSize: 10, fontWeight: '700' }}>{meta.label}</Text>
+                            </View>
+                            <Text className="text-xs text-gray-400">• {fmtDate(report.date)}</Text>
                           </View>
+
+                          <Text className="font-bold text-gray-900 text-sm mb-1">{report.title}</Text>
+
+                          {report.description && (
+                            <Text className="text-xs text-gray-600 mb-2 leading-relaxed" numberOfLines={2}>{report.description}</Text>
+                          )}
+
                           {lastFollowUp && (
-                            <Text className="text-xs text-gray-500 mt-2" numberOfLines={2}>
-                              Terakhir update ({new Date(lastFollowUp.at).toLocaleString('id-ID')}): {lastFollowUp.note}
-                            </Text>
+                            <View className="mt-2 pt-2 border-t border-gray-50">
+                              <Text className="text-[10px] text-gray-400 italic" numberOfLines={1}>
+                                Update: {lastFollowUp.note}
+                              </Text>
+                            </View>
                           )}
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" className="mt-1" />
                       </View>
                     </Card>
                   </Pressable>

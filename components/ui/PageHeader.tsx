@@ -13,6 +13,7 @@ interface PageHeaderProps {
     onRefresh?: () => void;
     isRefreshing?: boolean;
     className?: string;
+    backPath?: string;
 }
 
 export default function PageHeader({
@@ -23,6 +24,7 @@ export default function PageHeader({
     onRefresh,
     isRefreshing,
     className = '',
+    backPath,
 }: PageHeaderProps) {
     const router = useRouter();
     const { isEdgeMode } = useAuth();
@@ -32,7 +34,7 @@ export default function PageHeader({
             <View className="flex-row items-center flex-1 mr-4">
                 {showBackButton && (
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => backPath ? router.replace(backPath as any) : router.back()}
                         className="mr-4 p-2 -ml-2 rounded-full active:bg-gray-100"
                         accessibilityRole="button"
                         accessibilityLabel="Go back"
