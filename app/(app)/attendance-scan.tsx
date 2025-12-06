@@ -1,11 +1,12 @@
 import { useIsFocused } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, AppState, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { QRScanner } from '../../components/features/attendance';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import PageHeader from '../../components/ui/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { useNetworkMode } from '../../hooks/useNetworkMode';
 import { useOffline } from '../../hooks/useOffline';
@@ -29,7 +30,7 @@ function parseQrPayload(input: string): ParsedQR {
     if (obj && typeof obj === 'object' && typeof obj.id === 'string') {
       return { raw, id: obj.id.trim(), name: typeof obj.name === 'string' ? obj.name.trim() : undefined, source: 'json' };
     }
-  } catch {}
+  } catch { }
   // 2) URL format: https://.../?studentId=... or ?id=...
   try {
     const u = new URL(raw);
@@ -38,7 +39,7 @@ function parseQrPayload(input: string): ParsedQR {
     // fallback: last path segment if present
     const segs = u.pathname.split('/').filter(Boolean);
     if (segs.length > 0) return { raw, id: segs[segs.length - 1].trim(), source: 'url' };
-  } catch {}
+  } catch { }
   // 3) Plain string: use as ID if valid-ish
   const plain = raw.trim();
   // Simple validation: 1-64 chars, alphanum/_/-
@@ -53,6 +54,8 @@ export default function AttendanceScanPage() {
   const { currentMode } = useNetworkMode();
   const { showSnackbar } = useSnackbar();
   const isFocused = useIsFocused();
+  const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
+
   const [paused, setPaused] = useState(false); // auto-pause after success
   const [cameraOn, setCameraOn] = useState(true); // user toggles camera hardware
   const [appActive, setAppActive] = useState(true);
@@ -75,7 +78,7 @@ export default function AttendanceScanPage() {
   if (user?.role !== 'admin_sekolah' && user?.role !== 'super_admin') {
     return (
       <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-        <Stack.Screen options={{ title: 'Scan Kehadiran' }} />
+        <PageHeader title="Scan Kehadiran" backPath={returnTo} className="mx-6 mt-6" />
         <View className="p-6">
           <Card>
             <Text>Akses ditolak.</Text>
@@ -140,7 +143,13 @@ export default function AttendanceScanPage() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-      <Stack.Screen options={{ title: 'Scan Kehadiran' }} />
+      <PageHeader
+        title="Scan Kehadiran"
+        subtitle="Pindai QR Code siswa"
+        backPath={returnTo}
+        className="mx-6 mt-6 mb-4"
+      />
+
       <View className="p-4 gap-3">
         <Card>
           <View className="flex-row items-center justify-between">

@@ -371,40 +371,50 @@ export default function SekolahDashboard() {
           )}
 
           {selectedSchoolMeta && (
-            <View className={`${isMobile ? 'flex-col space-y-3' : 'flex-row gap-3'} mb-6`}>
-              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
-                <View className="flex-row items-center justify-between mb-3">
-                  <Text className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Profil Sekolah</Text>
-                  <Text className="text-xs text-gray-400">ID {selectedSchoolMeta.id.slice(0, 8)}</Text>
+            <View className="mb-6 space-y-4">
+              {/* Profil Sekolah - Compact Card */}
+              <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <View className="flex-row items-center justify-between mb-3 border-b border-gray-50 pb-2">
+                  <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider">Profil Sekolah</Text>
+                  <Text className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">ID: {selectedSchoolMeta.id.slice(0, 8)}</Text>
                 </View>
-                <View className="space-y-2">
-                  <View>
-                    <Text className="text-xs text-gray-500">Nama</Text>
-                    <Text className="text-base font-semibold text-gray-900">{selectedSchoolMeta.name}</Text>
-                  </View>
-                  {schoolAddress ? (
-                    <View>
-                      <Text className="text-xs text-gray-500">Alamat</Text>
-                      <Text className="text-sm text-gray-700">{schoolAddress}</Text>
+                <View>
+                  <Text className="text-lg font-bold text-gray-900 mb-1">{selectedSchoolMeta.name}</Text>
+                  <View className="space-y-1">
+                    {schoolAddress && (
+                      <View className="flex-row items-start gap-2">
+                        <Ionicons name="location-outline" size={14} color="#6B7280" className="mt-0.5" />
+                        <Text className="text-sm text-gray-600 flex-1">{schoolAddress}</Text>
+                      </View>
+                    )}
+                    {locationDisplay && (
+                      <View className="flex-row items-start gap-2">
+                        <Ionicons name="map-outline" size={14} color="#6B7280" className="mt-0.5" />
+                        <Text className="text-sm text-gray-600 flex-1">{locationDisplay}</Text>
+                      </View>
+                    )}
+                    <View className="flex-row items-center gap-2">
+                      <Ionicons name="call-outline" size={14} color="#6B7280" />
+                      <Text className="text-sm text-gray-600">{schoolContact}</Text>
                     </View>
-                  ) : null}
-                  {locationDisplay ? (
-                    <View>
-                      <Text className="text-xs text-gray-500">Lokasi</Text>
-                      <Text className="text-sm text-gray-700">{locationDisplay}</Text>
-                    </View>
-                  ) : null}
-                  <View>
-                    <Text className="text-xs text-gray-500">Kontak</Text>
-                    <Text className="text-sm text-gray-700">{schoolContact}</Text>
                   </View>
                 </View>
               </View>
-              <View className="flex-1 bg-blue-50 rounded-2xl p-4 shadow-sm">
-                <Text className="text-sm font-semibold text-gray-800 mb-3">Ringkasan Singkat</Text>
-                <View className={`${isMobile ? 'space-y-3' : 'flex-row gap-3'} flex-wrap`}>
+
+              {/* Ringkasan Singkat - Grid Layout */}
+              <View>
+                <Text className="text-sm font-bold text-gray-800 mb-3 px-1">Ringkasan Hari Ini</Text>
+                <View className="flex-row flex-wrap gap-3">
                   {quickStats.map((stat) => (
-                    <StatCard key={stat.label} {...stat} />
+                    <View key={stat.label} className={`w-[48%] flex-grow rounded-2xl border ${stat.borderClass} bg-white p-3`}>
+                      <View className="flex-row items-center justify-between mb-2">
+                        <View className={`w-8 h-8 rounded-full items-center justify-center ${stat.accentClass}`}>
+                          <Text className="text-base">{stat.icon}</Text>
+                        </View>
+                      </View>
+                      <Text className="text-2xl font-bold text-gray-900">{stat.value}</Text>
+                      <Text className="text-xs text-gray-500 mt-1" numberOfLines={2}>{stat.label}</Text>
+                    </View>
                   ))}
                 </View>
               </View>

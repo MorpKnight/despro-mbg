@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +26,7 @@ interface Props {
 
 export default function StudentManagementPage({ schoolId }: Props) {
     const router = useRouter();
+    const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -129,6 +130,7 @@ export default function StudentManagementPage({ schoolId }: Props) {
                 title="Kelola Siswa"
                 subtitle="Daftar siswa di sekolah Anda"
                 showBackButton={true}
+                backPath={returnTo}
                 className="mx-6 mt-6"
                 onRefresh={refetch}
                 isRefreshing={isRefetching}
