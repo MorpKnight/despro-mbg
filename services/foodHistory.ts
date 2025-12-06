@@ -10,6 +10,7 @@ export interface Menu {
     notes?: string;
     photoUrls?: string[];
     createdAt: string;
+    schools?: { id: string; name: string }[];
 }
 
 interface RawMenu {
@@ -22,6 +23,7 @@ interface RawMenu {
     notes?: string;
     photo_urls?: string[];
     created_at: string;
+    schools?: { id: string; name: string }[];
 }
 
 function toMenu(raw: RawMenu): Menu {
@@ -35,6 +37,7 @@ function toMenu(raw: RawMenu): Menu {
         notes: raw.notes,
         photoUrls: raw.photo_urls,
         createdAt: raw.created_at,
+        schools: raw.schools,
     };
 }
 
@@ -72,7 +75,9 @@ export const fetchStudentFoodHistory = async ({
     if (search) params.append('search', search);
 
     const response = await api(`food-history/student?${params.toString()}`, { method: 'GET' });
+    console.log("DEBUG: Raw API response for student food history:", response);
     const list = Array.isArray(response) ? response : [];
+    console.log("DEBUG: Parsed list length:", list.length);
     return list.map((item: RawMenu) => toMenu(item));
 };
 
@@ -131,7 +136,19 @@ export const fetchCateringFoodHistory = async ({
     if (search) params.append('search', search);
     if (cateringId) params.append('catering_id', cateringId);
 
+    if (cateringId) params.append('catering_id', cateringId);
+
     const response = await api(`food-history/catering?${params.toString()}`, { method: 'GET' });
     const list = Array.isArray(response) ? response : [];
     return list.map((item: RawMenu) => toMenu(item));
+};
+
+export const fetchMenuDetails = async (id: string): Promise<Menu> => {
+    const response = await api(`menus/${id}`, { method: 'GET' });
+    return toMenu(response);
+};
+
+export const fetchMenuReviews = async (id: string): Promise<any[]> => {
+    const response = await api(`menus/${id}/reviews`, { method: 'GET' });
+    return response;
 };
