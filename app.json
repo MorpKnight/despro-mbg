@@ -24,7 +24,6 @@
       "permissions": [
         "android.permission.NFC"
       ],
-      "googleServicesFile": "./google-services.json",
       "package": "com.anonymous.desprofe"
     },
     "web": {
@@ -116,6 +115,7 @@
       "eas": {
         "projectId": "c2b333a8-e8ef-4a32-9f3a-b5dbee1b9326"
       }
-    }
+    },
+    "owner": "aliyah.rizky"
   }
 }

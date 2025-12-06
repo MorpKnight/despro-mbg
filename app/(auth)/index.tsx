@@ -1,12 +1,27 @@
 import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import Button from "../../components/ui/Button";
 import Icon from "../../components/ui/Icon";
 import TextInput from "../../components/ui/TextInput";
 import { useAuth } from "../../hooks/useAuth";
-import { getServerUrl, normalizeServerUrl, setServerUrl } from "../../services/storage";
+import {
+  getServerUrl,
+  normalizeServerUrl,
+  setServerUrl,
+} from "../../services/storage";
+import { registerForPushNotificationsAsync } from "../../services/notifications";
+import { api } from "@/services/api";
 
 export default function AuthIndex() {
   const { user, loading, signIn } = useAuth();
@@ -17,7 +32,7 @@ export default function AuthIndex() {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [loginType, setLoginType] = useState<'staff' | 'student'>('staff');
+  const [loginType, setLoginType] = useState<"staff" | "student">("staff");
 
   // Server Settings State
   const [showSettings, setShowSettings] = useState(false);
@@ -49,8 +64,6 @@ export default function AuthIndex() {
     return <Redirect href="/(app)" />;
   }
 
-
-
   const handlePing = async () => {
     if (!serverUrl.trim()) return;
     try {
@@ -58,7 +71,10 @@ export default function AuthIndex() {
       if (response.ok) {
         Alert.alert("Success", "Server is reachable!");
       } else {
-        Alert.alert("Warning", `Server reachable but returned ${response.status}`);
+        Alert.alert(
+          "Warning",
+          `Server reachable but returned ${response.status}`
+        );
       }
     } catch (e) {
       Alert.alert("Error", "Could not connect to server");
@@ -71,7 +87,14 @@ export default function AuthIndex() {
       <View className="flex-1 bg-gray-50">
         <Image
           source={require("../../assets/images/logo.png")}
-          style={{ width: 400, height: 400, position: 'absolute', top: -100, right: -100, opacity: 0.05 }}
+          style={{
+            width: 400,
+            height: 400,
+            position: "absolute",
+            top: -100,
+            right: -100,
+            opacity: 0.05,
+          }}
           resizeMode="contain"
         />
 
@@ -110,16 +133,24 @@ export default function AuthIndex() {
             {/* Login Type Toggle */}
             <View className="flex-row mb-2 bg-gray-100 p-1 rounded-xl">
               <TouchableOpacity
-                className={`flex-1 py-2.5 rounded-lg items-center ${loginType === 'staff' ? 'bg-white shadow-sm' : ''}`}
-                onPress={() => setLoginType('staff')}
+                className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "staff" ? "bg-white shadow-sm" : ""}`}
+                onPress={() => setLoginType("staff")}
               >
-                <Text className={`font-medium ${loginType === 'staff' ? 'text-blue-600' : 'text-gray-500'}`}>Staf / Admin</Text>
+                <Text
+                  className={`font-medium ${loginType === "staff" ? "text-blue-600" : "text-gray-500"}`}
+                >
+                  Staf / Admin
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className={`flex-1 py-2.5 rounded-lg items-center ${loginType === 'student' ? 'bg-white shadow-sm' : ''}`}
-                onPress={() => setLoginType('student')}
+                className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "student" ? "bg-white shadow-sm" : ""}`}
+                onPress={() => setLoginType("student")}
               >
-                <Text className={`font-medium ${loginType === 'student' ? 'text-blue-600' : 'text-gray-500'}`}>Siswa</Text>
+                <Text
+                  className={`font-medium ${loginType === "student" ? "text-blue-600" : "text-gray-500"}`}
+                >
+                  Siswa
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -133,13 +164,20 @@ export default function AuthIndex() {
             />
 
             {error ? (
-              <Animated.View entering={FadeInDown} className="bg-red-50 p-3 rounded-xl border border-red-100">
-                <Text className="text-red-600 text-sm text-center">{error}</Text>
+              <Animated.View
+                entering={FadeInDown}
+                className="bg-red-50 p-3 rounded-xl border border-red-100"
+              >
+                <Text className="text-red-600 text-sm text-center">
+                  {error}
+                </Text>
               </Animated.View>
             ) : null}
 
             <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">Username</Text>
+              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">
+                Username
+              </Text>
               <TextInput
                 placeholder="Masukkan username"
                 value={username}
@@ -153,7 +191,9 @@ export default function AuthIndex() {
             </View>
 
             <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">Password</Text>
+              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">
+                Password
+              </Text>
               <View className="relative">
                 <TextInput
                   placeholder="Masukkan password"
@@ -169,7 +209,11 @@ export default function AuthIndex() {
                   className="absolute right-3 top-3.5"
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Icon name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
+                  <Icon
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#9CA3AF"
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -179,6 +223,7 @@ export default function AuthIndex() {
               onPress={async () => {
                 try {
                   setError(null);
+
                   if (!username.trim()) {
                     setUsernameError("Username wajib diisi");
                     return;
@@ -187,31 +232,69 @@ export default function AuthIndex() {
                     setPasswordError("Password wajib diisi");
                     return;
                   }
-                  await signIn(username.trim(), password, loginType === 'student' ? 'auth/login/student' : 'auth/login');
+
+                  // 1. SIGN IN CALL
+                  await signIn(
+                    username.trim(),
+                    password,
+                    loginType === "student"
+                      ? "auth/login/student"
+                      : "auth/login"
+                  );
+
+                  // 2. AFTER SUCCESSFUL LOGIN -> Register push token (only mobile)
+                  if (Platform.OS === "ios" || Platform.OS === "android") {
+                    try {
+                      const expoPushToken =
+                        await registerForPushNotificationsAsync();
+
+                      if (expoPushToken) {
+                        await api("profile/push-token", {
+                          method: "PATCH",
+                          body: JSON.stringify({
+                            token: expoPushToken,
+                          }),
+                        });
+
+                        console.log("Push token registered:", expoPushToken);
+                      } else {
+                        console.log("No expo push token available. Skipping.");
+                      }
+                    } catch (err) {
+                      console.log("Failed to register token:", err);
+                    }
+                  } else {
+                    console.log("Skipping push token registration on web/PC");
+                  }
                 } catch (e: any) {
                   setError(e?.message || "Gagal masuk");
                 }
               }}
-              disabled={!username.trim() || !password || loading}
-              className="mt-2 shadow-md shadow-blue-500/30"
-              size="lg"
             />
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(600).duration(1000)} className="items-center mt-8">
+          <Animated.View
+            entering={FadeInDown.delay(600).duration(1000)}
+            className="items-center mt-8"
+          >
             <Text className="text-gray-400 text-xs">
-              Belum punya akun? <Text className="text-primary font-bold" onPress={() => router.push("/(auth)/signup")}>Daftar</Text>
+              Belum punya akun?{" "}
+              <Text
+                className="text-primary font-bold"
+                onPress={() => router.push("/(auth)/signup")}
+              >
+                Daftar
+              </Text>
             </Text>
           </Animated.View>
           <View className="mt-4">
-  <Button
-    title="Test Notifikasi"
-    variant="outline"
-    fullWidth
-    onPress={() => router.push('/(auth)/test')}
-  />
-</View>
-
+            <Button
+              title="Test Notifikasi"
+              variant="outline"
+              fullWidth
+              onPress={() => router.push("/(auth)/test")}
+            />
+          </View>
         </KeyboardAvoidingView>
       </View>
     );
@@ -234,7 +317,14 @@ export default function AuthIndex() {
         <View className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-800" />
         <Image
           source={require("../../assets/images/logo.png")}
-          style={{ width: 600, height: 600, position: 'absolute', bottom: -100, left: -100, opacity: 0.1 }}
+          style={{
+            width: 600,
+            height: 600,
+            position: "absolute",
+            bottom: -100,
+            left: -100,
+            opacity: 0.1,
+          }}
           resizeMode="contain"
         />
 
@@ -250,10 +340,11 @@ export default function AuthIndex() {
             />
           </View>
           <Text className="text-white text-5xl font-bold leading-tight mb-6">
-            Monitoring Gizi,{'\n'}Masa Depan Bangsa
+            Monitoring Gizi,{"\n"}Masa Depan Bangsa
           </Text>
           <Text className="text-blue-100 text-xl leading-relaxed">
-            Platform terintegrasi untuk memantau distribusi dan kualitas Makan Bergizi Gratis di seluruh sekolah.
+            Platform terintegrasi untuk memantau distribusi dan kualitas Makan
+            Bergizi Gratis di seluruh sekolah.
           </Text>
         </Animated.View>
       </View>
@@ -283,21 +374,32 @@ export default function AuthIndex() {
           {/* Login Type Toggle Web */}
           <View className="flex-row mb-6 bg-gray-100 p-1.5 rounded-xl">
             <TouchableOpacity
-              className={`flex-1 py-3 rounded-lg items-center transition-all ${loginType === 'staff' ? 'bg-white shadow-sm' : 'hover:bg-gray-200/50'}`}
-              onPress={() => setLoginType('staff')}
+              className={`flex-1 py-3 rounded-lg items-center transition-all ${loginType === "staff" ? "bg-white shadow-sm" : "hover:bg-gray-200/50"}`}
+              onPress={() => setLoginType("staff")}
             >
-              <Text className={`font-medium text-base ${loginType === 'staff' ? 'text-blue-600' : 'text-gray-500'}`}>Staf / Admin</Text>
+              <Text
+                className={`font-medium text-base ${loginType === "staff" ? "text-blue-600" : "text-gray-500"}`}
+              >
+                Staf / Admin
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className={`flex-1 py-3 rounded-lg items-center transition-all ${loginType === 'student' ? 'bg-white shadow-sm' : 'hover:bg-gray-200/50'}`}
-              onPress={() => setLoginType('student')}
+              className={`flex-1 py-3 rounded-lg items-center transition-all ${loginType === "student" ? "bg-white shadow-sm" : "hover:bg-gray-200/50"}`}
+              onPress={() => setLoginType("student")}
             >
-              <Text className={`font-medium text-base ${loginType === 'student' ? 'text-blue-600' : 'text-gray-500'}`}>Siswa</Text>
+              <Text
+                className={`font-medium text-base ${loginType === "student" ? "text-blue-600" : "text-gray-500"}`}
+              >
+                Siswa
+              </Text>
             </TouchableOpacity>
           </View>
 
           {error ? (
-            <Animated.View entering={FadeInDown} className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex-row items-center gap-3">
+            <Animated.View
+              entering={FadeInDown}
+              className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex-row items-center gap-3"
+            >
               <Icon name="alert-circle" size={20} color="#DC2626" />
               <Text className="text-red-700 font-medium flex-1">{error}</Text>
             </Animated.View>
@@ -305,7 +407,9 @@ export default function AuthIndex() {
 
           <View className="gap-5">
             <View>
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Username</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                Username
+              </Text>
               <TextInput
                 placeholder="Masukkan username"
                 value={username}
@@ -324,7 +428,9 @@ export default function AuthIndex() {
             </View>
 
             <View>
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Password</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                Password
+              </Text>
               <View className="relative">
                 <TextInput
                   placeholder="Masukkan password"
@@ -340,7 +446,11 @@ export default function AuthIndex() {
                   className="absolute right-0 top-0 h-12 w-12 items-center justify-center"
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Icon name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
+                  <Icon
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#9CA3AF"
+                  />
                 </TouchableOpacity>
               </View>
               {passwordError ? (
@@ -364,7 +474,13 @@ export default function AuthIndex() {
                     setPasswordError("Password wajib diisi");
                     return;
                   }
-                  await signIn(username.trim(), password, loginType === 'student' ? 'auth/login/student' : 'auth/login');
+                  await signIn(
+                    username.trim(),
+                    password,
+                    loginType === "student"
+                      ? "auth/login/student"
+                      : "auth/login"
+                  );
                 } catch (e: any) {
                   setError(e?.message || "Gagal masuk");
                 }
@@ -380,11 +496,15 @@ export default function AuthIndex() {
             </Text>
             <View className="flex-row flex-wrap justify-center gap-2">
               {[
-                { label: 'Super Admin', u: 'superadmin', p: 'Admin123!' },
-                { label: 'Sekolah', u: 'admin_school_1', p: 'School1Pass!' },
-                { label: 'Catering', u: 'admin_catering_1', p: 'Catering1Pass!' },
-                { label: 'Dinkes', u: 'admin_dinkes_1', p: 'Dinkes1Pass!' },
-                { label: 'Siswa', u: 'student_001', p: 'Student1!' },
+                { label: "Super Admin", u: "superadmin", p: "Admin123!" },
+                { label: "Sekolah", u: "admin_school_1", p: "School1Pass!" },
+                {
+                  label: "Catering",
+                  u: "admin_catering_1",
+                  p: "Catering1Pass!",
+                },
+                { label: "Dinkes", u: "admin_dinkes_1", p: "Dinkes1Pass!" },
+                { label: "Siswa", u: "student_001", p: "Student1!" },
               ].map((demo) => (
                 <TouchableOpacity
                   key={demo.label}
@@ -394,7 +514,9 @@ export default function AuthIndex() {
                   }}
                   className="px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-all"
                 >
-                  <Text className="text-xs font-medium text-gray-600">{demo.label}</Text>
+                  <Text className="text-xs font-medium text-gray-600">
+                    {demo.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -411,6 +533,16 @@ export default function AuthIndex() {
               </Text>
             </Text>
           </View>
+          <View className="items-center mt-4">
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/test")}
+              className="px-4 py-2 bg-gray-200 rounded-xl"
+            >
+              <Text className="text-gray-700 font-semibold">
+                Go to Test Page
+              </Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
       </View>
     </View>
@@ -426,16 +558,25 @@ interface SettingsModalProps {
   onSave: () => void;
 }
 
-const SettingsModal = ({ visible, onClose, serverUrl, setServerUrl, onPing, onSave }: SettingsModalProps) => {
-  const [centralApiKey, setCentralApiKeyState] = useState('');
-  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-  const [testMessage, setTestMessage] = useState('');
+const SettingsModal = ({
+  visible,
+  onClose,
+  serverUrl,
+  setServerUrl,
+  onPing,
+  onSave,
+}: SettingsModalProps) => {
+  const [centralApiKey, setCentralApiKeyState] = useState("");
+  const [testStatus, setTestStatus] = useState<
+    "idle" | "testing" | "success" | "error"
+  >("idle");
+  const [testMessage, setTestMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   // Load Central API Key when modal opens
   useEffect(() => {
     if (visible) {
-      import('../../services/storage').then(({ getCentralApiKey }) => {
+      import("../../services/storage").then(({ getCentralApiKey }) => {
         getCentralApiKey().then((key) => {
           if (key) setCentralApiKeyState(key);
         });
@@ -445,44 +586,53 @@ const SettingsModal = ({ visible, onClose, serverUrl, setServerUrl, onPing, onSa
 
   const handleTestConnection = async () => {
     if (!serverUrl.trim()) {
-      setTestStatus('error');
-      setTestMessage('Server URL is required');
+      setTestStatus("error");
+      setTestMessage("Server URL is required");
       return;
     }
 
     if (!centralApiKey.trim()) {
-      setTestStatus('error');
-      setTestMessage('Central API Key is required');
+      setTestStatus("error");
+      setTestMessage("Central API Key is required");
       return;
     }
 
     try {
-      setTestStatus('testing');
-      setTestMessage('Testing connection...');
+      setTestStatus("testing");
+      setTestMessage("Testing connection...");
 
-      const response = await fetch(`${serverUrl.replace(/\/$/, '')}/central-sync/check-auth`, {
-        method: 'GET',
-        headers: {
-          'X-School-Token': centralApiKey.trim(),
-        },
-      });
+      const response = await fetch(
+        `${serverUrl.replace(/\/$/, "")}/central-sync/check-auth`,
+        {
+          method: "GET",
+          headers: {
+            "X-School-Token": centralApiKey.trim(),
+          },
+        }
+      );
 
       if (response.ok) {
-        setTestStatus('success');
-        setTestMessage('Connection successful! You can now save the configuration.');
+        setTestStatus("success");
+        setTestMessage(
+          "Connection successful! You can now save the configuration."
+        );
       } else {
-        setTestStatus('error');
-        setTestMessage(`Server returned ${response.status}. Please check your credentials.`);
+        setTestStatus("error");
+        setTestMessage(
+          `Server returned ${response.status}. Please check your credentials.`
+        );
       }
     } catch (error: any) {
-      setTestStatus('error');
-      setTestMessage(error?.message || 'Could not connect to server. Please check the URL.');
+      setTestStatus("error");
+      setTestMessage(
+        error?.message || "Could not connect to server. Please check the URL."
+      );
     }
   };
 
   const handleSaveConfiguration = async () => {
-    if (testStatus !== 'success') {
-      Alert.alert('Test Required', 'Please test the connection before saving.');
+    if (testStatus !== "success") {
+      Alert.alert("Test Required", "Please test the connection before saving.");
       return;
     }
 
@@ -490,28 +640,33 @@ const SettingsModal = ({ visible, onClose, serverUrl, setServerUrl, onPing, onSa
       setIsSaving(true);
 
       // Import storage functions
-      const { setCentralApiKey: saveCentralApiKey } = await import('../../services/storage');
+      const { setCentralApiKey: saveCentralApiKey } = await import(
+        "../../services/storage"
+      );
 
       // Save both server URL and Central API Key
       await onSave(); // This saves the server URL
       await saveCentralApiKey(centralApiKey.trim());
 
-      Alert.alert('Success', 'Central Server configuration saved successfully!');
+      Alert.alert(
+        "Success",
+        "Central Server configuration saved successfully!"
+      );
       onClose();
 
       // Reset state
-      setTestStatus('idle');
-      setTestMessage('');
+      setTestStatus("idle");
+      setTestMessage("");
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to save configuration');
+      Alert.alert("Error", error?.message || "Failed to save configuration");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleClose = () => {
-    setTestStatus('idle');
-    setTestMessage('');
+    setTestStatus("idle");
+    setTestMessage("");
     onClose();
   };
 
@@ -540,14 +695,16 @@ const SettingsModal = ({ visible, onClose, serverUrl, setServerUrl, onPing, onSa
 
           {/* Central API Key Section */}
           <View className="mb-4">
-            <Text className="text-gray-600 mb-2 font-medium">Central API Key (Edge Mode)</Text>
+            <Text className="text-gray-600 mb-2 font-medium">
+              Central API Key (Edge Mode)
+            </Text>
             <TextInput
               value={centralApiKey}
               onChangeText={(text) => {
                 setCentralApiKeyState(text);
-                if (testStatus !== 'idle') {
-                  setTestStatus('idle');
-                  setTestMessage('');
+                if (testStatus !== "idle") {
+                  setTestStatus("idle");
+                  setTestMessage("");
                 }
               }}
               placeholder="sk_..."
@@ -562,14 +719,24 @@ const SettingsModal = ({ visible, onClose, serverUrl, setServerUrl, onPing, onSa
 
           {/* Test Status Message */}
           {testMessage ? (
-            <View className={`mb-4 p-3 rounded-lg ${testStatus === 'success' ? 'bg-green-50 border border-green-200' :
-              testStatus === 'error' ? 'bg-red-50 border border-red-200' :
-                'bg-blue-50 border border-blue-200'
-              }`}>
-              <Text className={`text-sm ${testStatus === 'success' ? 'text-green-700' :
-                testStatus === 'error' ? 'text-red-700' :
-                  'text-blue-700'
-                }`}>
+            <View
+              className={`mb-4 p-3 rounded-lg ${
+                testStatus === "success"
+                  ? "bg-green-50 border border-green-200"
+                  : testStatus === "error"
+                    ? "bg-red-50 border border-red-200"
+                    : "bg-blue-50 border border-blue-200"
+              }`}
+            >
+              <Text
+                className={`text-sm ${
+                  testStatus === "success"
+                    ? "text-green-700"
+                    : testStatus === "error"
+                      ? "text-red-700"
+                      : "text-blue-700"
+                }`}
+              >
                 {testMessage}
               </Text>
             </View>
@@ -578,10 +745,16 @@ const SettingsModal = ({ visible, onClose, serverUrl, setServerUrl, onPing, onSa
           {/* Action Buttons */}
           <View className="gap-3">
             <Button
-              title={testStatus === 'testing' ? 'Testing...' : 'Test Connection'}
+              title={
+                testStatus === "testing" ? "Testing..." : "Test Connection"
+              }
               variant="outline"
               onPress={handleTestConnection}
-              disabled={testStatus === 'testing' || !serverUrl.trim() || !centralApiKey.trim()}
+              disabled={
+                testStatus === "testing" ||
+                !serverUrl.trim() ||
+                !centralApiKey.trim()
+              }
             />
 
             <View className="flex-row gap-3">
@@ -594,9 +767,9 @@ const SettingsModal = ({ visible, onClose, serverUrl, setServerUrl, onPing, onSa
               </View>
               <View className="flex-1">
                 <Button
-                  title={isSaving ? 'Saving...' : 'Save'}
+                  title={isSaving ? "Saving..." : "Save"}
                   onPress={handleSaveConfiguration}
-                  disabled={testStatus !== 'success' || isSaving}
+                  disabled={testStatus !== "success" || isSaving}
                 />
               </View>
             </View>
