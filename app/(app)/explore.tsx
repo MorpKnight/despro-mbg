@@ -62,6 +62,24 @@ const menuItems: MenuSection[] = [
                 background: 'bg-red-50'
             },
             {
+                route: '/(app)/attendance-history',
+                label: 'Riwayat Absensi',
+                icon: 'calendar-outline',
+                description: 'Lihat riwayat kehadiran siswa',
+                roles: ['admin_sekolah', 'super_admin'],
+                color: '#059669',
+                background: 'bg-emerald-50'
+            },
+            {
+                route: '/(app)/food-history-school',
+                label: 'Riwayat Makanan',
+                icon: 'restaurant-outline',
+                description: 'Riwayat menu sekolah',
+                roles: ['admin_sekolah', 'super_admin'],
+                color: '#F59E0B',
+                background: 'bg-amber-50'
+            },
+            {
                 route: '/(app)/feedback-list',
                 label: 'Umpan Balik',
                 icon: 'chatbubbles-outline',
@@ -77,6 +95,15 @@ const menuItems: MenuSection[] = [
                 description: 'Input menu dan quality control',
                 roles: ['admin_catering', 'super_admin'],
                 color: '#EA580C',
+                background: 'bg-orange-50'
+            },
+            {
+                route: '/(app)/food-history-catering',
+                label: 'Riwayat Makanan',
+                icon: 'restaurant-outline',
+                description: 'Riwayat menu katering',
+                roles: ['admin_catering', 'super_admin'],
+                color: '#F97316',
                 background: 'bg-orange-50'
             },
             {
@@ -148,6 +175,15 @@ const menuItems: MenuSection[] = [
                 background: 'bg-blue-50'
             },
             {
+                route: '/(app)/student-management',
+                label: 'Kelola Siswa',
+                icon: 'people-circle-outline',
+                description: 'Kelola data siswa sekolah',
+                roles: ['admin_sekolah', 'super_admin'],
+                color: '#0EA5E9',
+                background: 'bg-sky-50'
+            },
+            {
                 route: '/(app)/catering-management',
                 label: 'Katering',
                 icon: 'pizza-outline',
@@ -217,7 +253,7 @@ export default function ExploreScreen() {
     }, [user?.role]);
 
     return (
-        <ScrollView className="flex-1 bg-gray-50" contentContainerStyle={{ paddingBottom: 100 }}>
+        <ScrollView className="flex-1 bg-gray-50" contentContainerStyle={{ paddingBottom: 120 }}>
             <View className="px-5 pt-6 pb-4">
                 <Text className="text-2xl font-bold text-gray-900">Menu</Text>
                 <Text className="text-gray-500 mt-1">Akses semua fitur MBGlance</Text>
@@ -230,7 +266,14 @@ export default function ExploreScreen() {
                     </Text>
                     <View className="flex-row flex-wrap justify-between">
                         {section.items.map((item, itemIdx) => (
-                            <Link href={item.route as any} key={itemIdx} asChild>
+                            <Link
+                                href={{
+                                    pathname: item.route as any,
+                                    params: { returnTo: '/(app)/explore' }
+                                }}
+                                key={itemIdx}
+                                asChild
+                            >
                                 <Pressable className="w-[48%] bg-white p-4 rounded-2xl mb-4 shadow-sm border border-gray-100 active:scale-95 transition-transform">
                                     <View className={`w-10 h-10 rounded-full items-center justify-center mb-3 ${item.background}`}>
                                         <Ionicons name={item.icon} size={20} color={item.color} />

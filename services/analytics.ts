@@ -9,6 +9,7 @@ export interface GlobalKpi {
 
 export interface TrendParams {
   health_office_area_id?: string;
+  health_office_area_name?: string; // Add param
   school_id?: string;
   catering_id?: string;
 }
@@ -68,8 +69,9 @@ export async function fetchCateringKpi(cateringId: string): Promise<CateringKpi>
 export async function fetchSatisfactionTrend(params?: TrendParams): Promise<SatisfactionTrend> {
   // Buat query string berdasarkan parameter yang ada
   const query = new URLSearchParams();
-  
+
   if (params?.health_office_area_id) query.append('health_office_area_id', params.health_office_area_id);
+  if (params?.health_office_area_name) query.append('health_office_area_name', params.health_office_area_name);
   if (params?.school_id) query.append('school_id', params.school_id);
   if (params?.catering_id) query.append('catering_id', params.catering_id);
 

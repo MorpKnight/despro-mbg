@@ -1,7 +1,7 @@
 // app/(app)/notifications/broadcast.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Alert, ScrollView, Text, View } from 'react-native';
@@ -12,6 +12,7 @@ import TextInput from '../../../components/ui/TextInput';
 import { useAuth } from '../../../hooks/useAuth';
 import { useSnackbar } from '../../../hooks/useSnackbar';
 import { api } from '../../../services/api';
+import PageHeader from '../../../components/ui/PageHeader';
 
 // --- IMPORTS BARU UNTUK NOTIFIKASI ---
 import * as Clipboard from 'expo-clipboard'; // Opsional: untuk copy token
@@ -44,8 +45,9 @@ export default function BroadcastPage() {
     const router = useRouter();
     const { user } = useAuth();
     const { showSnackbar } = useSnackbar();
+    const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
     const [submitting, setSubmitting] = useState(false);
-    
+
     // 1. Panggil Hook Notifikasi di sini
     const { expoPushToken, notification } = usePushNotifications();
 
@@ -120,13 +122,13 @@ export default function BroadcastPage() {
                 body: values.message,
                 data: { level: values.level },
             };
-        
+
             await fetch("https://exp.host/--/api/v2/push/send", {
                 method: "POST",
                 headers: {
-                  Accept: "application/json",
-                  "Accept-encoding": "gzip, deflate",
-                  "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "Accept-encoding": "gzip, deflate",
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify(message),
             });
@@ -155,31 +157,23 @@ export default function BroadcastPage() {
 
     return (
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-            <Card>
-                <View className="flex-row items-center gap-3 mb-2">
-                    <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center">
-                        <Ionicons name="megaphone" size={24} color="#2563EB" />
-                    </View>
-                    <View className="flex-1">
-                        <Text className="text-xl font-bold text-gray-900">Siarkan Notifikasi</Text>
-                        <Text className="text-sm text-gray-500">Kirim pesan ke pengguna aplikasi.</Text>
-                    </View>
-                </View>
-                
-                {/* DEBUG AREA UNTUK TESTING */}
-                <View className="mt-4 p-3 bg-gray-100 rounded-lg border border-gray-200">
+            <PageHeader title="Siarkan Notifikasi" subtitle="Kirim pesan ke pengguna aplikasi." backPath={returnTo} />
+
+            {/* DEBUG AREA UNTUK TESTING */}
+            <Card className="mb-4">
+                <View className="mb-1">
                     <Text className="text-xs font-bold text-gray-500 mb-1">DEBUG: DEVICE TOKEN</Text>
                     <Text className="text-xs text-gray-800 font-mono mb-2" numberOfLines={2}>
                         {expoPushToken || "Mengambil token..."}
                     </Text>
-                    <View className="flex-row gap-2">
-                         <Button 
-                            title="Salin Token" 
-                            onPress={copyToken} 
-                            size="sm" 
-                            variant="outline" 
-                         />
-                    </View>
+                </View>
+                <View className="flex-row gap-2">
+                    <Button
+                        title="Salin Token"
+                        onPress={copyToken}
+                        size="sm"
+                        variant="outline"
+                    />
                 </View>
             </Card>
 
@@ -272,7 +266,7 @@ export default function BroadcastPage() {
                     variant="outline"
                     icon={<Ionicons name="phone-portrait-outline" size={18} color="#4B5563" />}
                 />
-                
+
                 {/* TOMBOL BROADCAST ASLI */}
                 <Button
                     title={submitting ? 'Menyiarkan...' : 'Siarkan ke Semua User'}
@@ -282,6 +276,6 @@ export default function BroadcastPage() {
                     variant="primary"
                 />
             </View>
-        </ScrollView>
+        </ScrollView >
     );
 }

@@ -4,6 +4,7 @@ import { Alert, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import PageHeader from '../../../components/ui/PageHeader';
 import TextInput from '../../../components/ui/TextInput';
 import { useAuth } from '../../../hooks/useAuth';
 import { EmergencyReport, ReportStatus, fetchEmergencyReport, updateEmergencyStatus } from '../../../services/emergency';
@@ -69,7 +70,7 @@ export default function DinkesEmergencyDetailPage() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-      <Stack.Screen options={{ title: 'Detail Laporan Darurat' }} />
+      <PageHeader title="Detail Laporan Darurat" className="px-6 pt-4" />
       {!allowed ? (
         <View className="p-6"><Text>Akses ditolak.</Text></View>
       ) : loading ? (

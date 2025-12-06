@@ -6,16 +6,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
+import PageHeader from '../../components/ui/PageHeader';
 import Skeleton from '../../components/ui/Skeleton';
 import { StatusPill } from '../../components/ui/StatusPill';
 import TextInput from '../../components/ui/TextInput';
+import TrendChart from '../../components/ui/TrendChart';
 import { useAuth } from '../../hooks/useAuth';
 import {
-    fetchDinkesAreas,
-    fetchDinkesKpi,
-    fetchSatisfactionTrend,
-    type DinkesKpi,
-    type SatisfactionTrend,
+  fetchDinkesAreas,
+  fetchDinkesKpi,
+  fetchSatisfactionTrend,
+  type DinkesKpi,
+  type SatisfactionTrend,
 } from '../../services/analytics';
 import { fetchEmergencyReports, type EmergencyReport, type ReportStatus } from '../../services/emergency';
 
@@ -74,6 +76,7 @@ export default function DinkesDashboard() {
   const [reportSearchInput, setReportSearchInput] = useState('');
   const [debouncedReportSearch, setDebouncedReportSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ReportStatus>('all');
+  const [trendError, setTrendError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.role !== 'super_admin' && user?.role !== 'admin_dinkes') {
@@ -161,10 +164,13 @@ export default function DinkesDashboard() {
     let active = true;
     (async () => {
       setLoading(true);
+      setTrendError(null);
       const [kpiRes, reportsRes, trendRes] = await Promise.allSettled([
         fetchDinkesKpi(),
         fetchEmergencyReports(),
-        fetchSatisfactionTrend(),
+        fetchSatisfactionTrend({
+          health_office_area_name: selectedArea !== ALL_AREAS ? selectedArea : undefined,
+        }),
       ]);
 
       if (!active) return;
@@ -192,6 +198,7 @@ export default function DinkesDashboard() {
       } else {
         setTrend(null);
         failures.push('tren kepuasan');
+        setTrendError('Gagal memuat data tren.');
         console.warn('[dinkes-dashboard] gagal memuat tren', trendRes.reason);
       }
 
@@ -210,7 +217,7 @@ export default function DinkesDashboard() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [selectedArea]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -289,10 +296,12 @@ export default function DinkesDashboard() {
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <ScrollView className="flex-1 bg-neutral-gray">
         <View className="p-6">
-          <View className="mb-6">
-            <Text className="text-2xl font-bold text-gray-900 mb-1">Dashboard Dinas Kesehatan</Text>
-            <Text className="text-gray-600">Monitoring kesehatan &amp; keamanan pangan sekolah</Text>
-          </View>
+          <PageHeader
+            title="Dashboard Dinas Kesehatan"
+            subtitle="Monitoring kesehatan & keamanan pangan sekolah"
+            showBackButton={false}
+            className="mb-6"
+          />
 
           <Card className="mb-6">
             <View className="gap-4">
@@ -477,23 +486,12 @@ export default function DinkesDashboard() {
             )}
           </Card>
 
-          <Card>
-            <Text className="text-lg font-bold text-gray-900 mb-4">Tren Kepuasan Siswa</Text>
-            {loading && trendPoints.length === 0 ? (
-              <Text className="text-gray-600">Memuat tren kepuasan…</Text>
-            ) : trendPoints.length === 0 ? (
-              <Text className="text-gray-500">Belum ada data tren kepuasan.</Text>
-            ) : (
-              <View className="gap-2">
-                {trendPoints.slice(-6).map((point) => (
-                  <View key={point.label} className="flex-row items-center justify-between border-b border-gray-100 pb-2">
-                    <Text className="text-sm text-gray-600">{point.label}</Text>
-                    <Text className="text-sm font-semibold text-gray-900">{formatDecimal(point.value)}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </Card>
+          <TrendChart
+            data={trendPoints}
+            loading={loading && trendPoints.length === 0}
+            title="Tren Kepuasan Siswa"
+            error={trendError}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

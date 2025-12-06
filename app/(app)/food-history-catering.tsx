@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useQuery } from '@tanstack/react-query';
@@ -40,6 +40,7 @@ export default function CateringFoodHistoryPage({ cateringId }: Props) {
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
+    const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
 
     const { data: menus, isLoading, isRefetching, refetch } = useQuery({
         queryKey: ['catering-food-history', selectedDate, cateringId, debouncedSearchQuery],
@@ -58,7 +59,7 @@ export default function CateringFoodHistoryPage({ cateringId }: Props) {
             <PageHeader
                 title="History Menu Katering"
                 subtitle="Daftar menu yang disajikan"
-                showBackButton={true}
+                backPath={returnTo}
                 className="mx-6 mt-6"
                 onRefresh={refetch}
                 isRefreshing={isRefetching}
