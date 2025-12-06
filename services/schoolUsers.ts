@@ -44,6 +44,16 @@ export async function createStudent(data: StudentCreate, schoolId?: string): Pro
     });
 }
 
+export async function bulkCreateStudents(data: { students: StudentCreate[] }, schoolId?: string): Promise<Student[]> {
+    const params = new URLSearchParams();
+    if (schoolId) params.append('school_id', schoolId);
+
+    return api(`school-admin/students/bulk?${params.toString()}`, {
+        method: 'POST',
+        body: data,
+    });
+}
+
 export async function updateStudent(id: string, data: StudentUpdate, schoolId?: string): Promise<Student> {
     const params = new URLSearchParams();
     if (schoolId) params.append('school_id', schoolId);
