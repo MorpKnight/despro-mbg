@@ -37,7 +37,13 @@ yarn-error.*
 *.key
 *.mobileprovision
 *.orig.*
-*.pem
+web-build/
+.env
+
+
+
+ios
+android
 
 # macOS
 .DS_Store
