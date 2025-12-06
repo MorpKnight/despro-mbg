@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -11,6 +11,8 @@ import TrendChart from '../../components/ui/TrendChart';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchCateringKpi, fetchSatisfactionTrend, type CateringKpi, type SatisfactionTrend } from '../../services/analytics';
 import { fetchCaterings, type CateringListItem } from '../../services/caterings';
+import { fetchFeedbackList, type FeedbackItem } from '../../services/feedback';
+import { set } from 'zod';
 
 const ALL_LOCATIONS = 'ALL_LOCATIONS';
 const CATERING_PAGE_SIZE = 6;
@@ -49,6 +51,10 @@ export default function CateringDashboard() {
   const [debouncedCateringSearch, setDebouncedCateringSearch] = useState('');
   const [locationFilter, setLocationFilter] = useState<string>(ALL_LOCATIONS);
   const [cateringPage, setCateringPage] = useState(0);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedMenu, setSelectedMenu] = useState<CateringKpi['menu_rating_terbaik'] | CateringKpi['menu_rating_terburuk'] | null>(null);
+  const [loadingKomplain, setLoadingKomplain] = useState(false);
+  const [komplain, setKomplain] = useState<FeedbackItem[]>([]);
 
   const isSuperAdmin = user?.role === 'super_admin';
   const isCateringAdmin = user?.role === 'admin_catering';
@@ -192,6 +198,28 @@ export default function CateringDashboard() {
     if (!selectedCateringId) return null;
     return caterings.find((item) => item.id === selectedCateringId) ?? null;
   }, [caterings, selectedCateringId]);
+
+  const handleOpenDetail = async (menu?: CateringKpi['menu_rating_terbaik'] | CateringKpi['menu_rating_terburuk'] | null, type: 'best' | 'worst' = 'worst') => {
+    if (!menu || !selectedCateringId) return;
+    
+    setSelectedMenu(menu);
+    setModalVisible(true);
+    setLoadingKomplain(true);
+
+    try {
+      const list = await fetchFeedbackList();
+      const filtered = list.filter(fb => {
+        if (fb.menuId !== menu.menu_id) return false;
+        return type === 'best' ? fb.rating >= 4 : fb.rating <= 2;
+      });
+      setKomplain(filtered);
+    } catch (error) {
+      console.error("Gagal fetch komplain:", error);
+      setKomplain([]);
+    }
+
+    setLoadingKomplain(false);
+  }
 
   if (!isCateringAdmin && !isSuperAdmin) return <Redirect href="/" />;
 
@@ -399,7 +427,11 @@ export default function CateringDashboard() {
               </View>
             ) : (
               <View className="flex-row gap-4">
-                <View className="flex-1">
+                <Pressable
+                  className="flex-1"
+                  onPress={() => handleOpenDetail(kpi?.menu_rating_terbaik)}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
+                >
                   <View className="flex-row items-center mb-3">
                     <View className="w-9 h-9 rounded-full items-center justify-center mr-2" style={{ backgroundColor: '#4CAF5020' }}>
                       <Ionicons name="thumbs-up" size={20} color="#4CAF50" />
@@ -416,9 +448,13 @@ export default function CateringDashboard() {
                   ) : (
                     <Text className="text-sm text-gray-500">Belum ada menu dengan rating tinggi.</Text>
                   )}
-                </View>
+                </Pressable>
 
-                <View className="flex-1">
+                <Pressable
+                  className="flex-1"
+                  onPress={() => handleOpenDetail(kpi?.menu_rating_terburuk)}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.5 : 1 }]}
+                >
                   <View className="flex-row items-center mb-3">
                     <View className="w-9 h-9 rounded-full items-center justify-center mr-2" style={{ backgroundColor: '#FBC02D20' }}>
                       <Ionicons name="alert-circle" size={20} color="#FBC02D" />
@@ -435,10 +471,49 @@ export default function CateringDashboard() {
                   ) : (
                     <Text className="text-sm text-gray-500">Belum ada menu yang perlu diinvestigasi.</Text>
                   )}
-                </View>
+                </Pressable>
               </View>
             )}
           </Card>
+
+          <Modal visible={modalVisible} animationType="slide" transparent>
+            <View className="flex-1 bg-black/40 justify-end">
+              <View className="bg-white p-5 rounded-t-2xl max-h-[75%]">
+
+                {/* Header */}
+                <View className="flex-row items-center mb-4">
+                  <Text className="text-lg font-bold flex-1">
+                    {selectedMenu?.nama_menu}
+                  </Text>
+
+                  <Pressable onPress={() => setModalVisible(false)}>
+                    <Ionicons name="close" size={24} color="#444" />
+                  </Pressable>
+                </View>
+
+                {/* Rating */}
+                <Text className="text-gray-600 mb-3">
+                  Rating rata-rata: {formatRating(selectedMenu?.rata_rata_rating)} / 5
+                </Text>
+
+                {/* Komplain */}
+                {loadingKomplain ? (
+                  <ActivityIndicator color="#1976D2" className="my-4" />
+                ) : komplain.length === 0 ? (
+                  <Text className="text-gray-500">Tidak ada komplain dari siswa.</Text>
+                ) : (
+                  <ScrollView className="max-h-[60%]">
+                    {komplain.map((k) => (
+                      <View key={k.id} className="border-b border-gray-200 py-3">
+                        <Text className="font-semibold">{k.student.username}</Text>
+                        <Text className="text-gray-600">{k.comment}</Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            </View>
+          </Modal>
 
           {error && (
             <Card className="mt-6 border border-accent-red bg-red-50">
