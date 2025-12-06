@@ -48,7 +48,7 @@ export function StudentHome({ username }: Props) {
             variant="outline"
             icon={<Ionicons name="restaurant" size={20} color="#2563EB" />}
             fullWidth
-            onPress={() => router.push('/catering-dashboard')}
+            onPress={() => router.push('/food-history-student')}
           />
         </Card>
 
@@ -63,7 +63,7 @@ export function StudentHome({ username }: Props) {
               variant="primary"
               icon={<Ionicons name="calendar" size={20} color="white" />}
               fullWidth
-              onPress={() => router.push('/student-attendance')}
+              onPress={() => router.push('/my-attendance')}
             />
             <Button
               title="Kirim Feedback Makanan"
@@ -71,6 +71,7 @@ export function StudentHome({ username }: Props) {
               icon={<Ionicons name="chatbubbles" size={20} color="#2563EB" />}
               fullWidth
               onPress={() => router.push('/portal-feedback')}
+
             />
           </View>
         </Card>
