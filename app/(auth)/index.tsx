@@ -297,10 +297,15 @@ export default function AuthIndex() {
           </View>
         </KeyboardAvoidingView>
       </View>
-    );
-  }
+      <Text className="text-white text-5xl font-bold leading-tight mb-6">
+        Monitoring Gizi,{'\n'}Masa Depan Bangsa
+      </Text>
+      <Text className="text-blue-100 text-xl leading-relaxed">
+        Platform terintegrasi untuk memantau distribusi dan kualitas Makan Bergizi Gratis di seluruh sekolah.
+      </Text>
+    </>
+  );
 
-  // Web layout
   return (
     <View className="bg-gray-50 min-h-screen flex-row">
       <SettingsModal
