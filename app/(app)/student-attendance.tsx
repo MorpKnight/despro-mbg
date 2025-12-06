@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { Link, Redirect } from 'expo-router';
+import { Link, Redirect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Skeleton from '../../components/ui/Skeleton';
 import TextInput from '../../components/ui/TextInput';
+import PageHeader from '../../components/ui/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import {
   fetchAttendanceList,
@@ -76,6 +77,7 @@ function formatTime(iso: string) {
 
 export default function StudentAttendancePage() {
   const { user } = useAuth();
+  const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
   const isAdminSekolah = user?.role === 'admin_sekolah';
   const isSuperAdmin = user?.role === 'super_admin';
 
@@ -207,7 +209,7 @@ export default function StudentAttendancePage() {
     ({ item }: ListRenderItemInfo<AttendanceRecord>) => {
       const tone = methodTone(item.method);
       return (
-        <Card>
+        <Card className="mb-3">
           <View className="flex-row items-start justify-between">
             <View className="flex-1 pr-3">
               <Text className="font-semibold text-gray-900 mb-1">
@@ -267,21 +269,30 @@ export default function StudentAttendancePage() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
+      <PageHeader
+        title="Absensi Harian"
+        subtitle="Daftar kehadiran harian siswa"
+        backPath={returnTo}
+        onRefresh={handleRefresh}
+        isRefreshing={refreshing}
+        className="mx-6 mt-6 mb-4"
+      />
+
       <FlashList
         data={listData}
         renderItem={renderAttendanceItem}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyComponent}
         ListHeaderComponent={
-          <View className="pt-6">
+          <>
             <View className="mb-4">
-              <Text className="text-2xl font-bold text-gray-900">Absensi Makan Harian</Text>
               {isSuperAdmin && (
                 <TouchableOpacity
                   onPress={() => setSchoolModalVisible(true)}
-                  className="flex-row items-center mt-2 bg-white px-3 py-2 rounded-lg border border-gray-200 self-start"
+                  className="flex-row items-center mb-4 bg-white px-3 py-2 rounded-lg border border-gray-200 self-start"
                 >
                   <Ionicons name="school" size={16} color="#4B5563" />
                   <Text className="ml-2 text-gray-700 font-medium">
@@ -290,81 +301,72 @@ export default function StudentAttendancePage() {
                   <Ionicons name="chevron-down" size={16} color="#9CA3AF" className="ml-2" />
                 </TouchableOpacity>
               )}
-              <Text className="text-sm text-gray-600 mt-2">
+              <Text className="text-sm text-gray-600 mb-2">
                 Data absensi otomatis tersinkron setiap kali siswa melakukan tap NFC, scan QR, atau pencatatan manual.
               </Text>
             </View>
 
-            <View className="mb-4 flex-row items-center justify-between">
+            <View className="mb-6 flex-row items-center justify-between bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
               <View className="flex-row items-center gap-3">
-                <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: '#1976D220' }}>
-                  <Ionicons name="calendar-outline" size={18} color="#1976D2" />
+                <View className="w-10 h-10 rounded-full items-center justify-center bg-blue-50">
+                  <Ionicons name="calendar" size={20} color="#2563EB" />
                 </View>
-                <Text className="text-gray-900 font-semibold">{formatDateLabel(selectedDate)}</Text>
+                <View>
+                  <Text className="text-xs text-gray-500">Tanggal</Text>
+                  <Text className="text-gray-900 font-bold">{formatDateLabel(selectedDate)}</Text>
+                </View>
               </View>
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="chevron-back" size={22} color="#374151" onPress={goToPreviousDay} />
-                <Ionicons name="chevron-forward" size={22} color="#374151" onPress={goToNextDay} />
+              <View className="flex-row items-center gap-1">
+                <TouchableOpacity onPress={goToPreviousDay} className="p-2 bg-gray-50 rounded-full">
+                  <Ionicons name="chevron-back" size={20} color="#374151" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={goToNextDay} className="p-2 bg-gray-50 rounded-full">
+                  <Ionicons name="chevron-forward" size={20} color="#374151" />
+                </TouchableOpacity>
               </View>
             </View>
 
             {isAdminSekolah && (
-              <View className="mb-4">
-                <Link href="/(app)/attendance-scan" asChild>
-                  <Button title="Buka Pemindaian" />
+              <View className="mb-6">
+                <Link href={{ pathname: "/(app)/attendance-scan", params: { returnTo: '/(app)/student-attendance' } }} asChild>
+                  <Button title="Buka Pemindaian QR" />
                 </Link>
               </View>
             )}
 
-            <View className="flex-row flex-wrap gap-4 mb-4">
-              <View className="flex-1 rounded-card bg-primary/10 p-4 shadow-card">
-                <Text className="text-sm text-gray-700">Hadir</Text>
-                <Text className="text-4xl font-extrabold text-primary">{presentCount}</Text>
+            <View className="flex-row flex-wrap gap-4 mb-6">
+              <View className="flex-1 rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
+                <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Hadir</Text>
+                <Text className="text-4xl font-extrabold text-emerald-600">{presentCount}</Text>
                 {viewingToday && summary && (
-                  <Text className="text-xs text-gray-500 mt-1">Total tersinkron hari ini</Text>
+                  <Text className="text-xs text-gray-400 mt-1">Tersinkron hari ini</Text>
                 )}
               </View>
 
-              <View className="flex-1 rounded-card bg-accent-red/10 p-4 shadow-card">
-                <Text className="text-sm text-gray-700">Belum Tercatat</Text>
-                <Text className="text-4xl font-extrabold text-accent-red">{absentCount ?? '—'}</Text>
-                {viewingToday && summary && (
-                  <Text className="text-xs text-gray-500 mt-1">Perlu verifikasi manual</Text>
-                )}
-              </View>
-
-              <View className="flex-1 rounded-card bg-white p-4 shadow-card border border-gray-200">
-                <Text className="text-sm text-gray-700">Total Siswa</Text>
+              <View className="flex-1 rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
+                <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Siswa</Text>
                 <Text className="text-3xl font-bold text-gray-900">{totalStudents ?? '—'}</Text>
-                {summaryLoading ? (
-                  <Text className="text-xs text-gray-500 mt-1">Memuat ringkasan…</Text>
-                ) : summaryError ? (
-                  <Text className="text-xs text-accent-red mt-1">{summaryError}</Text>
-                ) : (
-                  <Text className="text-xs text-gray-500 mt-1">Berdasarkan data siswa aktif</Text>
-                )}
+                <Text className="text-sm font-semibold text-red-500 mt-2">
+                  {absentCount !== null ? `${absentCount} Belum` : ''}
+                </Text>
               </View>
             </View>
 
             {error && (
-              <View className="mb-4 rounded-card bg-red-50 border border-accent-red p-4 shadow-card">
-                <Text className="text-accent-red">{error}</Text>
+              <View className="mb-4 rounded-xl bg-red-50 border border-red-100 p-4">
+                <Text className="text-red-600">{error}</Text>
               </View>
             )}
 
             {loading && (
-              <View className="gap-3">
-                {Array.from({ length: 4 }).map((_, idx) => (
-                  <Skeleton key={idx} height={96} rounded={18} />
+              <View className="gap-3 mb-4">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <Skeleton key={idx} height={80} rounded={16} />
                 ))}
               </View>
             )}
-
-            <View className="h-4" />
-          </View>
+          </>
         }
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32, backgroundColor: '#f5f7fb' }}
-        showsVerticalScrollIndicator={false}
       />
 
       <Modal visible={schoolModalVisible} animationType="slide" transparent>

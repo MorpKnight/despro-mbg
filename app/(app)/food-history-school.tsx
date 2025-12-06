@@ -35,8 +35,10 @@ interface Props {
 
 import { useDebounce } from '../../hooks/useDebounce';
 import SearchInput from '../../components/ui/SearchInput';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function SchoolFoodHistoryPage({ schoolId }: Props) {
+    const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -59,6 +61,7 @@ export default function SchoolFoodHistoryPage({ schoolId }: Props) {
                 title="History Makanan Sekolah"
                 subtitle="Menu dari katering terhubung"
                 showBackButton={true}
+                backPath={returnTo}
                 className="mx-6 mt-6"
                 onRefresh={refetch}
                 isRefreshing={isRefetching}

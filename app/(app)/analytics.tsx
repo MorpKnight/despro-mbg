@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import { ChipGroup } from '../../components/ui/Chip';
 import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../hooks/useAuth';
 import {
-    fetchDinkesKpi,
-    fetchGlobalKpi,
-    fetchSatisfactionTrend,
-    type DinkesKpi,
-    type GlobalKpi,
-    type SatisfactionTrend,
+  fetchDinkesKpi,
+  fetchGlobalKpi,
+  fetchSatisfactionTrend,
+  type DinkesKpi,
+  type GlobalKpi,
+  type SatisfactionTrend,
 } from '../../services/analytics';
 
 const integerFormatter = new Intl.NumberFormat('id-ID');
@@ -140,8 +141,12 @@ export default function AnalyticsPage() {
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <ScrollView className="flex-1 bg-neutral-gray">
         <View className="p-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-1">Analitik &amp; Laporan</Text>
-          <Text className="text-gray-700 mb-4">Data terbaru dari sistem MBG</Text>
+          <PageHeader
+            title="Analitik & Laporan"
+            subtitle="Data terbaru dari sistem MBG"
+            showBackButton={false}
+            className="mb-6"
+          />
 
           {error && (
             <Card className="mb-4 border border-accent-red bg-red-50">
