@@ -14,6 +14,7 @@ export interface StudentCreate {
     username: string;
     password: string;
     full_name: string;
+    role: 'siswa'; // Required by backend schema
     account_status?: string;
 }
 

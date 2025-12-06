@@ -205,6 +205,16 @@ export async function api(path: string, options: ApiOptions = {}) {
   try {
     response = await attempt(authSession?.access_token);
   } catch (err: any) {
+    // Check for CORS error - CORS errors typically show up as TypeError or network errors
+    const errorMessage = err?.message || err?.toString() || '';
+    if (
+      errorMessage.includes('CORS') || 
+      errorMessage.includes('Access-Control-Allow-Origin') ||
+      errorMessage.includes('blocked by CORS policy') ||
+      (err.name === 'TypeError' && errorMessage.includes('fetch'))
+    ) {
+      throw new Error('CORS Error: Backend tidak mengizinkan request dari origin ini. Silakan restart backend server untuk menerapkan konfigurasi CORS yang baru.');
+    }
     // Check for network error (fetch failure)
     if (err.message === 'Network request failed' || err.name === 'TypeError') {
       throw new Error('Gagal terhubung ke Server Sekolah. Pastikan Anda terhubung ke jaringan lokal sekolah.');
@@ -230,6 +240,24 @@ export async function api(path: string, options: ApiOptions = {}) {
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
+    // Try to parse JSON for better error messages
+    if (response.status === 422 || response.status === 500 || response.status === 400) {
+      try {
+        const errorJson = JSON.parse(text);
+        if (errorJson.detail) {
+          if (Array.isArray(errorJson.detail)) {
+            const details = errorJson.detail.map((e: any) => 
+              `${e.loc?.join('.')}: ${e.msg}`
+            ).join('\n');
+            throw new Error(`Validation Error:\n${details}`);
+          } else if (typeof errorJson.detail === 'string') {
+            throw new Error(errorJson.detail);
+          }
+        }
+      } catch (e) {
+        // If parsing fails, use original text
+      }
+    }
     throw new Error(`API ${response.status}: ${text}`);
   }
 

@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Modal, ScrollView, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, Modal, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -11,6 +11,7 @@ import TextInput from '../../components/ui/TextInput';
 import LoadingState from '../../components/ui/LoadingState';
 import PageHeader from '../../components/ui/PageHeader';
 import SearchInput from '../../components/ui/SearchInput';
+import { useAuth } from '../../hooks/useAuth';
 import {
     createStudent,
     deleteStudent,
@@ -24,13 +25,19 @@ interface Props {
     schoolId?: string; // Optional: If provided, manages students for this school (Super Admin mode)
 }
 
-export default function StudentManagementPage({ schoolId }: Props) {
+export default function StudentManagementPage({ schoolId: propSchoolId }: Props) {
     const router = useRouter();
     const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
     const queryClient = useQueryClient();
+    const { user } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+
+    // Use schoolId from prop if provided (Super Admin mode), otherwise use schoolId from logged-in user
+    const schoolId = useMemo(() => {
+        return propSchoolId || user?.schoolId || undefined;
+    }, [propSchoolId, user?.schoolId]);
 
     // Form State
     const [username, setUsername] = useState('');
@@ -40,6 +47,7 @@ export default function StudentManagementPage({ schoolId }: Props) {
     const { data: students, isLoading, isRefetching, refetch } = useQuery({
         queryKey: ['school-students', searchQuery, schoolId],
         queryFn: () => fetchSchoolStudents(searchQuery, schoolId),
+        enabled: !!schoolId, // Only fetch if schoolId is available
     });
 
     const createMutation = useMutation({
@@ -49,8 +57,31 @@ export default function StudentManagementPage({ schoolId }: Props) {
             closeModal();
             Alert.alert('Berhasil', 'Siswa berhasil ditambahkan');
         },
-        onError: (error) => {
-            Alert.alert('Gagal', 'Gagal menambahkan siswa. Pastikan username unik.');
+        onError: (error: any) => {
+            console.error('Create student error:', error);
+            const errorMessage = error?.message || 'Gagal menambahkan siswa';
+            // Try to extract detailed error from response
+            let detailMessage = errorMessage;
+            if (errorMessage.includes('422')) {
+                try {
+                    const errorText = errorMessage.split('422:')[1]?.trim();
+                    if (errorText) {
+                        const errorJson = JSON.parse(errorText);
+                        if (errorJson.detail) {
+                            if (Array.isArray(errorJson.detail)) {
+                                detailMessage = errorJson.detail.map((e: any) => 
+                                    `${e.loc?.join('.')}: ${e.msg}`
+                                ).join('\n');
+                            } else {
+                                detailMessage = errorJson.detail;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // If parsing fails, use original message
+                }
+            }
+            Alert.alert('Gagal', detailMessage || 'Gagal menambahkan siswa. Pastikan username unik.');
         },
     });
 
@@ -61,19 +92,60 @@ export default function StudentManagementPage({ schoolId }: Props) {
             closeModal();
             Alert.alert('Berhasil', 'Data siswa berhasil diperbarui');
         },
-        onError: () => {
-            Alert.alert('Gagal', 'Gagal memperbarui data siswa.');
+        onError: (error: any) => {
+            console.error('Update student error:', error);
+            const errorMessage = error?.message || 'Gagal memperbarui data siswa';
+            // Try to extract detailed error from response
+            let detailMessage = errorMessage;
+            if (errorMessage.includes('422') || errorMessage.includes('403') || errorMessage.includes('404')) {
+                try {
+                    const errorText = errorMessage.split(/422:|403:|404:/)[1]?.trim();
+                    if (errorText) {
+                        const errorJson = JSON.parse(errorText);
+                        if (errorJson.detail) {
+                            detailMessage = errorJson.detail;
+                        }
+                    }
+                } catch (e) {
+                    // If parsing fails, use original message
+                }
+            }
+            Alert.alert('Gagal', detailMessage || 'Gagal memperbarui data siswa.');
         },
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id: string) => deleteStudent(id, schoolId),
+        mutationFn: (id: string) => {
+            if (!schoolId) {
+                throw new Error('School ID tidak ditemukan. Pastikan Anda sudah login sebagai admin sekolah.');
+            }
+            console.log('Deleting student:', id);
+            console.log('School ID:', schoolId);
+            return deleteStudent(id, schoolId);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['school-students'] });
             Alert.alert('Berhasil', 'Siswa berhasil dihapus');
         },
-        onError: () => {
-            Alert.alert('Gagal', 'Gagal menghapus siswa.');
+        onError: (error: any) => {
+            console.error('Delete student error:', error);
+            const errorMessage = error?.message || 'Gagal menghapus siswa';
+            // Try to extract detailed error from response
+            let detailMessage = errorMessage;
+            if (errorMessage.includes('422') || errorMessage.includes('403') || errorMessage.includes('404')) {
+                try {
+                    const errorText = errorMessage.split(/422:|403:|404:/)[1]?.trim();
+                    if (errorText) {
+                        const errorJson = JSON.parse(errorText);
+                        if (errorJson.detail) {
+                            detailMessage = errorJson.detail;
+                        }
+                    }
+                } catch (e) {
+                    // If parsing fails, use original message
+                }
+            }
+            Alert.alert('Gagal', detailMessage || 'Gagal menghapus siswa.');
         },
     });
 
@@ -98,30 +170,92 @@ export default function StudentManagementPage({ schoolId }: Props) {
     };
 
     const handleSubmit = () => {
+        if (!schoolId) {
+            Alert.alert('Error', 'School ID tidak ditemukan. Pastikan Anda sudah login sebagai admin sekolah.');
+            return;
+        }
+
         if (!username || !fullName) {
             Alert.alert('Error', 'Username dan Nama Lengkap wajib diisi');
             return;
         }
 
         if (editingStudent) {
-            const payload: any = { username, full_name: fullName };
-            if (password) payload.password = password;
+            // Validate password length if provided
+            if (password && password.length > 0 && password.length < 8) {
+                Alert.alert('Error', 'Password minimal 8 karakter');
+                return;
+            }
+            // Validate username length
+            if (username.length < 3) {
+                Alert.alert('Error', 'Username minimal 3 karakter');
+                return;
+            }
+            const payload: any = { 
+                username: username.trim(), 
+                full_name: fullName.trim() 
+            };
+            if (password && password.length > 0) {
+                payload.password = password;
+            }
+            console.log('Updating student with payload:', { ...payload, password: payload.password ? '***' : undefined });
+            console.log('Student ID:', editingStudent.id);
+            console.log('School ID:', schoolId);
             updateMutation.mutate({ id: editingStudent.id, payload });
         } else {
             if (!password) {
                 Alert.alert('Error', 'Password wajib diisi untuk siswa baru');
                 return;
             }
-            const payload: StudentCreate = { username, password, full_name: fullName };
+            if (password.length < 8) {
+                Alert.alert('Error', 'Password minimal 8 karakter');
+                return;
+            }
+            if (username.length < 3) {
+                Alert.alert('Error', 'Username minimal 3 karakter');
+                return;
+            }
+            const payload: StudentCreate = { 
+                username: username.trim(), 
+                password, 
+                full_name: fullName.trim(),
+                role: 'siswa' // Required by backend schema
+            };
+            console.log('Creating student with payload:', { ...payload, password: '***' });
+            console.log('School ID:', schoolId);
             createMutation.mutate(payload);
         }
     };
 
     const handleDelete = (id: string) => {
-        Alert.alert('Konfirmasi', 'Yakin ingin menghapus siswa ini?', [
-            { text: 'Batal', style: 'cancel' },
-            { text: 'Hapus', style: 'destructive', onPress: () => deleteMutation.mutate(id) },
-        ]);
+        console.log('handleDelete called with id:', id);
+        console.log('schoolId:', schoolId);
+        
+        if (!schoolId) {
+            Alert.alert('Error', 'School ID tidak ditemukan. Pastikan Anda sudah login sebagai admin sekolah.');
+            return;
+        }
+
+        if (Platform.OS === 'web') {
+            if (window.confirm('Yakin ingin menghapus siswa ini?')) {
+                console.log('User confirmed delete, calling deleteMutation.mutate');
+                deleteMutation.mutate(id);
+            } else {
+                console.log('User cancelled delete');
+            }
+        } else {
+            Alert.alert('Konfirmasi', 'Yakin ingin menghapus siswa ini?', [
+                { text: 'Batal', style: 'cancel', onPress: () => console.log('User cancelled delete') },
+                { 
+                    text: 'Hapus', 
+                    style: 'destructive', 
+                    onPress: () => {
+                        console.log('User confirmed delete, calling deleteMutation.mutate');
+                        deleteMutation.mutate(id);
+                    }
+                },
+            ]);
+        }
     };
 
     return (
