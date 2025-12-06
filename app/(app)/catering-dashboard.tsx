@@ -8,6 +8,7 @@ import Card from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
 import TextInput from '../../components/ui/TextInput';
 import TrendChart from '../../components/ui/TrendChart';
+import PageHeader from '../../components/ui/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchCateringKpi, fetchSatisfactionTrend, type CateringKpi, type SatisfactionTrend } from '../../services/analytics';
 import { fetchCaterings, type CateringListItem } from '../../services/caterings';
@@ -201,7 +202,7 @@ export default function CateringDashboard() {
 
   const handleOpenDetail = async (menu?: CateringKpi['menu_rating_terbaik'] | CateringKpi['menu_rating_terburuk'] | null, type: 'best' | 'worst' = 'worst') => {
     if (!menu || !selectedCateringId) return;
-    
+
     setSelectedMenu(menu);
     setModalVisible(true);
     setLoadingKomplain(true);
@@ -245,10 +246,12 @@ export default function CateringDashboard() {
       <ScrollView className="flex-1 bg-neutral-gray">
         <View className="p-6">
           {/* Page Header */}
-          <View className="mb-6">
-            <Text className="text-2xl font-bold text-gray-900 mb-1">Dashboard Catering</Text>
-            <Text className="text-gray-600">Operasional Menu & Kualitas Layanan</Text>
-          </View>
+          <PageHeader
+            title="Dashboard Catering"
+            subtitle="Operasional Menu & Kualitas Layanan"
+            showBackButton={false}
+            className="mb-6"
+          />
 
           {/* Super Admin Selector */}
           {isSuperAdmin && (

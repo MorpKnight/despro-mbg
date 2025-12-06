@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Dropdown, { DropdownOption } from '../../components/ui/Dropdown';
+import PageHeader from '../../components/ui/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { EmergencyReport, ReportStatus, fetchEmergencyReports } from '../../services/emergency';
 
@@ -30,6 +31,7 @@ const statusFilterOptions: DropdownOption[] = [
 export default function DinkesEmergencyPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
   const [reports, setReports] = useState<EmergencyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -86,10 +88,12 @@ export default function DinkesEmergencyPage() {
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <View className="flex-1 bg-neutral-gray p-6">
-        <View className="mb-4">
-          <Text className="text-2xl font-bold text-gray-900">Laporan Darurat Masuk</Text>
-          <Text className="text-gray-600">Kelola status dan tindak lanjut laporan dari sekolah</Text>
-        </View>
+        <PageHeader
+          title="Laporan Darurat Masuk"
+          subtitle="Kelola status dan tindak lanjut laporan dari sekolah"
+          backPath={returnTo}
+          className="mb-6"
+        />
 
         {!allowed ? (
           <Card>

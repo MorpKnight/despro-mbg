@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -40,6 +41,7 @@ function formatDate(iso: string) {
 
 export default function AttendanceHistoryPage({ schoolId }: { schoolId?: string }) {
     // Current date for default selection
+    const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
     const today = new Date().toISOString().split('T')[0];
     const [selectedDate, setSelectedDate] = useState(today);
     const [page, setPage] = useState(0);
@@ -69,6 +71,7 @@ export default function AttendanceHistoryPage({ schoolId }: { schoolId?: string 
                 title="Riwayat Absensi"
                 subtitle="Daftar kehadiran siswa"
                 showBackButton={true}
+                backPath={returnTo}
                 className="mx-6 mt-6"
                 onRefresh={refetch}
                 isRefreshing={isRefetching}

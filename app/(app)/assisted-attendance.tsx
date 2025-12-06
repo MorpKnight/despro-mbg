@@ -1,18 +1,19 @@
 import { useIsFocused } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, AppState, FlatList, Text, View } from 'react-native';
+import { Alert, AppState, FlatList, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { QRScanner } from '../../components/features/attendance';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import PageHeader from '../../components/ui/PageHeader';
 import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
 import {
-    recordAttendance,
-    searchAttendanceStudents,
-    type AttendanceMethod,
-    type AttendanceStudent,
+  recordAttendance,
+  searchAttendanceStudents,
+  type AttendanceMethod,
+  type AttendanceStudent,
 } from '../../services/attendance';
 
 function methodLabel(method: AttendanceMethod) {
@@ -45,14 +46,14 @@ function parseQrPayload(input: string): { id: string; name?: string; source: 'js
     if (obj && typeof obj === 'object' && typeof obj.id === 'string') {
       return { raw, id: obj.id.trim(), name: typeof obj.name === 'string' ? obj.name.trim() : undefined, source: 'json' };
     }
-  } catch {}
+  } catch { }
   try {
     const u = new URL(raw);
     const sid = u.searchParams.get('studentId') || u.searchParams.get('id') || '';
     if (sid) return { raw, id: sid.trim(), source: 'url' } as const;
     const segs = u.pathname.split('/').filter(Boolean);
     if (segs.length > 0) return { raw, id: segs[segs.length - 1].trim(), source: 'url' } as const;
-  } catch {}
+  } catch { }
   const plain = raw.trim();
   if (/^[A-Za-z0-9_-]{1,64}$/.test(plain)) return { raw, id: plain, source: 'plain' } as const;
   return { raw, id: plain.slice(0, 64) || 'UNKNOWN', source: 'plain' } as const;
@@ -62,6 +63,7 @@ export default function AssistedAttendancePage() {
   const { user } = useAuth();
   const isAllowed = user?.role === 'admin_sekolah' || user?.role === 'super_admin';
   const isFocused = useIsFocused();
+  const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
 
   const [query, setQuery] = useState('');
   const [students, setStudents] = useState<AttendanceStudent[]>([]);
@@ -120,7 +122,7 @@ export default function AssistedAttendancePage() {
   if (!isAllowed) {
     return (
       <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-        <Stack.Screen options={{ title: 'Bantuan Presensi Siswa' }} />
+        <PageHeader title="Bantuan Presensi" backPath={returnTo} className="mx-6 mt-6" />
         <View className="p-6">
           <Card><Text>Akses ditolak.</Text></Card>
         </View>
@@ -189,7 +191,12 @@ export default function AssistedAttendancePage() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-      <Stack.Screen options={{ title: 'Bantuan Presensi Siswa' }} />
+      <PageHeader
+        title="Bantuan Presensi"
+        subtitle="Catat kehadiran secara manual atau bantu scan"
+        backPath={returnTo}
+        className="mx-6 mt-6 mb-4"
+      />
       <FlatList
         contentContainerStyle={{ padding: 16, gap: 12 }}
         data={[{ key: 'manual' }, { key: 'scan' }, { key: 'recent' }]}
@@ -210,15 +217,13 @@ export default function AssistedAttendancePage() {
                   ) : students.length === 0 ? (
                     <Text className="text-gray-500">Tidak ada siswa ditemukan.</Text>
                   ) : (
-                    <FlatList
-                      data={students}
-                      keyExtractor={(s) => s.id}
-                      ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-                      renderItem={({ item: s }) => {
+                    <ScrollView nestedScrollEnabled contentContainerStyle={{ paddingBottom: 4 }}>
+                      {students.map((s) => {
                         const isSelected = selected?.id === s.id;
                         return (
                           <View
-                            className={`rounded-card p-3 shadow-card border ${isSelected ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'}`}
+                            key={s.id}
+                            className={`rounded-card p-3 shadow-card border mb-2 ${isSelected ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'}`}
                           >
                             <View className="flex-row items-center justify-between">
                               <View className="flex-1 pr-3">
@@ -233,8 +238,8 @@ export default function AssistedAttendancePage() {
                             </View>
                           </View>
                         );
-                      }}
-                    />
+                      })}
+                    </ScrollView>
                   )}
                 </View>
                 <View className="mt-3">
