@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Button from '../../components/ui/Button';
@@ -33,6 +33,8 @@ export default function EmergencyReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | ReportStatus>('all');
   const canView = user?.role === 'admin_sekolah' || user?.role === 'super_admin';
+  const isLoadingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
   const loadReports = useCallback(async (isRefresh = false) => {
     if (!canView) {
@@ -40,6 +42,13 @@ export default function EmergencyReportPage() {
       setReports([]);
       return;
     }
+
+    // Prevent multiple simultaneous calls
+    if (isLoadingRef.current) {
+      return;
+    }
+
+    isLoadingRef.current = true;
 
     if (isRefresh) {
       setRefreshing(true);
@@ -52,11 +61,13 @@ export default function EmergencyReportPage() {
       const data = await fetchEmergencyReports();
       setReports(data);
       setError(null);
+      hasLoadedRef.current = true;
     } catch (err) {
       console.warn('[emergency-report] gagal memuat', err);
       setReports([]);
       setError('Gagal memuat daftar laporan darurat.');
     } finally {
+      isLoadingRef.current = false;
       if (isRefresh) {
         setRefreshing(false);
       } else {
@@ -65,19 +76,23 @@ export default function EmergencyReportPage() {
     }
   }, [canView]);
 
-  // Initial load
+  // Initial load - only once on mount
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+    if (canView && !hasLoadedRef.current) {
+      loadReports();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canView]); // Only depend on canView
 
   // Auto-refresh when user returns to this screen
   useFocusEffect(
     useCallback(() => {
-      // Only refresh if not already loading
-      if (!loading && !refreshing) {
+      // Only refresh if already loaded once and not currently loading
+      if (canView && hasLoadedRef.current && !isLoadingRef.current && !loading && !refreshing) {
         loadReports(true);
       }
-    }, [loading, refreshing, loadReports])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canView]) // Only depend on canView
   );
 
   const onRefresh = useCallback(() => {
@@ -130,14 +145,17 @@ export default function EmergencyReportPage() {
       >
         <View className="px-6">
           <Card className="mb-4 bg-white p-4">
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-1 mr-4">
+            <View className="flex-row items-center justify-between mb-4" accessible={false}>
+              <View className="flex-1 mr-4" accessible={false}>
                 <Text className="text-base font-semibold text-gray-900">Buat Laporan Baru</Text>
                 <Text className="text-xs text-gray-500 mt-1">Laporkan kejadian darurat segera</Text>
               </View>
               <TouchableOpacity
                 onPress={() => router.push({ pathname: '/(app)/emergency-report/new', params: { returnTo: '/(app)/emergency-report' } })}
                 className="w-10 h-10 rounded-full bg-red-500 items-center justify-center shadow-sm active:bg-red-600"
+                accessibilityRole="button"
+                accessibilityLabel="Buat laporan darurat baru"
+                accessible={true}
               >
                 <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>

@@ -3,6 +3,7 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { api } from "./api";
 
 // Konfigurasi handler notifikasi
 Notifications.setNotificationHandler({
@@ -83,4 +84,37 @@ export async function sendTestPushNotification(expoPushToken: string) {
     },
     body: JSON.stringify(message),
   });
+}
+
+// Types untuk Notification dari API
+export interface NotificationItem {
+  id: string;
+  message: string;
+  is_read: boolean;
+  link_to: string | null;
+  level: string;
+  type: string;
+  created_at: string;
+}
+
+export interface NotificationSummary {
+  unread_count: number;
+}
+
+// Fetch notifikasi dari API
+export async function fetchNotifications(): Promise<NotificationItem[]> {
+  const data = await api('notifications/', { method: 'GET' });
+  return Array.isArray(data) ? data : [];
+}
+
+// Fetch summary notifikasi (jumlah unread)
+export async function fetchNotificationSummary(): Promise<NotificationSummary> {
+  const data = await api('notifications/summary', { method: 'GET' });
+  return data as NotificationSummary;
+}
+
+// Mark notification as read
+export async function markNotificationAsRead(notificationId: string): Promise<NotificationItem> {
+  const data = await api(`notifications/${notificationId}/read`, { method: 'PATCH' });
+  return data as NotificationItem;
 }

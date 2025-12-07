@@ -35,6 +35,7 @@ export function Card({
     <View
       className={`rounded-xl p-4 ${variantClass} ${className}`}
       style={style as any}
+      accessible={false}
       {...rest}
     >
       {children}

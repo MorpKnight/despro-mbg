@@ -49,24 +49,35 @@ export default function CreateEmergencyReport() {
         setSubmitting(true);
 
         try {
+            const payload = {
+                title: values.title,
+                description: values.description || null,
+                students_affected_count: values.students_affected_count || null,
+                students_affected_description: values.students_affected_description || null,
+                gejala: values.gejala || null,
+            };
+            
+            console.log('[emergency-report] Submitting:', payload);
+            
             await api('emergency/reports', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    title: values.title,
-                    description: values.description,
-                    students_affected_count: values.students_affected_count,
-                    students_affected_description: values.students_affected_description,
-                    gejala: values.gejala,
-                }),
+                body: payload,
             });
             showSnackbar({ message: 'Laporan darurat berhasil dikirim.', variant: 'success' });
             router.replace('/(app)/emergency-report');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to submit emergency report', error);
-            showSnackbar({ message: 'Gagal mengirim laporan. Silakan coba lagi.', variant: 'error' });
+            let errorMessage = 'Gagal mengirim laporan. Silakan coba lagi.';
+            
+            if (error?.message) {
+                errorMessage = error.message;
+            } else if (error?.detail) {
+                errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            }
+            
+            showSnackbar({ message: errorMessage, variant: 'error' });
         } finally {
             setSubmitting(false);
         }
@@ -131,8 +142,11 @@ export default function CreateEmergencyReport() {
                                 name="students_affected_count"
                                 render={({ field: { value, onChange, onBlur } }) => (
                                     <TextInput
-                                        value={value?.toString()}
-                                        onChangeText={onChange}
+                                        value={value?.toString() || ''}
+                                        onChangeText={(text) => {
+                                            const num = text === '' ? null : parseInt(text, 10);
+                                            onChange(isNaN(num as number) ? null : num);
+                                        }}
                                         onBlur={onBlur}
                                         placeholder="0"
                                         keyboardType="numeric"

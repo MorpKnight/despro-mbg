@@ -96,9 +96,10 @@ export async function submitFeedback(payload: SubmitFeedbackPayload): Promise<Fe
   if (payload.menuId) body.menu_id = payload.menuId;
   if (payload.photoUrl) body.photo_url = payload.photoUrl; // Kirim URL CDN
 
+  // api.ts akan otomatis stringify body jika bukan string
   const data = await api('feedback/', {
     method: 'POST',
-    body: JSON.stringify(body), // Pastikan headers di api.ts otomatis handle Content-Type: application/json
+    body: body, // api.ts akan handle JSON.stringify dan Content-Type
   });
 
   return toFeedbackItem(data as RawFeedbackItem);
