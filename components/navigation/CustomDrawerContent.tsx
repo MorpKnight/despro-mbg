@@ -37,6 +37,7 @@ const MENU_STRUCTURE: DrawerSection[] = [
     roles: [USER_ROLES.SISWA],
     items: [
       { label: 'Riwayat Absensi', icon: 'calendar-outline', route: 'my-attendance' },
+      { label: 'Jadwal Menu', icon: 'restaurant-outline', route: 'student-menu-schedule' },
       { label: 'History Makanan', icon: 'fast-food-outline', route: 'food-history-student' },
     ],
   },
