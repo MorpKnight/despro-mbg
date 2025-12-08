@@ -23,7 +23,7 @@ export default function AdminSekolahDashboardPage() {
             <PageHeader
                 title="Dashboard Sekolah (Admin)"
                 subtitle="Pilih sekolah untuk melihat dashboard"
-                showBackButton={true}
+                showBackButton={false}
                 className="mx-6 mt-6"
             />
 

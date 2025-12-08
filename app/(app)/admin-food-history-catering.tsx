@@ -23,7 +23,7 @@ export default function AdminCateringFoodHistoryPage() {
             <PageHeader
                 title="History Menu Katering (Admin)"
                 subtitle="Pilih katering"
-                showBackButton={true}
+                showBackButton={false}
                 className="mx-6 mt-6"
             />
 

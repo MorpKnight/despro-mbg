@@ -207,7 +207,6 @@ export default function CateringManagementPage() {
                 <Text className="text-lg font-semibold text-gray-800 text-center">
                     Akses fitur ini khusus untuk Super Admin.
                 </Text>
-                <Button title="Kembali" onPress={() => router.back()} className="mt-4" />
             </SafeAreaView>
         );
     }
@@ -218,7 +217,7 @@ export default function CateringManagementPage() {
                 <PageHeader
                     title="Manajemen Katering"
                     subtitle={isEdgeMode ? "Read Only - Edge Mode" : "Kelola data penyedia katering"}
-                    showBackButton={true}
+                    showBackButton={false}
                     onRefresh={handleRefresh}
                     isRefreshing={refreshing}
                     rightAction={

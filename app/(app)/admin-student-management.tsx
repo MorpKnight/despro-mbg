@@ -23,7 +23,7 @@ export default function AdminStudentManagementPage() {
             <PageHeader
                 title="Kelola Siswa Sekolah"
                 subtitle="Pilih sekolah untuk mengelola siswa"
-                showBackButton={true}
+                showBackButton={false}
                 className="mx-6 mt-6"
             />
 

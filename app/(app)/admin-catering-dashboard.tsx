@@ -23,7 +23,7 @@ export default function AdminCateringDashboardPage() {
             <PageHeader
                 title="Dashboard Katering (Admin)"
                 subtitle="Pilih katering untuk melihat dashboard"
-                showBackButton={true}
+                showBackButton={false}
                 className="mx-6 mt-6"
             />
 

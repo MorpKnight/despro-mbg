@@ -23,7 +23,7 @@ export default function AdminSchoolFoodHistoryPage() {
             <PageHeader
                 title="History Makanan Sekolah (Admin)"
                 subtitle="Pilih sekolah"
-                showBackButton={true}
+                showBackButton={false}
                 className="mx-6 mt-6"
             />
 

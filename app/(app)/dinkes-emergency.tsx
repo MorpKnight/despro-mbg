@@ -91,7 +91,7 @@ export default function DinkesEmergencyPage() {
         <PageHeader
           title="Laporan Darurat Masuk"
           subtitle="Kelola status dan tindak lanjut laporan dari sekolah"
-          backPath={returnTo}
+          showBackButton={false}
           className="mb-6"
         />
 

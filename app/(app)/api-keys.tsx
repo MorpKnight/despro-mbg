@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Modal, Platform, ScrollView, Text, TouchableO
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import PageHeader from '../../components/ui/PageHeader';
 import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
 import { createApiKey, fetchApiKeys, revokeApiKey, type ApiKey } from '../../services/api-keys';
@@ -126,10 +127,9 @@ export default function ApiKeysPage() {
                     <Text className="text-xl font-bold text-gray-900 mt-4 text-center">
                         Fitur Tidak Tersedia
                     </Text>
-                    <Text className="text-gray-500 text-center mt-2 mb-6">
+                    <Text className="text-gray-500 text-center mt-2">
                         Manajemen API Key hanya dapat dilakukan di Server Pusat.
                     </Text>
-                    <Button title="Kembali" onPress={() => router.back()} variant="outline" />
                 </View>
             </SafeAreaView>
         );
@@ -137,25 +137,22 @@ export default function ApiKeysPage() {
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
-            <View className="flex-row items-center px-4 py-3 bg-white border-b border-gray-200">
-                <TouchableOpacity onPress={() => router.back()} className="mr-3">
-                    <Ionicons name="arrow-back" size={24} color="#1F2937" />
-                </TouchableOpacity>
-                <Text className="text-lg font-bold text-gray-900">Manajemen API Key</Text>
-            </View>
-
-            <ScrollView className="flex-1 p-4">
-                <View className="flex-row justify-between items-center mb-4">
-                    <Text className="text-gray-600">
-                        Kelola kunci akses untuk sinkronisasi server Edge.
-                    </Text>
-                    <Button
-                        title="Buat Baru"
-                        size="sm"
-                        icon={<Ionicons name="add" size={18} color="white" />}
-                        onPress={() => setShowCreateModal(true)}
-                    />
-                </View>
+            <View className="flex-1 p-6">
+                <PageHeader
+                    title="Manajemen API Key"
+                    subtitle="Kelola kunci akses untuk sinkronisasi server Edge"
+                    showBackButton={false}
+                    onRefresh={loadKeys}
+                    isRefreshing={loading}
+                    rightAction={
+                        <Button
+                            title="Buat Baru"
+                            size="sm"
+                            icon={<Ionicons name="add" size={18} color="white" />}
+                            onPress={() => setShowCreateModal(true)}
+                        />
+                    }
+                />
 
                 {loading ? (
                     <ActivityIndicator size="large" color="#2563EB" className="mt-8" />
@@ -196,7 +193,7 @@ export default function ApiKeysPage() {
                         ))}
                     </View>
                 )}
-            </ScrollView>
+            </View>
 
             {/* Create Modal */}
             <Modal

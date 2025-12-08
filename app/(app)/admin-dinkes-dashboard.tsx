@@ -23,7 +23,7 @@ export default function AdminDinkesDashboardPage() {
             <PageHeader
                 title="Dashboard Dinkes (Admin)"
                 subtitle="Pilih wilayah untuk melihat dashboard"
-                showBackButton={true}
+                showBackButton={false}
                 className="mx-6 mt-6"
             />
 
