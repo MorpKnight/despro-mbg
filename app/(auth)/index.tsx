@@ -24,7 +24,7 @@ import { registerForPushNotificationsAsync } from "../../services/notifications"
 import { api } from "@/services/api";
 
 export default function AuthIndex() {
-  const { user, loading, signIn } = useAuth();
+  const { user, loading, signIn, pending2FA } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -41,6 +41,13 @@ export default function AuthIndex() {
   useEffect(() => {
     getServerUrl().then(setServerUrlState);
   }, []);
+
+  // Redirect to 2FA setup when pending2FA is detected
+  useEffect(() => {
+    if (pending2FA) {
+      router.replace("/(auth)/2fa-setup");
+    }
+  }, [pending2FA]);
 
   const handleSaveSettings = async () => {
     if (!serverUrl.trim()) {

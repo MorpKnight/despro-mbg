@@ -112,22 +112,66 @@ export default function AppLayout() {
         }}
       >
         {/* Define all screens that should be accessible via Drawer */}
-        <Drawer.Screen name="index" options={{ title: 'Home' }} />
-        <Drawer.Screen name="portal-feedback" options={{ title: 'My Feedback' }} />
+        <Drawer.Screen name="index" options={{ title: 'Beranda' }} />
+        <Drawer.Screen name="portal-feedback" options={{ title: 'Umpan Balik Saya' }} />
 
         {/* Reports */}
-        <Drawer.Screen name="analytics" options={{ title: 'Analytics' }} />
-        <Drawer.Screen name="system-health" options={{ title: 'System Health' }} />
+        <Drawer.Screen name="analytics" options={{ title: 'Analitik' }} />
+        <Drawer.Screen name="system-health" options={{ title: 'Kesehatan Sistem' }} />
 
         {/* Settings */}
-        <Drawer.Screen name="settings" options={{ title: 'Settings' }} />
-        <Drawer.Screen name="notifications" options={{ title: 'Notifications' }} />
+        <Drawer.Screen name="settings" options={{ title: 'Pengaturan' }} />
+        <Drawer.Screen name="notifications" options={{ title: 'Notifikasi' }} />
 
-        {/* Hidden/Other */}
-        <Drawer.Screen name="details" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="explore" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="notifications/broadcast" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="assisted-attendance" options={{ drawerItemStyle: { display: 'none' } }} />
+        {/* Management Screens */}
+        <Drawer.Screen name="user-management" options={{ title: 'Manajemen Pengguna', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="school-management" options={{ title: 'Manajemen Sekolah', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="catering-management" options={{ title: 'Manajemen Katering', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="student-management" options={{ title: 'Manajemen Siswa', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="health-area-management" options={{ title: 'Manajemen Wilayah Kesehatan', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="association-management" options={{ title: 'Manajemen Asosiasi', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="api-keys" options={{ title: 'Kunci API', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="pending-approvals" options={{ title: 'Persetujuan Tertunda', drawerItemStyle: { display: 'none' } }} />
+
+        {/* Dashboard Screens */}
+        <Drawer.Screen name="admin-dashboard" options={{ title: 'Dashboard Admin', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="sekolah-dashboard" options={{ title: 'Dashboard Sekolah', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="catering-dashboard" options={{ title: 'Dashboard Katering', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="dinkes-dashboard" options={{ title: 'Dashboard Dinkes', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="admin-sekolah-dashboard" options={{ title: 'Dashboard Admin Sekolah', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="admin-catering-dashboard" options={{ title: 'Dashboard Admin Katering', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="admin-dinkes-dashboard" options={{ title: 'Dashboard Admin Dinkes', drawerItemStyle: { display: 'none' } }} />
+
+        {/* Attendance Screens */}
+        <Drawer.Screen name="attendance-scan" options={{ title: 'Pindai Kehadiran', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="attendance-nfc" options={{ title: 'Kehadiran NFC', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="attendance-history" options={{ title: 'Riwayat Kehadiran', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="student-attendance" options={{ title: 'Kehadiran Siswa', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="my-attendance" options={{ title: 'Kehadiran Saya', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="admin-attendance-history" options={{ title: 'Riwayat Kehadiran Admin', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="admin-student-management" options={{ title: 'Manajemen Siswa Admin', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="assisted-attendance" options={{ title: 'Kehadiran Terbimbing', drawerItemStyle: { display: 'none' } }} />
+
+        {/* Food History Screens */}
+        <Drawer.Screen name="food-history-school" options={{ title: 'Riwayat Menu Sekolah', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="food-history-catering" options={{ title: 'Riwayat Menu Katering', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="food-history-student" options={{ title: 'Riwayat Menu Siswa', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="admin-food-history-school" options={{ title: 'Riwayat Menu Sekolah Admin', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="admin-food-history-catering" options={{ title: 'Riwayat Menu Katering Admin', drawerItemStyle: { display: 'none' } }} />
+
+        {/* Feedback & Emergency Screens */}
+        <Drawer.Screen name="feedback-list" options={{ title: 'Daftar Umpan Balik', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="emergency-report" options={{ title: 'Laporan Darurat', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="dinkes-emergency" options={{ title: 'Darurat Dinkes', drawerItemStyle: { display: 'none' } }} />
+
+        {/* Other Hidden Screens */}
+        <Drawer.Screen name="details" options={{ title: 'Detail', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="explore" options={{ title: 'Telusuri', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="catering-menu-qc" options={{ title: 'QC Menu Katering', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="notifications/broadcast" options={{ title: 'Broadcast Notifikasi', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="menu/[id]" options={{ title: 'Detail Menu', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="dinkes-emergency/[id]" options={{ title: 'Detail Darurat', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="emergency-report/new" options={{ title: 'Laporan Darurat Baru', drawerItemStyle: { display: 'none' } }} />
       </Drawer>
     );
   }
@@ -172,7 +216,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Beranda',
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
           ),
@@ -182,7 +226,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Menu',
+          title: 'Telusuri',
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
           ),
@@ -195,7 +239,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Profile',
+          title: 'Profil',
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
           ),

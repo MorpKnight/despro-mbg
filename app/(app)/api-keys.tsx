@@ -140,7 +140,7 @@ export default function ApiKeysPage() {
             <View className="flex-1 p-6">
                 <PageHeader
                     title="Manajemen API Key"
-                    subtitle="Kelola kunci akses untuk sinkronisasi server Edge"
+                    subtitle="Kelola kunci untuk Server Edge (Raspberry Pi) di sekolah"
                     showBackButton={false}
                     onRefresh={loadKeys}
                     isRefreshing={loading}
@@ -153,6 +153,13 @@ export default function ApiKeysPage() {
                         />
                     }
                 />
+
+                <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex-row gap-2">
+                    <Ionicons name="information-circle" size={20} color="#2563EB" />
+                    <Text className="text-blue-800 text-sm flex-1">
+                        API Key ini digunakan oleh Server Edge untuk sinkronisasi data (presensi, feedback) ke Server Pusat. Bukan untuk login pengguna.
+                    </Text>
+                </View>
 
                 {loading ? (
                     <ActivityIndicator size="large" color="#2563EB" className="mt-8" />

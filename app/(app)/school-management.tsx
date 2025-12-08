@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Grid from '../../components/layout/Grid';
 import Button from '../../components/ui/Button';
 import DataCard from '../../components/ui/DataCard';
-import Dropdown from '../../components/ui/Dropdown';
+import Dropdown, { DropdownOption } from '../../components/ui/Dropdown';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
 import PageHeader from '../../components/ui/PageHeader';
@@ -25,7 +25,7 @@ import {
     HealthOfficeAreaItem,
     fetchHealthOfficeAreas,
 } from '../../services/healthOfficeAreas';
-import { DropdownOption } from '../../components/ui/Dropdown';
+
 import { fetchProvinces, fetchCities } from '../../services/regions';
 import {
     SchoolListItem,

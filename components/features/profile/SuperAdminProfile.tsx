@@ -7,6 +7,7 @@ import { usePreferences } from '../../../hooks/usePreferences';
 import { useNetworkMode } from '../../../hooks/useNetworkMode';
 import { useRouter } from 'expo-router';
 import Button from '../../../components/ui/Button';
+import { TwoFactorSettings } from './TwoFactorSettings';
 
 interface SuperAdminProfileProps {
     onChangePassword: () => void;
@@ -261,6 +262,12 @@ export function SuperAdminProfile({ onChangePassword }: SuperAdminProfileProps) 
                     </Card>
                 </View>
             )}
+
+            {/* 2FA Security Settings */}
+            <View>
+                <SectionHeader title="Keamanan 2FA" />
+                <TwoFactorSettings />
+            </View>
 
             {/* Server Sync - Not in Edge Mode */}
             {!isEdgeMode && (

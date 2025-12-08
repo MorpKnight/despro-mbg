@@ -11,7 +11,7 @@ import { api } from '../../services/api';
 interface PendingUser {
     id: string;
     username: string;
-    name: string;
+    full_name: string | null;  // Backend returns full_name, not name
     role: string;
     created_at: string;
     school_id?: string;
@@ -193,7 +193,7 @@ export default function PendingApprovalsPage() {
                                 <Ionicons name={getRoleIcon(item.role)} size={28} color="#6B7280" />
                             </View>
                             <View className="flex-1">
-                                <Text className="text-xl font-bold text-gray-900 mb-1">{item.name || 'Tanpa Nama'}</Text>
+                                <Text className="text-xl font-bold text-gray-900 mb-1">{item.full_name || 'Tanpa Nama'}</Text>
                                 <View className="flex-row items-center gap-2 mb-2">
                                     <Ionicons name="at" size={14} color="#6B7280" />
                                     <Text className="text-sm text-gray-600">{item.username}</Text>
@@ -261,7 +261,7 @@ export default function PendingApprovalsPage() {
 
                     {/* Content */}
                     <View className="flex-1">
-                        <Text className="text-base font-bold text-gray-900 mb-1">{item.name || 'Tanpa Nama'}</Text>
+                        <Text className="text-base font-bold text-gray-900 mb-1">{item.full_name || 'Tanpa Nama'}</Text>
                         <Text className="text-sm text-gray-600 mb-2">@{item.username}</Text>
 
                         <View className="flex-row items-center gap-2 mb-3">

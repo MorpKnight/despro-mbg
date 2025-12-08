@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useAuth } from '../../../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../../components/ui/Card';
+import { TwoFactorSettings } from './TwoFactorSettings';
 
 interface SchoolProfileProps {
     onChangePassword: () => void;
@@ -73,6 +74,9 @@ export function SchoolProfile({ onChangePassword }: SchoolProfileProps) {
                     )}
                 </View>
             </Card>
+
+            {/* 2FA Security Settings */}
+            <TwoFactorSettings />
 
             <Card className="p-4 space-y-4">
                 <Text className="text-lg font-bold text-gray-900 mb-2">Pengaturan Akun</Text>
