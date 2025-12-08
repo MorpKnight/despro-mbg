@@ -728,18 +728,18 @@ const SettingsModal = ({
           {testMessage ? (
             <View
               className={`mb-4 p-3 rounded-lg ${testStatus === "success"
-                  ? "bg-green-50 border border-green-200"
-                  : testStatus === "error"
-                    ? "bg-red-50 border border-red-200"
-                    : "bg-blue-50 border border-blue-200"
+                ? "bg-green-50 border border-green-200"
+                : testStatus === "error"
+                  ? "bg-red-50 border border-red-200"
+                  : "bg-blue-50 border border-blue-200"
                 }`}
             >
               <Text
                 className={`text-sm ${testStatus === "success"
-                    ? "text-green-700"
-                    : testStatus === "error"
-                      ? "text-red-700"
-                      : "text-blue-700"
+                  ? "text-green-700"
+                  : testStatus === "error"
+                    ? "text-red-700"
+                    : "text-blue-700"
                   }`}
               >
                 {testMessage}
