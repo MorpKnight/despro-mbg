@@ -157,6 +157,33 @@ const menuItems: MenuSection[] = [
                 background: 'bg-blue-50'
             },
             {
+                route: '/(app)/admin-sekolah-dashboard',
+                label: 'Dashboard Sekolah',
+                icon: 'school-outline',
+                description: 'Lihat dashboard sekolah',
+                roles: ['super_admin'],
+                color: '#0EA5E9',
+                background: 'bg-sky-50'
+            },
+            {
+                route: '/(app)/admin-catering-dashboard',
+                label: 'Dashboard Katering',
+                icon: 'restaurant-outline',
+                description: 'Lihat dashboard katering',
+                roles: ['super_admin'],
+                color: '#F97316',
+                background: 'bg-orange-50'
+            },
+            {
+                route: '/(app)/admin-dinkes-dashboard',
+                label: 'Dashboard Dinkes',
+                icon: 'medkit-outline',
+                description: 'Lihat dashboard dinas kesehatan',
+                roles: ['super_admin'],
+                color: '#10B981',
+                background: 'bg-emerald-50'
+            },
+            {
                 route: '/(app)/user-management',
                 label: 'Pengguna',
                 icon: 'people-outline',

@@ -36,11 +36,16 @@ function RatingStars({ rating }: { rating: number }) {
   );
 }
 
-export default function CateringDashboard() {
+interface CateringDashboardProps {
+  cateringId?: string; // Optional: If provided, uses this catering (from admin wrapper)
+}
+
+export default function CateringDashboard({ cateringId: propCateringId }: CateringDashboardProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [caterings, setCaterings] = useState<CateringListItem[]>([]);
-  const [selectedCateringId, setSelectedCateringId] = useState<string | null>(null);
+  // If cateringId is provided via prop (from admin wrapper), use it directly
+  const [selectedCateringId, setSelectedCateringId] = useState<string | null>(propCateringId ?? null);
   const [kpi, setKpi] = useState<CateringKpi | null>(null);
   const [trendData, setTrendData] = useState<SatisfactionTrend['data']>([]);
   const [trendLoading, setTrendLoading] = useState(false);
@@ -59,6 +64,13 @@ export default function CateringDashboard() {
 
   const isSuperAdmin = user?.role === 'super_admin';
   const isCateringAdmin = user?.role === 'admin_catering';
+
+  // Sync with prop when it changes
+  useEffect(() => {
+    if (propCateringId) {
+      setSelectedCateringId(propCateringId);
+    }
+  }, [propCateringId]);
 
   useEffect(() => {
     const handle = setTimeout(() => {

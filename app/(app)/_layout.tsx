@@ -1,16 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { Link, Redirect, Tabs } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import CustomDrawerContent from '../../components/navigation/CustomDrawerContent';
-import { ROLE_LABEL_EN, ROLE_LABEL_ID, type UserRoleValue } from '../../constants/roles';
 import { useAuth } from '../../hooks/useAuth';
 import { useOffline } from '../../hooks/useOffline';
-import { usePreferences } from '../../hooks/usePreferences';
-
-
 
 function ConnectivityPill() {
   const { isOnline } = useOffline();
@@ -21,6 +18,19 @@ function ConnectivityPill() {
         {isOnline ? 'Online' : 'Offline'}
       </Text>
     </View>
+  );
+}
+
+function HamburgerButton() {
+  const navigation = useNavigation();
+  return (
+    <Pressable
+      onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+      className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 items-center justify-center ml-4 active:bg-gray-100"
+      hitSlop={8}
+    >
+      <Ionicons name="menu" size={22} color="#374151" />
+    </Pressable>
   );
 }
 
@@ -71,7 +81,7 @@ export default function AppLayout() {
         drawerContent={(props: any) => <CustomDrawerContent {...props} />}
         screenOptions={{
           headerShown: true,
-          headerLeft: () => null,
+          headerLeft: () => <HamburgerButton />,
           headerRight: () => <HeaderActions />,
           headerStyle: {
             backgroundColor: '#FFFFFF',
@@ -86,9 +96,18 @@ export default function AppLayout() {
             fontWeight: '700',
             fontSize: 18,
             color: '#111827',
+            marginLeft: 8,
           },
-          drawerType: 'permanent',
-          drawerStyle: { width: 280, backgroundColor: '#F8FAFC', borderRightWidth: 1, borderRightColor: '#E2E8F0' },
+          drawerType: 'slide',
+          overlayColor: 'rgba(0, 0, 0, 0.4)',
+          drawerStyle: {
+            width: 300,
+            backgroundColor: '#F8FAFC',
+            borderRightWidth: 0,
+            // @ts-ignore - Web shadow support
+            boxShadow: Platform.OS === 'web' ? '4px 0 24px rgba(0, 0, 0, 0.12)' : undefined,
+          },
+          swipeEnabled: true,
           headerTintColor: '#111827',
         }}
       >
@@ -131,6 +150,7 @@ export default function AppLayout() {
           fontWeight: '700',
           fontSize: 18,
           color: '#111827',
+          marginLeft: 16,
         },
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
@@ -184,7 +204,7 @@ export default function AppLayout() {
 
       {/* Hide all other screens from Tab Bar but keep them accessible */}
       {[
-        'admin-attendance-history', 'admin-dashboard', 'admin-food-history-catering', 'admin-food-history-school', 'admin-student-management',
+        'admin-attendance-history', 'admin-catering-dashboard', 'admin-dashboard', 'admin-dinkes-dashboard', 'admin-food-history-catering', 'admin-food-history-school', 'admin-sekolah-dashboard', 'admin-student-management',
         'analytics', 'api-keys', 'assisted-attendance', 'association-management', 'attendance-history', 'attendance-nfc', 'attendance-scan',
         'catering-dashboard', 'catering-management', 'catering-menu-qc', 'details', 'dinkes-dashboard', 'dinkes-emergency', 'dinkes-emergency/[id]',
         'emergency-report', 'emergency-report/new', 'feedback-list', 'food-history-catering', 'food-history-school', 'food-history-student', 'health-area-management',
@@ -193,8 +213,6 @@ export default function AppLayout() {
       ].map(name => (
         <Tabs.Screen key={name} name={name} options={{ href: null, headerShown: false }} />
       ))}
-
-
     </Tabs>
   );
 }
