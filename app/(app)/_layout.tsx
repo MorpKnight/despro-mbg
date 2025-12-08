@@ -9,6 +9,7 @@ import { ROLE_LABEL_EN, ROLE_LABEL_ID, type UserRoleValue } from '../../constant
 import { useAuth } from '../../hooks/useAuth';
 import { useOffline } from '../../hooks/useOffline';
 import { usePreferences } from '../../hooks/usePreferences';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 
@@ -114,6 +115,7 @@ export default function AppLayout() {
   }
 
   return (
+     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }} edges={["top", "bottom"]}>
     <Tabs
       screenOptions={{
         headerShown: true,
@@ -177,7 +179,7 @@ export default function AppLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={36} color={color} />
           ),
         }}
       />
@@ -196,5 +198,6 @@ export default function AppLayout() {
 
 
     </Tabs>
+    </SafeAreaView>
   );
 }

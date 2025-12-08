@@ -3,10 +3,12 @@ import { DrawerContentComponentProps, DrawerContentScrollView } from '@react-nav
 import { Image } from 'expo-image';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, Text, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { USER_ROLES, type UserRoleValue } from '../../constants/roles';
 import { useAuth } from '../../hooks/useAuth';
+import { SafeAreaView } from "react-native-safe-area-context";
+
 
 type DrawerItem = {
   label: string;
@@ -160,22 +162,22 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   };
 
   return (
-    <View className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
       {/* Sidebar Header */}
-      <View
+      <SafeAreaView
         style={{ paddingTop: insets.top + 20, paddingBottom: 20, paddingHorizontal: 20 }}
         className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700"
       >
-        <View className="flex-row items-center space-x-3">
-          <View className="w-10 h-10 bg-blue-600 rounded-xl items-center justify-center shadow-sm">
+        <SafeAreaView className="flex-row items-center space-x-3">
+          <SafeAreaView className="w-10 h-10 bg-blue-600 rounded-xl items-center justify-center shadow-sm">
             <Ionicons name="grid" size={20} color="white" />
-          </View>
-          <View>
+          </SafeAreaView>
+          <SafeAreaView>
             <Text className="text-lg font-bold text-slate-900 dark:text-white">MBGlance</Text>
             <Text className="text-xs text-slate-500 dark:text-slate-400">Management Console</Text>
-          </View>
-        </View>
-      </View>
+          </SafeAreaView>
+        </SafeAreaView>
+      </SafeAreaView>
 
       {/* Scrollable Menu */}
       <DrawerContentScrollView
@@ -184,7 +186,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
         showsVerticalScrollIndicator={false}
       >
         {filteredSections.map((section: DrawerSection, index: number) => (
-          <View key={section.title} className="mb-6">
+          <SafeAreaView key={section.title} className="mb-6">
             <Pressable
               onPress={() => toggleSection(section.title)}
               className="flex-row items-center justify-between mb-2 px-2"
@@ -200,7 +202,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
             </Pressable>
 
             {expandedSections[section.title] && (
-              <View className="space-y-1">
+              <SafeAreaView className="space-y-1">
                 {section.items.map((item: DrawerItem) => {
                   const active = isActive(item.route);
                   return (
@@ -224,19 +226,19 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
                         {item.label}
                       </Text>
                       {active && (
-                        <View className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />
+                        <SafeAreaView className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />
                       )}
                     </Pressable>
                   );
                 })}
-              </View>
+              </SafeAreaView>
             )}
-          </View>
+          </SafeAreaView>
         ))}
       </DrawerContentScrollView>
 
       {/* User Profile Footer */}
-      <View
+      <SafeAreaView
         style={{ paddingBottom: insets.bottom + 16, paddingHorizontal: 16, paddingTop: 16 }}
         className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700"
       >
@@ -246,14 +248,14 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
             style={{ width: 40, height: 40, borderRadius: 20 }}
             contentFit="cover"
           />
-          <View className="ml-3 flex-1">
+          <SafeAreaView className="ml-3 flex-1">
             <Text className="text-sm font-semibold text-slate-900 dark:text-white" numberOfLines={1}>
               {user?.fullName || user?.username || 'User'}
             </Text>
             <Text className="text-xs text-slate-500 dark:text-slate-400 capitalize">
               {user?.role?.replace('_', ' ') || 'Guest'}
             </Text>
-          </View>
+          </SafeAreaView>
           <Pressable
             onPress={signOut}
             className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
@@ -261,7 +263,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
             <Ionicons name="log-out-outline" size={20} color="#EF4444" />
           </Pressable>
         </Pressable>
-      </View>
-    </View>
+      </SafeAreaView>
+    </SafeAreaView>
   );
 }
