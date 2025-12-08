@@ -86,6 +86,11 @@ export default function AuthIndex() {
     return (
       <>
       <View className="flex-1 bg-gray-50">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+
+          className="flex-1 justify-center p-6"
+        >
         <Image
           source={require("../../assets/images/logo.png")}
           style={{
@@ -99,10 +104,7 @@ export default function AuthIndex() {
           resizeMode="contain"
         />
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1 justify-center p-6"
-        >
+        
           <Animated.View
             entering={FadeInUp.delay(200).duration(1000).springify()}
             className="items-center mb-8"
@@ -143,10 +145,10 @@ export default function AuthIndex() {
                   Staf / Admin
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "student" ? "bg-white shadow-sm" : ""}`}
-                onPress={() => setLoginType("student")}
-              >
+            <TouchableOpacity
+  className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "student" ? "bg-blue-200" : ""}`}
+  onPress={() => setLoginType("student")}
+>
                 <Text
                   className={`font-medium ${loginType === "student" ? "text-blue-600" : "text-gray-500"}`}
                 >
@@ -219,59 +221,62 @@ export default function AuthIndex() {
               </View>
             </View>
 
-            <Button
-              title={loading ? "Memproses..." : "Masuk Sekarang"}
-              onPress={async () => {
-                try {
-                  setError(null);
+           <TouchableOpacity
+  className="w-full h-12 mt-2 bg-blue-600 rounded-xl items-center justify-center active:opacity-80"
+  onPress={async () => {
+    try {
+      setError(null);
 
-                  if (!username.trim()) {
-                    setUsernameError("Username wajib diisi");
-                    return;
-                  }
-                  if (!password) {
-                    setPasswordError("Password wajib diisi");
-                    return;
-                  }
+      if (!username.trim()) {
+        setUsernameError("Username wajib diisi");
+        return;
+      }
+      if (!password) {
+        setPasswordError("Password wajib diisi");
+        return;
+      }
 
-                  // 1. SIGN IN CALL
-                  await signIn(
-                    username.trim(),
-                    password,
-                    loginType === "student"
-                      ? "auth/login/student"
-                      : "auth/login"
-                  );
+      await signIn(
+        username.trim(),
+        password,
+        loginType === "student"
+          ? "auth/login/student"
+          : "auth/login"
+      );
 
-                  // 2. AFTER SUCCESSFUL LOGIN -> Register push token (only mobile)
-                  if (Platform.OS === "ios" || Platform.OS === "android") {
-                    try {
-                      const expoPushToken =
-                        await registerForPushNotificationsAsync();
+      if (Platform.OS === "ios" || Platform.OS === "android") {
+        try {
+          const expoPushToken =
+            await registerForPushNotificationsAsync();
 
-                      if (expoPushToken) {
-                        await api("profile/push-token", {
-                          method: "PATCH",
-                          body: JSON.stringify({
-                            token: expoPushToken,
-                          }),
-                        });
+          if (expoPushToken) {
+            await api("profile/push-token", {
+              method: "PATCH",
+              body: JSON.stringify({
+                token: expoPushToken,
+              }),
+            });
 
-                        console.log("Push token registered:", expoPushToken);
-                      } else {
-                        console.log("No expo push token available. Skipping.");
-                      }
-                    } catch (err) {
-                      console.log("Failed to register token:", err);
-                    }
-                  } else {
-                    console.log("Skipping push token registration on web/PC");
-                  }
-                } catch (e: any) {
-                  setError(e?.message || "Gagal masuk");
-                }
-              }}
-            />
+            console.log("Push token registered:", expoPushToken);
+          } else {
+            console.log("No expo push token available. Skipping.");
+          }
+        } catch (err) {
+          console.log("Failed to register token:", err);
+        }
+      } else {
+        console.log("Skipping push token registration on web/PC");
+      }
+    } catch (e: any) {
+      setError(e?.message || "Gagal masuk");
+    }
+  }}
+>
+  <Text className="text-white font-semibold text-base">
+    {loading ? "Memproses..." : "Masuk Sekarang"}
+  </Text>
+</TouchableOpacity>
+
           </Animated.View>
 
           <Animated.View
@@ -288,22 +293,18 @@ export default function AuthIndex() {
               </Text>
             </Text>
           </Animated.View>
-          <View className="mt-4">
+          {/* <View className="mt-4">
             <Button
               title="Test Notifikasi"
               variant="outline"
               fullWidth
               onPress={() => router.push("/(auth)/test")}
             />
-          </View>
+          </View> */}
+          
         </KeyboardAvoidingView>
       </View>
-      <Text className="text-white text-5xl font-bold leading-tight mb-6">
-        Monitoring Gizi,{'\n'}Masa Depan Bangsa
-      </Text>
-      <Text className="text-blue-100 text-xl leading-relaxed">
-        Platform terintegrasi untuk memantau distribusi dan kualitas Makan Bergizi Gratis di seluruh sekolah.
-      </Text>
+
     </>
     
   );
