@@ -12,7 +12,6 @@
       "supportsTablet": true
     },
     "android": {
-      "softwareKeyboardLayoutMode": "resize",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

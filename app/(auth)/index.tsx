@@ -87,7 +87,7 @@ export default function AuthIndex() {
       <>
       <View className="flex-1 bg-gray-50">
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "android" ? "padding" : "height"}
 
           className="flex-1 justify-center p-6"
         >
