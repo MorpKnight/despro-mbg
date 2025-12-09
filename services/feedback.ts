@@ -85,21 +85,20 @@ export async function fetchFeedbackList(params: FeedbackListParams = {}): Promis
   return list.map((item) => toFeedbackItem(item as RawFeedbackItem));
 }
 
-// [UBAH] Implementasi submit menggunakan JSON body, bukan FormData lagi
 export async function submitFeedback(payload: SubmitFeedbackPayload): Promise<FeedbackItem> {
-  // Kita kirim sebagai JSON karena sekarang hanya data teks & URL
-  const body: Record<string, any> = {
-    rating: payload.rating,
-  };
+  const form = new FormData();
+  form.append("rating", String(payload.rating));
+  if (payload.comment) form.append("comment", payload.comment);
+  if (payload.menuId) form.append("menu_id", payload.menuId);
+  if (payload.photoUrl) form.append("photo_url", payload.photoUrl);
 
-  if (payload.comment) body.comment = payload.comment;
-  if (payload.menuId) body.menu_id = payload.menuId;
-  if (payload.photoUrl) body.photo_url = payload.photoUrl; // Kirim URL CDN
-
-  const data = await api('feedback/', {
-    method: 'POST',
-    body: JSON.stringify(body), // Pastikan headers di api.ts otomatis handle Content-Type: application/json
+  const data = await api("feedback/", {
+    method: "POST",
+    body: form,
+    // IMPORTANT: prevent wrapper from adding JSON Content-Type
+    headers: {},
   });
 
   return toFeedbackItem(data as RawFeedbackItem);
 }
+
