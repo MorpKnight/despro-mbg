@@ -8,6 +8,13 @@ import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-nati
 import CustomDrawerContent from '../../components/navigation/CustomDrawerContent';
 import { useAuth } from '../../hooks/useAuth';
 import { useOffline } from '../../hooks/useOffline';
+<<<<<<< HEAD
+=======
+import { usePreferences } from '../../hooks/usePreferences';
+import { SafeAreaView } from "react-native-safe-area-context";
+
+
+>>>>>>> 6e66ea8a3a6d1ebb872a7eb232c4da7a8b42cfef
 
 function ConnectivityPill() {
   const { isOnline } = useOffline();
@@ -177,6 +184,7 @@ export default function AppLayout() {
   }
 
   return (
+     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }} edges={["top", "bottom"]}>
     <Tabs
       screenOptions={{
         headerShown: true,
@@ -241,7 +249,7 @@ export default function AppLayout() {
         options={{
           title: 'Profil',
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={36} color={color} />
           ),
         }}
       />
@@ -258,5 +266,6 @@ export default function AppLayout() {
         <Tabs.Screen key={name} name={name} options={{ href: null, headerShown: false }} />
       ))}
     </Tabs>
+    </SafeAreaView>
   );
 }

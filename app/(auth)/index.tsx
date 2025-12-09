@@ -92,6 +92,7 @@ export default function AuthIndex() {
   if (Platform.OS !== "web") {
     return (
       <>
+<<<<<<< HEAD
         <View className="flex-1 bg-gray-50">
           <Image
             source={require("../../assets/images/logo.png")}
@@ -119,6 +120,130 @@ export default function AuthIndex() {
                   source={require("../../assets/images/logo.png")}
                   style={{ width: 60, height: 60 }}
                   resizeMode="contain"
+=======
+      <View className="flex-1 bg-gray-50">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "android" ? "padding" : "height"}
+
+          className="flex-1 justify-center p-6"
+        >
+        <Image
+          source={require("../../assets/images/logo.png")}
+          style={{
+            width: 400,
+            height: 400,
+            position: "absolute",
+            top: -100,
+            right: -100,
+            opacity: 0.05,
+          }}
+          resizeMode="contain"
+        />
+
+        
+          <Animated.View
+            entering={FadeInUp.delay(200).duration(1000).springify()}
+            className="items-center mb-8"
+          >
+            <View className="w-24 h-24 bg-white rounded-3xl shadow-lg items-center justify-center mb-4 border border-gray-100">
+              <Image
+                source={require("../../assets/images/logo.png")}
+                style={{ width: 60, height: 60 }}
+                resizeMode="contain"
+              />
+            </View>
+            <Text className="text-3xl font-bold text-gray-900">MBGlance</Text>
+            <Text className="text-gray-500 mt-2 text-center px-8">
+              Sistem Monitoring Makan Bergizi Gratis
+            </Text>
+          </Animated.View>
+
+          <Animated.View
+            entering={FadeInDown.delay(400).duration(1000).springify()}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 gap-4"
+          >
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-xl font-bold text-gray-900">Masuk</Text>
+              <TouchableOpacity onPress={() => setShowSettings(true)}>
+                <Icon name="settings-outline" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Login Type Toggle */}
+            <View className="flex-row mb-2 bg-gray-100 p-1 rounded-xl">
+              <TouchableOpacity
+                className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "staff" ? "bg-white shadow-sm" : ""}`}
+                onPress={() => setLoginType("staff")}
+              >
+                <Text
+                  className={`font-medium ${loginType === "staff" ? "text-blue-600" : "text-gray-500"}`}
+                >
+                  Staf / Admin
+                </Text>
+              </TouchableOpacity>
+            <TouchableOpacity
+  className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "student" ? "bg-blue-200" : ""}`}
+  onPress={() => setLoginType("student")}
+>
+                <Text
+                  className={`font-medium ${loginType === "student" ? "text-blue-600" : "text-gray-500"}`}
+                >
+                  Siswa
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <SettingsModal
+              visible={showSettings}
+              onClose={() => setShowSettings(false)}
+              serverUrl={serverUrl}
+              setServerUrl={setServerUrlState}
+              onPing={handlePing}
+              onSave={handleSaveSettings}
+            />
+
+            {error ? (
+              <Animated.View
+                entering={FadeInDown}
+                className="bg-red-50 p-3 rounded-xl border border-red-100"
+              >
+                <Text className="text-red-600 text-sm text-center">
+                  {error}
+                </Text>
+              </Animated.View>
+            ) : null}
+
+            <View>
+              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">
+                Username
+              </Text>
+              <TextInput
+                placeholder="Masukkan username"
+                value={username}
+                onChangeText={(t) => {
+                  setUsername(t);
+                  if (usernameError) setUsernameError(null);
+                }}
+                autoCapitalize="none"
+                className="bg-gray-50 border-gray-200 focus:border-primary focus:bg-white transition-all"
+              />
+            </View>
+
+            <View>
+              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">
+                Password
+              </Text>
+              <View className="relative">
+                <TextInput
+                  placeholder="Masukkan password"
+                  value={password}
+                  onChangeText={(t) => {
+                    setPassword(t);
+                    if (passwordError) setPasswordError(null);
+                  }}
+                  secureTextEntry={!showPassword}
+                  className="bg-gray-50 border-gray-200 focus:border-primary focus:bg-white transition-all"
+>>>>>>> 6e66ea8a3a6d1ebb872a7eb232c4da7a8b42cfef
                 />
               </View>
               <Text className="text-3xl font-bold text-gray-900">MBGlance</Text>
@@ -138,6 +263,7 @@ export default function AuthIndex() {
                 </TouchableOpacity>
               </View>
 
+<<<<<<< HEAD
               {/* Login Type Toggle */}
               <View className="flex-row mb-2 bg-gray-100 p-1 rounded-xl">
                 <TouchableOpacity
@@ -240,6 +366,65 @@ export default function AuthIndex() {
                       setPasswordError("Password wajib diisi");
                       return;
                     }
+=======
+           <TouchableOpacity
+  className="w-full h-12 mt-2 bg-blue-600 rounded-xl items-center justify-center active:opacity-80"
+  onPress={async () => {
+    try {
+      setError(null);
+
+      if (!username.trim()) {
+        setUsernameError("Username wajib diisi");
+        return;
+      }
+      if (!password) {
+        setPasswordError("Password wajib diisi");
+        return;
+      }
+
+      await signIn(
+        username.trim(),
+        password,
+        loginType === "student"
+          ? "auth/login/student"
+          : "auth/login"
+      );
+
+      if (Platform.OS === "ios" || Platform.OS === "android") {
+        try {
+          const expoPushToken =
+            await registerForPushNotificationsAsync();
+
+          if (expoPushToken) {
+            await api("profile/push-token", {
+              method: "PATCH",
+              body: JSON.stringify({
+                token: expoPushToken,
+              }),
+            });
+
+            console.log("Push token registered:", expoPushToken);
+          } else {
+            console.log("No expo push token available. Skipping.");
+          }
+        } catch (err) {
+          console.log("Failed to register token:", err);
+        }
+      } else {
+        console.log("Skipping push token registration on web/PC");
+      }
+    } catch (e: any) {
+      setError(e?.message || "Gagal masuk");
+    }
+  }}
+>
+  <Text className="text-white font-semibold text-base">
+    {loading ? "Memproses..." : "Masuk Sekarang"}
+  </Text>
+</TouchableOpacity>
+
+          </Animated.View>
+>>>>>>> 6e66ea8a3a6d1ebb872a7eb232c4da7a8b42cfef
 
                     // 1. SIGN IN CALL
                     await signIn(
@@ -294,6 +479,7 @@ export default function AuthIndex() {
                   Daftar
                 </Text>
               </Text>
+<<<<<<< HEAD
             </Animated.View>
             <View className="mt-4">
               <Button
@@ -314,6 +500,25 @@ export default function AuthIndex() {
       </>
 
     );
+=======
+            </Text>
+          </Animated.View>
+          {/* <View className="mt-4">
+            <Button
+              title="Test Notifikasi"
+              variant="outline"
+              fullWidth
+              onPress={() => router.push("/(auth)/test")}
+            />
+          </View> */}
+          
+        </KeyboardAvoidingView>
+      </View>
+
+    </>
+    
+  );
+>>>>>>> 6e66ea8a3a6d1ebb872a7eb232c4da7a8b42cfef
   }
   return (
     <View className="bg-gray-50 min-h-screen flex-row">
