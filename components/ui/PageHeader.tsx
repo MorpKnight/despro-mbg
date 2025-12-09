@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { ReactNode } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { useAuth } from '../../hooks/useAuth';
 import RefreshButton from './RefreshButton';
 
 interface PageHeaderProps {
@@ -27,7 +26,6 @@ export default function PageHeader({
     backPath,
 }: PageHeaderProps) {
     const router = useRouter();
-    const { isEdgeMode } = useAuth();
 
     return (
         <View className={`flex-row items-center justify-between mb-6 ${className}`}>
@@ -49,11 +47,6 @@ export default function PageHeader({
                     {subtitle && (
                         <Text className="text-base text-gray-600 mt-0.5" numberOfLines={1}>
                             {subtitle}
-                        </Text>
-                    )}
-                    {isEdgeMode && (
-                        <Text className="text-orange-600 font-bold text-xs mt-1">
-                            Read Only - Edge Mode
                         </Text>
                     )}
                 </View>

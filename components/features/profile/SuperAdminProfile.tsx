@@ -64,7 +64,7 @@ function SettingItem({
 }
 
 export function SuperAdminProfile({ onChangePassword }: SuperAdminProfileProps) {
-    const { user, signOut, isEdgeMode } = useAuth();
+    const { user, signOut } = useAuth();
     const router = useRouter();
     const { setDarkMode, isEnglish, setLanguage, t } = usePreferences();
     const { currentMode, localIp, toggleMode, setLocalIpAddress, canUseLocal, isReady } = useNetworkMode();
@@ -268,23 +268,6 @@ export function SuperAdminProfile({ onChangePassword }: SuperAdminProfileProps) 
                 <SectionHeader title="Keamanan 2FA" />
                 <TwoFactorSettings />
             </View>
-
-            {/* Server Sync - Not in Edge Mode */}
-            {!isEdgeMode && (
-                <View>
-                    <SectionHeader title="Sinkronisasi Server" />
-                    <Card className="p-0 overflow-hidden">
-                        <SettingItem
-                            icon="key-outline"
-                            iconColor="#2563EB"
-                            iconBg="bg-blue-50"
-                            label="Kelola API Keys"
-                            onPress={() => router.push('/(app)/api-keys')}
-                            isLast
-                        />
-                    </Card>
-                </View>
-            )}
 
             {/* Account Settings */}
             <View>

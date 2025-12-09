@@ -28,3 +28,19 @@ export async function fetchAssociations(params?: { sekolah_id?: string; catering
         method: 'GET',
     });
 }
+
+export async function createAssociation(sekolahId: string, cateringId: string): Promise<Association> {
+    return api('associations/', {
+        method: 'POST',
+        body: JSON.stringify({
+            sekolah_id: sekolahId,
+            catering_id: cateringId,
+        }),
+    });
+}
+
+export async function deleteAssociation(associationId: string): Promise<void> {
+    return api(`associations/${associationId}`, {
+        method: 'DELETE',
+    });
+}

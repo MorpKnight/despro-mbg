@@ -12,7 +12,6 @@ import { usePreferences } from '../../hooks/usePreferences';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
-
 function ConnectivityPill() {
   const { isOnline } = useOffline();
   return (
@@ -134,7 +133,6 @@ export default function AppLayout() {
         <Drawer.Screen name="student-management" options={{ title: 'Manajemen Siswa', drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="health-area-management" options={{ title: 'Manajemen Wilayah Kesehatan', drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="association-management" options={{ title: 'Manajemen Asosiasi', drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="api-keys" options={{ title: 'Kunci API', drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="pending-approvals" options={{ title: 'Persetujuan Tertunda', drawerItemStyle: { display: 'none' } }} />
 
         {/* Dashboard Screens */}
@@ -181,88 +179,88 @@ export default function AppLayout() {
   }
 
   return (
-     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }} edges={["top", "bottom"]}>
-    <Tabs
-      screenOptions={{
-        headerShown: true,
-        headerRight: () => <HeaderActions />,
-        headerStyle: {
-          backgroundColor: '#FFFFFF',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-          elevation: 2,
-          borderBottomWidth: 0,
-        },
-        headerTitleStyle: {
-          fontWeight: '700',
-          fontSize: 18,
-          color: '#111827',
-          marginLeft: 16,
-        },
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#F1F5F9',
-          height: Platform.OS === 'ios' ? 88 : 68,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 12,
-          paddingTop: 12,
-        },
-        tabBarActiveTintColor: '#2563EB',
-        tabBarInactiveTintColor: '#64748B',
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-          marginTop: 4,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Beranda',
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
-          ),
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }} edges={["top", "bottom"]}>
+      <Tabs
+        screenOptions={{
+          headerShown: true,
+          headerRight: () => <HeaderActions />,
+          headerStyle: {
+            backgroundColor: '#FFFFFF',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 2,
+            elevation: 2,
+            borderBottomWidth: 0,
+          },
+          headerTitleStyle: {
+            fontWeight: '700',
+            fontSize: 18,
+            color: '#111827',
+            marginLeft: 16,
+          },
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 1,
+            borderTopColor: '#F1F5F9',
+            height: Platform.OS === 'ios' ? 88 : 68,
+            paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+            paddingTop: 12,
+          },
+          tabBarActiveTintColor: '#2563EB',
+          tabBarInactiveTintColor: '#64748B',
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+            marginTop: 4,
+          },
         }}
-      />
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Beranda',
+            tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+              <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Telusuri',
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
-            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="explore"
+          options={{
+            title: 'Telusuri',
+            tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+              <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
+            ),
+          }}
+        />
 
-      {/* Role specific tabs */}
+        {/* Role specific tabs */}
 
 
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Profil',
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={36} color={color} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'Profil',
+            tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+              <Ionicons name={focused ? 'person' : 'person-outline'} size={36} color={color} />
+            ),
+          }}
+        />
 
-      {/* Hide all other screens from Tab Bar but keep them accessible */}
-      {[
-        'admin-attendance-history', 'admin-catering-dashboard', 'admin-dashboard', 'admin-dinkes-dashboard', 'admin-food-history-catering', 'admin-food-history-school', 'admin-sekolah-dashboard', 'admin-student-management',
-        'analytics', 'api-keys', 'assisted-attendance', 'association-management', 'attendance-history', 'attendance-nfc', 'attendance-scan',
-        'catering-dashboard', 'catering-management', 'catering-menu-qc', 'details', 'dinkes-dashboard', 'dinkes-emergency', 'dinkes-emergency/[id]',
-        'emergency-report', 'emergency-report/new', 'feedback-list', 'food-history-catering', 'food-history-school', 'food-history-student', 'health-area-management',
-        'menu/[id]', 'my-attendance', 'notifications', 'notifications/broadcast', 'pending-approvals', 'portal-feedback',
-        'school-management', 'sekolah-dashboard', 'student-attendance', 'student-management', 'system-health', 'user-management'
-      ].map(name => (
-        <Tabs.Screen key={name} name={name} options={{ href: null, headerShown: false }} />
-      ))}
-    </Tabs>
+        {/* Hide all other screens from Tab Bar but keep them accessible */}
+        {[
+          'admin-attendance-history', 'admin-catering-dashboard', 'admin-dashboard', 'admin-dinkes-dashboard', 'admin-food-history-catering', 'admin-food-history-school', 'admin-sekolah-dashboard', 'admin-student-management',
+          'analytics', 'assisted-attendance', 'association-management', 'attendance-history', 'attendance-nfc', 'attendance-scan',
+          'catering-dashboard', 'catering-management', 'catering-menu-qc', 'details', 'dinkes-dashboard', 'dinkes-emergency', 'dinkes-emergency/[id]',
+          'emergency-report', 'emergency-report/new', 'feedback-list', 'food-history-catering', 'food-history-school', 'food-history-student', 'health-area-management',
+          'menu/[id]', 'my-attendance', 'notifications', 'notifications/broadcast', 'pending-approvals', 'portal-feedback',
+          'school-management', 'sekolah-dashboard', 'student-attendance', 'student-management', 'student-menu-schedule', 'system-health', 'user-management'
+        ].map(name => (
+          <Tabs.Screen key={name} name={name} options={{ href: null, headerShown: false }} />
+        ))}
+      </Tabs>
     </SafeAreaView>
   );
 }

@@ -29,7 +29,17 @@
     "web": {
       "output": "static",
       "favicon": "./assets/images/logo.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "name": "MBG-lance",
+      "shortName": "MBG",
+      "description": "Sistem Monitoring Makanan Bergizi Gratis untuk Sekolah",
+      "lang": "id",
+      "themeColor": "#2563EB",
+      "backgroundColor": "#f5f7fb",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "scope": "/"
     },
     "plugins": [
       "expo-router",

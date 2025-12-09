@@ -9,6 +9,9 @@ node_modules/
 dist/
 web-build/
 
+# Tauri
+src-tauri/target/
+
 # Native builds
 ios/
 android/

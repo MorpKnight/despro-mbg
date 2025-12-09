@@ -1,0 +1,32 @@
+{
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "MBG-lance",
+    "version": "1.0.0",
+    "identifier": "com.mbglance.app",
+    "build": {
+        "beforeDevCommand": "npx serve dist -l 3000",
+        "devUrl": "http://localhost:3000",
+        "beforeBuildCommand": "npx expo export -p web",
+        "frontendDist": "../dist"
+    },
+    "app": {
+        "windows": [
+            {
+                "title": "MBG-lance - Monitoring Makanan Bergizi",
+                "width": 1200,
+                "height": 800,
+                "resizable": true,
+                "fullscreen": false,
+                "center": true
+            }
+        ],
+        "security": {
+            "csp": null
+        }
+    },
+    "bundle": {
+        "active": true,
+        "targets": "all",
+        "icon": []
+    }
+}
