@@ -26,6 +26,7 @@ interface RawProfile {
   school_id?: string | null;
   catering_id?: string | null;
   health_office_area?: string | null;
+  email?: string | null;
   sekolah?: RawRelatedEntity | null;
   catering?: RawRelatedEntity | null;
 }
@@ -39,6 +40,7 @@ export interface Profile {
   schoolId: string | null;
   cateringId: string | null;
   healthOfficeArea: string | null;
+  email: string | null;
   sekolah: RelatedEntity | null;
   catering: RelatedEntity | null;
 }
@@ -65,6 +67,7 @@ function mapProfile(raw: RawProfile): Profile {
     schoolId: raw.school_id ?? null,
     cateringId: raw.catering_id ?? null,
     healthOfficeArea: raw.health_office_area ?? null,
+    email: raw.email ?? null,
     sekolah: mapRelated(raw.sekolah),
     catering: mapRelated(raw.catering),
   };
@@ -77,6 +80,7 @@ export async function fetchMyProfile(): Promise<Profile> {
 
 export interface UpdateProfilePayload {
   fullName?: string | null;
+  email?: string | null;
   healthOfficeArea?: string | null;
 }
 
@@ -85,6 +89,10 @@ export async function updateMyProfile(updates: UpdateProfilePayload): Promise<Pr
 
   if ('fullName' in updates) {
     body.full_name = updates.fullName ?? null;
+  }
+
+  if ('email' in updates) {
+    body.email = updates.email ?? null;
   }
 
   if ('healthOfficeArea' in updates) {
