@@ -50,6 +50,7 @@ const MENU_STRUCTURE: DrawerSection[] = [
       { label: 'Kelola Siswa', icon: 'people-outline', route: 'student-management' },
       { label: 'Riwayat Absensi', icon: 'calendar-outline', route: 'attendance-history' },
       { label: 'History Makanan', icon: 'fast-food-outline', route: 'food-history-school' },
+      { label: 'Asosiasi Katering', icon: 'git-network-outline', route: 'association-management' },
     ],
   },
   {
@@ -85,6 +86,7 @@ const MENU_STRUCTURE: DrawerSection[] = [
       { label: 'Daily Attendance', icon: 'calendar-outline', route: 'student-attendance', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
       { label: 'Menu QC', icon: 'clipboard-outline', route: 'catering-menu-qc', roles: [USER_ROLES.ADMIN_CATERING, USER_ROLES.SUPER_ADMIN] },
       { label: 'Food History', icon: 'fast-food-outline', route: 'food-history-catering', roles: [USER_ROLES.ADMIN_CATERING] },
+      { label: 'Asosiasi Sekolah', icon: 'git-network-outline', route: 'association-management', roles: [USER_ROLES.ADMIN_CATERING] },
       { label: 'Emergency Reports', icon: 'warning-outline', route: 'emergency-report', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
       { label: 'Health Reports', icon: 'document-text-outline', route: 'dinkes-emergency', roles: [USER_ROLES.ADMIN_DINKES, USER_ROLES.SUPER_ADMIN] },
       { label: 'Feedback', icon: 'chatbubbles-outline', route: 'feedback-list', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },

@@ -142,6 +142,24 @@ const menuItems: MenuSection[] = [
                 color: '#8B5CF6',
                 background: 'bg-violet-50'
             },
+            {
+                route: '/(app)/student-menu-schedule',
+                label: 'Jadwal Menu',
+                icon: 'calendar-number-outline',
+                description: 'Lihat jadwal menu harian',
+                roles: ['siswa'],
+                color: '#06B6D4',
+                background: 'bg-cyan-50'
+            },
+            {
+                route: '/(app)/association-management',
+                label: 'Asosiasi Katering',
+                icon: 'git-network-outline',
+                description: 'Kelola hubungan sekolah-katering',
+                roles: ['admin_sekolah', 'admin_catering', 'super_admin'],
+                color: '#8B5CF6',
+                background: 'bg-violet-50'
+            },
         ]
     },
     {
