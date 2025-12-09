@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   frontend:
@@ -7,11 +7,19 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - EXPO_PUBLIC_API_URL=https://mbg-be.mrt.qzz.io/api/v1/docs
+        # API URL tanpa /docs
+        - EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL:-https://mbg-be.mrt.qzz.io/api/v1}
+    # Uncomment untuk akses langsung tanpa cloudflared
     # ports:
-    #   - "8080:80"
+    #   - "8080:8080"
     environment:
-      - EXPO_PUBLIC_API_URL=https://mbg-be.mrt.qzz.io/api/v1/docs
+      - EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL:-https://mbg-be.mrt.qzz.io/api/v1}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - cloudflared-private
     restart: always

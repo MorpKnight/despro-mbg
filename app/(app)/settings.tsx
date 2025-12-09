@@ -104,7 +104,7 @@ function getAccountStatusKey(status?: string) {
 }
 
 export default function SettingsScreen() {
-  const { user, signOut, refreshProfile, isEdgeMode } = useAuth();
+  const { user, signOut, refreshProfile } = useAuth();
   const router = useRouter();
   const { setDarkMode, isEnglish, setLanguage, t } = usePreferences();
   const { isMobile } = useResponsive();
@@ -127,11 +127,11 @@ export default function SettingsScreen() {
 
   const placeholderColor = '#9CA3AF';
   const canEditHealthOffice = user?.role === 'admin_dinkes';
-  // isAdmin logic simplified: canSeeNetworkSection usage now delegated to components or handled differently
+  // Network mode state variables
   const canSeeNetworkSection = user?.role === 'admin_sekolah' || user?.role === 'admin_catering';
-  // const networkToggleDisabled = !canUseLocal || !isReady || modePending; // Moved to components
-  // const isLocalMode = currentMode === 'LOCAL'; // Moved to components
-  // const canSaveLocalIp = localIpDraft.trim().length > 0; // Moved to components
+  const isLocalMode = currentMode === 'LOCAL';
+  const networkToggleDisabled = !canUseLocal || !isReady || modePending;
+  const canSaveLocalIp = localIpDraft.trim().length > 0;
 
 
   useEffect(() => {
@@ -837,23 +837,6 @@ export default function SettingsScreen() {
                         className="mt-3"
                       />
                     </View>
-                  </View>
-                </>
-              )}
-
-              {/* Server Sync - Admin Only & Not Edge */}
-              {isAdmin && !isEdgeMode && (
-                <>
-                  <SectionHeader title="Sinkronisasi Server" />
-                  <View className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-                    <SettingItem
-                      icon="key-outline"
-                      iconColor="#2563EB"
-                      iconBg="bg-blue-50"
-                      label="Kelola API Keys"
-                      onPress={() => router.push('/(app)/api-keys' as any)}
-                      isLast
-                    />
                   </View>
                 </>
               )}

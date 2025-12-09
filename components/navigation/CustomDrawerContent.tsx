@@ -62,7 +62,6 @@ const MENU_STRUCTURE: DrawerSection[] = [
       { label: 'Catering Management', icon: 'nutrition-outline', route: 'catering-management' },
       { label: 'Health Areas', icon: 'map-outline', route: 'health-area-management' },
       { label: 'Associations', icon: 'git-network-outline', route: 'association-management' },
-      { label: 'API Keys', icon: 'key-outline', route: 'api-keys' },
       { label: 'Approvals', icon: 'shield-checkmark-outline', route: 'pending-approvals' },
     ],
   },

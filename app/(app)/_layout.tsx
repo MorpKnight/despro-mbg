@@ -133,7 +133,6 @@ export default function AppLayout() {
         <Drawer.Screen name="student-management" options={{ title: 'Manajemen Siswa', drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="health-area-management" options={{ title: 'Manajemen Wilayah Kesehatan', drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="association-management" options={{ title: 'Manajemen Asosiasi', drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="api-keys" options={{ title: 'Kunci API', drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="pending-approvals" options={{ title: 'Persetujuan Tertunda', drawerItemStyle: { display: 'none' } }} />
 
         {/* Dashboard Screens */}
@@ -253,7 +252,7 @@ export default function AppLayout() {
         {/* Hide all other screens from Tab Bar but keep them accessible */}
         {[
           'admin-attendance-history', 'admin-catering-dashboard', 'admin-dashboard', 'admin-dinkes-dashboard', 'admin-food-history-catering', 'admin-food-history-school', 'admin-sekolah-dashboard', 'admin-student-management',
-          'analytics', 'api-keys', 'assisted-attendance', 'association-management', 'attendance-history', 'attendance-nfc', 'attendance-scan',
+          'analytics', 'assisted-attendance', 'association-management', 'attendance-history', 'attendance-nfc', 'attendance-scan',
           'catering-dashboard', 'catering-management', 'catering-menu-qc', 'details', 'dinkes-dashboard', 'dinkes-emergency', 'dinkes-emergency/[id]',
           'emergency-report', 'emergency-report/new', 'feedback-list', 'food-history-catering', 'food-history-school', 'food-history-student', 'health-area-management',
           'menu/[id]', 'my-attendance', 'notifications', 'notifications/broadcast', 'pending-approvals', 'portal-feedback',
