@@ -1,11 +1,27 @@
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, Image, Text, View } from "react-native";
-import { AuthLayout } from "../../components/auth/AuthLayout";
-import { LoginForm } from "../../components/auth/LoginForm";
-import { SettingsModal } from "../../components/auth/SettingsModal";
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Button from "../../components/ui/Button";
+import Icon from "../../components/ui/Icon";
+import TextInput from "../../components/ui/TextInput";
 import { useAuth } from "../../hooks/useAuth";
-import { getServerUrl, setServerUrl } from "../../services/storage";
+import {
+  getServerUrl,
+  normalizeServerUrl,
+  setServerUrl,
+} from "../../services/storage";
+import { registerForPushNotificationsAsync } from "../../services/notifications";
+import { api } from "@/services/api";
 
 export default function AuthIndex() {
   const { user, loading, signIn } = useAuth();
@@ -34,13 +50,19 @@ export default function AuthIndex() {
     try {
       // Basic URL validation
       new URL(serverUrl);
-      await setServerUrl(serverUrl);
+      const normalized = normalizeServerUrl(serverUrl);
+      await setServerUrl(normalized);
+      setServerUrlState(normalized);
       Alert.alert("Success", "Server URL updated successfully");
       setShowSettings(false);
     } catch (e) {
       Alert.alert("Error", "Invalid URL format");
     }
   };
+
+  if (!loading && user) {
+    return <Redirect href="/(app)" />;
+  }
 
   const handlePing = async () => {
     if (!serverUrl.trim()) return;
@@ -49,7 +71,10 @@ export default function AuthIndex() {
       if (response.ok) {
         Alert.alert("Success", "Server is reachable!");
       } else {
-        Alert.alert("Warning", `Server reachable but returned ${response.status}`);
+        Alert.alert(
+          "Warning",
+          `Server reachable but returned ${response.status}`
+        );
       }
     } catch (e) {
       Alert.alert("Error", "Could not connect to server");
@@ -60,172 +85,55 @@ export default function AuthIndex() {
   if (Platform.OS !== "web") {
     return (
       <>
-<<<<<<< HEAD
-    <View className="flex-1 bg-gray-50">
-      <Image
-        source={require("../../assets/images/logo.png")}
-        style={{
-          width: 400,
-          height: 400,
-          position: "absolute",
-          top: -100,
-          right: -100,
-          opacity: 0.05,
-        }}
-        resizeMode="contain"
-      />
+        <View className="flex-1 bg-gray-50">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "android" ? "padding" : "height"}
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 justify-center p-6"
-      >
-        <Animated.View
-          entering={FadeInUp.delay(200).duration(1000).springify()}
-          className="items-center mb-8"
-        >
-          <View className="w-24 h-24 bg-white rounded-3xl shadow-lg items-center justify-center mb-4 border border-gray-100">
+            className="flex-1 justify-center p-6"
+          >
             <Image
               source={require("../../assets/images/logo.png")}
-              style={{ width: 60, height: 60 }}
+              style={{
+                width: 400,
+                height: 400,
+                position: "absolute",
+                top: -100,
+                right: -100,
+                opacity: 0.05,
+              }}
               resizeMode="contain"
-=======
-      <View className="flex-1 bg-gray-50">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "android" ? "padding" : "height"}
-
-          className="flex-1 justify-center p-6"
-        >
-        <Image
-          source={require("../../assets/images/logo.png")}
-          style={{ width: 50, height: 50 }}
-          resizeMode="contain"
-        />
-
-
-          <Animated.View
-            entering={FadeInUp.delay(200).duration(1000).springify()}
-            className="items-center mb-8"
-          >
-            <View className="w-24 h-24 bg-white rounded-3xl shadow-lg items-center justify-center mb-4 border border-gray-100">
-              <Image
-                source={require("../../assets/images/logo.png")}
-                style={{ width: 60, height: 60 }}
-                resizeMode="contain"
-              />
-            </View>
-            <Text className="text-3xl font-bold text-gray-900">MBGlance</Text>
-            <Text className="text-gray-500 mt-2 text-center px-8">
-              Sistem Monitoring Makan Bergizi Gratis
-            </Text>
-          </Animated.View>
-
-          <Animated.View
-            entering={FadeInDown.delay(400).duration(1000).springify()}
-            className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 gap-4"
-          >
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-xl font-bold text-gray-900">Masuk</Text>
-              <TouchableOpacity onPress={() => setShowSettings(true)}>
-                <Icon name="settings-outline" size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Login Type Toggle */}
-            <View className="flex-row mb-2 bg-gray-100 p-1 rounded-xl">
-              <TouchableOpacity
-                className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "staff" ? "bg-white shadow-sm" : ""}`}
-                onPress={() => setLoginType("staff")}
-              >
-                <Text
-                  className={`font-medium ${loginType === "staff" ? "text-blue-600" : "text-gray-500"}`}
-                >
-                  Staf / Admin
-                </Text>
-              </TouchableOpacity>
-            <TouchableOpacity
-  className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "student" ? "bg-blue-200" : ""}`}
-  onPress={() => setLoginType("student")}
->
-                <Text
-                  className={`font-medium ${loginType === "student" ? "text-blue-600" : "text-gray-500"}`}
-                >
-                  Siswa
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <SettingsModal
-              visible={showSettings}
-              onClose={() => setShowSettings(false)}
-              serverUrl={serverUrl}
-              setServerUrl={setServerUrlState}
-              onPing={handlePing}
-              onSave={handleSaveSettings}
             />
 
-            {error ? (
-              <Animated.View
-                entering={FadeInDown}
-                className="bg-red-50 p-3 rounded-xl border border-red-100"
-              >
-                <Text className="text-red-600 text-sm text-center">
-                  {error}
-                </Text>
-              </Animated.View>
-            ) : null}
 
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">
-                Username
+            <Animated.View
+              entering={FadeInUp.delay(200).duration(1000).springify()}
+              className="items-center mb-8"
+            >
+              <View className="w-24 h-24 bg-white rounded-3xl shadow-lg items-center justify-center mb-4 border border-gray-100">
+                <Image
+                  source={require("../../assets/images/logo.png")}
+                  style={{ width: 60, height: 60 }}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text className="text-3xl font-bold text-gray-900">MBGlance</Text>
+              <Text className="text-gray-500 mt-2 text-center px-8">
+                Sistem Monitoring Makan Bergizi Gratis
               </Text>
-              <TextInput
-                placeholder="Masukkan username"
-                value={username}
-                onChangeText={(t) => {
-                  setUsername(t);
-                  if (usernameError) setUsernameError(null);
-                }}
-                autoCapitalize="none"
-                className="bg-gray-50 border-gray-200 focus:border-primary focus:bg-white transition-all"
-              />
-            </View>
+            </Animated.View>
 
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">
-                Password
-              </Text>
-              <View className="relative">
-                <TextInput
-                  placeholder="Masukkan password"
-                  value={password}
-                  onChangeText={(t) => {
-                    setPassword(t);
-                    if (passwordError) setPasswordError(null);
-                  }}
-                  secureTextEntry={!showPassword}
-                  className="bg-gray-50 border-gray-200 focus:border-primary focus:bg-white transition-all"
->>>>>>> 6e66ea8a3a6d1ebb872a7eb232c4da7a8b42cfef
-            />
-          </View>
-          <Text className="text-3xl font-bold text-gray-900">MBGlance</Text>
-          <Text className="text-gray-500 mt-2 text-center px-8">
-            Sistem Monitoring Makan Bergizi Gratis
-          </Text>
-        </Animated.View>
+            <Animated.View
+              entering={FadeInDown.delay(400).duration(1000).springify()}
+              className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 gap-4"
+            >
+              <View className="flex-row justify-between items-center mb-2">
+                <Text className="text-xl font-bold text-gray-900">Masuk</Text>
+                <TouchableOpacity onPress={() => setShowSettings(true)}>
+                  <Icon name="settings-outline" size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
 
-        <Animated.View
-          entering={FadeInDown.delay(400).duration(1000).springify()}
-          className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 gap-4"
-        >
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-xl font-bold text-gray-900">Masuk</Text>
-            <TouchableOpacity onPress={() => setShowSettings(true)}>
-              <Icon name="settings-outline" size={20} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-
-<<<<<<< HEAD
-    {/* Login Type Toggle */ }
+              {/* Login Type Toggle */}
               <View className="flex-row mb-2 bg-gray-100 p-1 rounded-xl">
                 <TouchableOpacity
                   className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "staff" ? "bg-white shadow-sm" : ""}`}
@@ -238,7 +146,7 @@ export default function AuthIndex() {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "student" ? "bg-white shadow-sm" : ""}`}
+                  className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "student" ? "bg-blue-200" : ""}`}
                   onPress={() => setLoginType("student")}
                 >
                   <Text
@@ -258,18 +166,16 @@ export default function AuthIndex() {
                 onSave={handleSaveSettings}
               />
 
-    {
-      error ? (
-        <Animated.View
-          entering={FadeInDown}
-          className="bg-red-50 p-3 rounded-xl border border-red-100"
-        >
-          <Text className="text-red-600 text-sm text-center">
-            {error}
-          </Text>
-        </Animated.View>
-      ) : null
-    }
+              {error ? (
+                <Animated.View
+                  entering={FadeInDown}
+                  className="bg-red-50 p-3 rounded-xl border border-red-100"
+                >
+                  <Text className="text-red-600 text-sm text-center">
+                    {error}
+                  </Text>
+                </Animated.View>
+              ) : null}
 
               <View>
                 <Text className="text-sm font-medium text-gray-700 mb-1.5 ml-1">
@@ -315,8 +221,8 @@ export default function AuthIndex() {
                 </View>
               </View>
 
-              <Button
-                title={loading ? "Memproses..." : "Masuk Sekarang"}
+              <TouchableOpacity
+                className="w-full h-12 mt-2 bg-blue-600 rounded-xl items-center justify-center active:opacity-80"
                 onPress={async () => {
                   try {
                     setError(null);
@@ -329,67 +235,7 @@ export default function AuthIndex() {
                       setPasswordError("Password wajib diisi");
                       return;
                     }
-=======
-           <TouchableOpacity
-  className="w-full h-12 mt-2 bg-blue-600 rounded-xl items-center justify-center active:opacity-80"
-  onPress={async () => {
-    try {
-      setError(null);
 
-      if (!username.trim()) {
-        setUsernameError("Username wajib diisi");
-        return;
-      }
-      if (!password) {
-        setPasswordError("Password wajib diisi");
-        return;
-      }
-
-      await signIn(
-        username.trim(),
-        password,
-        loginType === "student"
-          ? "auth/login/student"
-          : "auth/login"
-      );
-
-      if (Platform.OS === "ios" || Platform.OS === "android") {
-        try {
-          const expoPushToken =
-            await registerForPushNotificationsAsync();
-
-          if (expoPushToken) {
-            await api("profile/push-token", {
-              method: "PATCH",
-              body: JSON.stringify({
-                token: expoPushToken,
-              }),
-            });
-
-            console.log("Push token registered:", expoPushToken);
-          } else {
-            console.log("No expo push token available. Skipping.");
-          }
-        } catch (err) {
-          console.log("Failed to register token:", err);
-        }
-      } else {
-        console.log("Skipping push token registration on web/PC");
-      }
-    } catch (e: any) {
-      setError(e?.message || "Gagal masuk");
-    }
-  }}
->
-  <Text className="text-white font-semibold text-base">
-    {loading ? "Memproses..." : "Masuk Sekarang"}
-  </Text>
-</TouchableOpacity>
-
-          </Animated.View>
->>>>>>> 6e66ea8a3a6d1ebb872a7eb232c4da7a8b42cfef
-
-                    // 1. SIGN IN CALL
                     await signIn(
                       username.trim(),
                       password,
@@ -398,7 +244,6 @@ export default function AuthIndex() {
                         : "auth/login"
                     );
 
-                    // 2. AFTER SUCCESSFUL LOGIN -> Register push token (only mobile)
                     if (Platform.OS === "ios" || Platform.OS === "android") {
                       try {
                         const expoPushToken =
@@ -426,47 +271,29 @@ export default function AuthIndex() {
                     setError(e?.message || "Gagal masuk");
                   }
                 }}
-              />
-            </Animated.View >
+              >
+                <Text className="text-white font-semibold text-base">
+                  {loading ? "Memproses..." : "Masuk Sekarang"}
+                </Text>
+              </TouchableOpacity>
 
-      <Animated.View
-        entering={FadeInDown.delay(600).duration(1000)}
-        className="items-center mt-8"
-      >
-        <Text className="text-gray-400 text-xs">
-          Belum punya akun?{" "}
-          <Text
-            className="text-primary font-bold"
-            onPress={() => router.push("/(auth)/signup")}
-          >
-            Daftar
-          </Text>
-        </Text>
-<<<<<<< HEAD
-            </Animated.View >
-      <View className="mt-4">
-        <Button
-          title="Test Notifikasi"
-          variant="outline"
-          fullWidth
-          onPress={() => router.push("/(auth)/test")}
-        />
-      </View>
-          </KeyboardAvoidingView >
-        </View >
-        <Text className="text-white text-5xl font-bold leading-tight mb-6">
-          Monitoring Gizi,{'\n'}Masa Depan Bangsa
-        </Text>
-        <Text className="text-blue-100 text-xl leading-relaxed">
-          Platform terintegrasi untuk memantau distribusi dan kualitas Makan Bergizi Gratis di seluruh sekolah.
-        </Text>
-      </>
+            </Animated.View>
 
-    );
-=======
-            </Text>
-          </Animated.View>
-          {/* <View className="mt-4">
+            <Animated.View
+              entering={FadeInDown.delay(600).duration(1000)}
+              className="items-center mt-8"
+            >
+              <Text className="text-gray-400 text-xs">
+                Belum punya akun?{" "}
+                <Text
+                  className="text-primary font-bold"
+                  onPress={() => router.push("/(auth)/signup")}
+                >
+                  Daftar
+                </Text>
+              </Text>
+            </Animated.View>
+            {/* <View className="mt-4">
             <Button
               title="Test Notifikasi"
               variant="outline"
@@ -475,27 +302,15 @@ export default function AuthIndex() {
             />
           </View> */}
 
-        </KeyboardAvoidingView>
-      </View>
+          </KeyboardAvoidingView>
+        </View>
 
-    </>
+      </>
 
-  );
->>>>>>> 6e66ea8a3a6d1ebb872a7eb232c4da7a8b42cfef
+    );
   }
   return (
-    <AuthLayout
-      heroContent={heroContent}
-      mobileTitle="MBGlance"
-      mobileSubtitle="Sistem Monitoring Makan Bergizi Gratis"
-      mobileIcon={
-        <Image
-          source={require("../../assets/images/logo.png")}
-          style={{ width: 60, height: 60 }}
-          resizeMode="contain"
-        />
-      }
-    >
+    <View className="bg-gray-50 min-h-screen flex-row">
       <SettingsModal
         visible={showSettings}
         onClose={() => setShowSettings(false)}
@@ -689,15 +504,15 @@ export default function AuthIndex() {
             </Text>
             <View className="flex-row flex-wrap justify-center gap-2">
               {[
-                { label: "Super Admin", u: "superadmin", p: "password" },
-                { label: "Sekolah", u: "admin_sekolah_test", p: "password" },
+                { label: "Super Admin", u: "superadmin", p: "Admin123!" },
+                { label: "Sekolah", u: "admin_school_1", p: "School1Pass!" },
                 {
                   label: "Catering",
-                  u: "admin_catering_test",
-                  p: "password",
+                  u: "admin_catering_1",
+                  p: "Catering1Pass!",
                 },
-                { label: "Dinkes", u: "admin_dinkes_test", p: "password" },
-                { label: "Siswa", u: "siswa_test", p: "password" },
+                { label: "Dinkes", u: "admin_dinkes_1", p: "Dinkes1Pass!" },
+                { label: "Siswa", u: "student_001", p: "Student1!" },
               ].map((demo) => (
                 <TouchableOpacity
                   key={demo.label}
@@ -914,18 +729,18 @@ const SettingsModal = ({
           {testMessage ? (
             <View
               className={`mb-4 p-3 rounded-lg ${testStatus === "success"
-                ? "bg-green-50 border border-green-200"
-                : testStatus === "error"
-                  ? "bg-red-50 border border-red-200"
-                  : "bg-blue-50 border border-blue-200"
+                  ? "bg-green-50 border border-green-200"
+                  : testStatus === "error"
+                    ? "bg-red-50 border border-red-200"
+                    : "bg-blue-50 border border-blue-200"
                 }`}
             >
               <Text
                 className={`text-sm ${testStatus === "success"
-                  ? "text-green-700"
-                  : testStatus === "error"
-                    ? "text-red-700"
-                    : "text-blue-700"
+                    ? "text-green-700"
+                    : testStatus === "error"
+                      ? "text-red-700"
+                      : "text-blue-700"
                   }`}
               >
                 {testMessage}
