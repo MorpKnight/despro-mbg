@@ -8,13 +8,10 @@ import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-nati
 import CustomDrawerContent from '../../components/navigation/CustomDrawerContent';
 import { useAuth } from '../../hooks/useAuth';
 import { useOffline } from '../../hooks/useOffline';
-<<<<<<< HEAD
-=======
 import { usePreferences } from '../../hooks/usePreferences';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
->>>>>>> 6e66ea8a3a6d1ebb872a7eb232c4da7a8b42cfef
 
 function ConnectivityPill() {
   const { isOnline } = useOffline();
