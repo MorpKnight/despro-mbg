@@ -61,7 +61,11 @@ function formatDecimal(value?: number | null) {
   return typeof value === 'number' ? decimalFormatter.format(value) : '—';
 }
 
-export default function DinkesDashboard() {
+interface DinkesDashboardProps {
+  healthAreaId?: string; // Optional: If provided, uses this health area (from admin wrapper)
+}
+
+export default function DinkesDashboard({ healthAreaId: propHealthAreaId }: DinkesDashboardProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [kpi, setKpi] = useState<DinkesKpi | null>(null);
@@ -72,11 +76,19 @@ export default function DinkesDashboard() {
   const [areaError, setAreaError] = useState<string | null>(null);
   const [areaLoading, setAreaLoading] = useState(false);
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
-  const [selectedArea, setSelectedArea] = useState<string>(ALL_AREAS);
+  // If healthAreaId is provided via prop (from admin wrapper), use it as the initial selected area
+  const [selectedArea, setSelectedArea] = useState<string>(propHealthAreaId ?? ALL_AREAS);
   const [reportSearchInput, setReportSearchInput] = useState('');
   const [debouncedReportSearch, setDebouncedReportSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ReportStatus>('all');
   const [trendError, setTrendError] = useState<string | null>(null);
+
+  // Sync with prop when it changes
+  useEffect(() => {
+    if (propHealthAreaId) {
+      setSelectedArea(propHealthAreaId);
+    }
+  }, [propHealthAreaId]);
 
   useEffect(() => {
     if (user?.role !== 'super_admin' && user?.role !== 'admin_dinkes') {

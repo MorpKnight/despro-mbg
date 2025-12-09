@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Modal, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import PageHeader from '../../components/ui/PageHeader';
 import { api } from '../../services/api';
 
 interface Association {
@@ -26,7 +26,6 @@ interface Catering {
 }
 
 export default function AssociationManagementPage() {
-    const router = useRouter();
     const [associations, setAssociations] = useState<Association[]>([]);
     const [schools, setSchools] = useState<School[]>([]);
     const [caterings, setCaterings] = useState<Catering[]>([]);
@@ -126,19 +125,18 @@ export default function AssociationManagementPage() {
     return (
         <SafeAreaView className="flex-1 bg-[#f5f7fb]">
             <View className="flex-1 p-6">
-                <View className="flex-row items-center justify-between mb-6">
-                    <View className="flex-row items-center">
-                        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-                            <Ionicons name="arrow-back" size={24} color="#111827" />
-                        </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-gray-900">Asosiasi Katering</Text>
-                    </View>
-                    <Button
-                        title="+ Tambah"
-                        size="sm"
-                        onPress={() => setIsModalVisible(true)}
-                    />
-                </View>
+                <PageHeader
+                    title="Asosiasi Katering"
+                    subtitle="Kelola hubungan sekolah dan katering"
+                    showBackButton={false}
+                    rightAction={
+                        <Button
+                            title="+ Tambah"
+                            size="sm"
+                            onPress={() => setIsModalVisible(true)}
+                        />
+                    }
+                />
 
                 {loading ? (
                     <ActivityIndicator size="large" color="#1976D2" />

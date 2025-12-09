@@ -63,7 +63,15 @@ const MENU_STRUCTURE: DrawerSection[] = [
       { label: 'Associations', icon: 'git-network-outline', route: 'association-management' },
       { label: 'API Keys', icon: 'key-outline', route: 'api-keys' },
       { label: 'Approvals', icon: 'shield-checkmark-outline', route: 'pending-approvals' },
-      // Super Admin Access to specific features
+    ],
+  },
+  {
+    title: 'Role Dashboards',
+    roles: [USER_ROLES.SUPER_ADMIN],
+    items: [
+      { label: 'Sekolah Dashboard', icon: 'school-outline', route: 'admin-sekolah-dashboard' },
+      { label: 'Katering Dashboard', icon: 'restaurant-outline', route: 'admin-catering-dashboard' },
+      { label: 'Dinkes Dashboard', icon: 'medkit-outline', route: 'admin-dinkes-dashboard' },
       { label: 'Kelola Siswa (Sekolah)', icon: 'people-outline', route: 'admin-student-management' },
       { label: 'History Makanan (Sekolah)', icon: 'fast-food-outline', route: 'admin-food-history-school' },
       { label: 'History Menu (Katering)', icon: 'restaurant-outline', route: 'admin-food-history-catering' },
@@ -107,6 +115,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+
 
   // Filter sections based on user role
   const filteredSections = useMemo(() => {
@@ -155,8 +164,6 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   };
 
   const isActive = (route: string) => {
-    // Simple check: if pathname ends with the route or contains it
-    // Adjust logic as needed for nested routes
     if (route === 'index') return pathname === '/' || pathname === '/(app)' || pathname === '/(app)/';
     return pathname.includes(route);
   };
@@ -267,3 +274,4 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
     </SafeAreaView>
   );
 }
+

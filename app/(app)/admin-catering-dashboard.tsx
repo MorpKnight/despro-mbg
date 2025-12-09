@@ -4,14 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import Dropdown from '../../components/ui/Dropdown';
 import { fetchCaterings } from '../../services/caterings';
-import CateringFoodHistoryPage from './food-history-catering';
+import CateringDashboard from './catering-dashboard';
 import PageHeader from '../../components/ui/PageHeader';
 import LoadingState from '../../components/ui/LoadingState';
 
-export default function AdminCateringFoodHistoryPage() {
+export default function AdminCateringDashboardPage() {
     const [selectedCateringId, setSelectedCateringId] = useState<string | null>(null);
 
-    const { data: caterings, isLoading } = useQuery({
+    const { data: caterings, isLoading: cateringsLoading } = useQuery({
         queryKey: ['caterings'],
         queryFn: () => fetchCaterings({}),
     });
@@ -21,8 +21,8 @@ export default function AdminCateringFoodHistoryPage() {
     return (
         <SafeAreaView className="flex-1 bg-[#f5f7fb]">
             <PageHeader
-                title="History Menu Katering (Admin)"
-                subtitle="Pilih katering"
+                title="Dashboard Katering (Admin)"
+                subtitle="Pilih katering untuk melihat dashboard"
                 showBackButton={false}
                 className="mx-6 mt-6"
             />
@@ -39,11 +39,11 @@ export default function AdminCateringFoodHistoryPage() {
 
             {selectedCateringId ? (
                 <View className="flex-1">
-                    <CateringFoodHistoryPage cateringId={selectedCateringId} />
+                    <CateringDashboard cateringId={selectedCateringId} />
                 </View>
             ) : (
                 <View className="flex-1 items-center justify-center">
-                    {isLoading ? <LoadingState /> : (
+                    {cateringsLoading ? <LoadingState /> : (
                         <Text className="text-gray-500">Silakan pilih katering terlebih dahulu.</Text>
                     )}
                 </View>

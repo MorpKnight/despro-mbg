@@ -272,7 +272,7 @@ export default function StudentAttendancePage() {
       <PageHeader
         title="Absensi Harian"
         subtitle="Daftar kehadiran harian siswa"
-        backPath={returnTo}
+        showBackButton={false}
         onRefresh={handleRefresh}
         isRefreshing={refreshing}
         className="mx-6 mt-6 mb-4"

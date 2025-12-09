@@ -3,6 +3,7 @@ import React from 'react';
 import { Alert, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { Card } from '../../ui/Card';
 import { useAuth } from '../../../hooks/useAuth';
+import { TwoFactorSettings } from './TwoFactorSettings';
 
 interface DinkesProfileProps {
     onChangePassword: () => void;
@@ -75,6 +76,9 @@ export function DinkesProfile({ onChangePassword }: DinkesProfileProps) {
                     </View>
                 </View>
             </Card>
+
+            {/* 2FA Security Settings */}
+            <TwoFactorSettings />
 
             <Card className="p-4 space-y-4">
                 <Text className="text-lg font-bold text-gray-900 mb-2">Pengaturan Akun</Text>

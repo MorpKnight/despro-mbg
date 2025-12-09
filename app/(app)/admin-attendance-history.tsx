@@ -23,7 +23,7 @@ export default function AdminAttendanceHistoryPage() {
             <PageHeader
                 title="Riwayat Absensi (Admin)"
                 subtitle="Pilih sekolah"
-                showBackButton={true}
+                showBackButton={false}
                 className="mx-6 mt-6"
             />
 

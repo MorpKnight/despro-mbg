@@ -1,17 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Card from '../../components/ui/Card';
 import Dropdown, { DropdownOption } from '../../components/ui/Dropdown';
+import PageHeader from '../../components/ui/PageHeader';
 import { useResponsive } from '../../hooks/useResponsive';
 import { api } from '../../services/api';
 
 interface PendingUser {
     id: string;
     username: string;
-    name: string;
+    full_name: string | null;  // Backend returns full_name, not name
     role: string;
     created_at: string;
     school_id?: string;
@@ -29,7 +29,6 @@ const roleFilterOptions: DropdownOption[] = [
 ];
 
 export default function PendingApprovalsPage() {
-    const router = useRouter();
     const { isDesktop } = useResponsive();
     const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
     const [loading, setLoading] = useState(true);
@@ -194,7 +193,7 @@ export default function PendingApprovalsPage() {
                                 <Ionicons name={getRoleIcon(item.role)} size={28} color="#6B7280" />
                             </View>
                             <View className="flex-1">
-                                <Text className="text-xl font-bold text-gray-900 mb-1">{item.name || 'Tanpa Nama'}</Text>
+                                <Text className="text-xl font-bold text-gray-900 mb-1">{item.full_name || 'Tanpa Nama'}</Text>
                                 <View className="flex-row items-center gap-2 mb-2">
                                     <Ionicons name="at" size={14} color="#6B7280" />
                                     <Text className="text-sm text-gray-600">{item.username}</Text>
@@ -218,9 +217,8 @@ export default function PendingApprovalsPage() {
                             <TouchableOpacity
                                 onPress={() => handleApprove(item.id)}
                                 disabled={isProcessing}
-                                className={`px-6 py-3 rounded-lg flex-row items-center gap-2 ${
-                                    isProcessing ? 'bg-gray-100' : 'bg-green-500 hover:bg-green-600'
-                                }`}
+                                className={`px-6 py-3 rounded-lg flex-row items-center gap-2 ${isProcessing ? 'bg-gray-100' : 'bg-green-500 hover:bg-green-600'
+                                    }`}
                             >
                                 {isProcessing ? (
                                     <ActivityIndicator size="small" color="#6B7280" />
@@ -234,9 +232,8 @@ export default function PendingApprovalsPage() {
                             <TouchableOpacity
                                 onPress={() => handleReject(item.id)}
                                 disabled={isProcessing}
-                                className={`px-6 py-3 rounded-lg flex-row items-center gap-2 ${
-                                    isProcessing ? 'bg-gray-100' : 'bg-red-500 hover:bg-red-600'
-                                }`}
+                                className={`px-6 py-3 rounded-lg flex-row items-center gap-2 ${isProcessing ? 'bg-gray-100' : 'bg-red-500 hover:bg-red-600'
+                                    }`}
                             >
                                 {isProcessing ? (
                                     <ActivityIndicator size="small" color="#6B7280" />
@@ -264,9 +261,9 @@ export default function PendingApprovalsPage() {
 
                     {/* Content */}
                     <View className="flex-1">
-                        <Text className="text-base font-bold text-gray-900 mb-1">{item.name || 'Tanpa Nama'}</Text>
+                        <Text className="text-base font-bold text-gray-900 mb-1">{item.full_name || 'Tanpa Nama'}</Text>
                         <Text className="text-sm text-gray-600 mb-2">@{item.username}</Text>
-                        
+
                         <View className="flex-row items-center gap-2 mb-3">
                             <View className={`${roleColor.bg} ${roleColor.border} border px-2 py-1 rounded-full`}>
                                 <Text className={`text-xs font-semibold ${roleColor.text}`}>
@@ -284,9 +281,8 @@ export default function PendingApprovalsPage() {
                             <TouchableOpacity
                                 onPress={() => handleApprove(item.id)}
                                 disabled={isProcessing}
-                                className={`flex-1 py-2.5 rounded-lg flex-row items-center justify-center gap-2 ${
-                                    isProcessing ? 'bg-gray-100' : 'bg-green-500'
-                                }`}
+                                className={`flex-1 py-2.5 rounded-lg flex-row items-center justify-center gap-2 ${isProcessing ? 'bg-gray-100' : 'bg-green-500'
+                                    }`}
                             >
                                 {isProcessing ? (
                                     <ActivityIndicator size="small" color="#6B7280" />
@@ -300,9 +296,8 @@ export default function PendingApprovalsPage() {
                             <TouchableOpacity
                                 onPress={() => handleReject(item.id)}
                                 disabled={isProcessing}
-                                className={`flex-1 py-2.5 rounded-lg flex-row items-center justify-center gap-2 ${
-                                    isProcessing ? 'bg-gray-100' : 'bg-red-500'
-                                }`}
+                                className={`flex-1 py-2.5 rounded-lg flex-row items-center justify-center gap-2 ${isProcessing ? 'bg-gray-100' : 'bg-red-500'
+                                    }`}
                             >
                                 {isProcessing ? (
                                     <ActivityIndicator size="small" color="#6B7280" />
@@ -326,28 +321,13 @@ export default function PendingApprovalsPage() {
                 <ScrollView className="flex-1">
                     <View className="max-w-7xl mx-auto w-full px-8 py-8">
                         {/* Header */}
-                        <View className="mb-8">
-                            <View className="flex-row items-center mb-2">
-                                <TouchableOpacity 
-                                    onPress={() => router.back()} 
-                                    className="mr-4 p-2 hover:bg-gray-100 rounded-lg"
-                                >
-                                    <Ionicons name="arrow-back" size={24} color="#374151" />
-                                </TouchableOpacity>
-                                <View className="flex-1">
-                                    <Text className="text-3xl font-bold text-gray-900 mb-1">Persetujuan Tertunda</Text>
-                                    <Text className="text-sm text-gray-600">
-                                        Kelola pendaftaran pengguna yang menunggu persetujuan
-                                    </Text>
-                                </View>
-                                <TouchableOpacity
-                                    onPress={fetchPending}
-                                    className="p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50"
-                                >
-                                    <Ionicons name="refresh" size={20} color="#6B7280" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
+                        <PageHeader
+                            title="Persetujuan Tertunda"
+                            subtitle="Kelola pendaftaran pengguna yang menunggu persetujuan"
+                            showBackButton={false}
+                            onRefresh={fetchPending}
+                            isRefreshing={loading}
+                        />
 
                         {/* Stats Cards */}
                         <View className="flex-row gap-4 mb-6">
@@ -426,26 +406,13 @@ export default function PendingApprovalsPage() {
             <View className="flex-1">
                 {/* Header */}
                 <View className="bg-white border-b border-gray-200 px-4 py-4">
-                    <View className="flex-row items-center justify-between mb-3">
-                        <View className="flex-row items-center flex-1">
-                            <TouchableOpacity 
-                                onPress={() => router.back()} 
-                                className="mr-3 p-2"
-                            >
-                                <Ionicons name="arrow-back" size={24} color="#374151" />
-                            </TouchableOpacity>
-                            <View className="flex-1">
-                                <Text className="text-xl font-bold text-gray-900">Persetujuan</Text>
-                                <Text className="text-xs text-gray-600">Tertunda: {pendingUsers.length}</Text>
-                            </View>
-                        </View>
-                        <TouchableOpacity
-                            onPress={fetchPending}
-                            className="p-2"
-                        >
-                            <Ionicons name="refresh" size={22} color="#6B7280" />
-                        </TouchableOpacity>
-                    </View>
+                    <PageHeader
+                        title="Persetujuan"
+                        subtitle={`Tertunda: ${pendingUsers.length}`}
+                        showBackButton={false}
+                        onRefresh={fetchPending}
+                        isRefreshing={loading}
+                    />
 
                     {/* Filter Compact */}
                     <View>

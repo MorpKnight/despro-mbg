@@ -10,6 +10,10 @@ import EmptyState from '../../components/ui/EmptyState';
 import { Card } from '../../components/ui/Card';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useDebounce } from '../../hooks/useDebounce';
+import SearchInput from '../../components/ui/SearchInput';
+import { useLocalSearchParams } from 'expo-router';
+
 // Reuse LocaleConfig setup globally usually, but ensuring it here
 LocaleConfig.locales['id'] = LocaleConfig.locales['id'] || {
     monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
@@ -32,10 +36,6 @@ function formatDate(isoDate: string) {
 interface Props {
     schoolId?: string;
 }
-
-import { useDebounce } from '../../hooks/useDebounce';
-import SearchInput from '../../components/ui/SearchInput';
-import { useLocalSearchParams } from 'expo-router';
 
 export default function SchoolFoodHistoryPage({ schoolId }: Props) {
     const { returnTo } = useLocalSearchParams<{ returnTo: string }>();

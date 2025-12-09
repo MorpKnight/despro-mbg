@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, Platform, Text, TouchableOpacity, View } from
 import { Card } from '../../ui/Card';
 import { useAuth } from '../../../hooks/useAuth';
 import { api } from '../../../services/api';
+import { TwoFactorSettings } from './TwoFactorSettings';
 
 interface School {
     id: string;
@@ -131,6 +132,9 @@ export function CateringProfile({ onChangePassword }: CateringProfileProps) {
                     </View>
                 )}
             </View>
+
+            {/* 2FA Security Settings */}
+            <TwoFactorSettings />
 
             <Card className="p-4 space-y-4">
                 <Text className="text-lg font-bold text-gray-900 mb-2">Pengaturan Akun</Text>

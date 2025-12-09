@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { loadSession, signIn, signOut, type Role as LocalRole } from '../services/auth';
+import { loadSession, signIn, signOut, verify2FA, isPending2FA, type Role as LocalRole, type Pending2FAState } from '../services/auth';
 import { fetchMyProfile, type Profile } from '../services/profile';
 import { subscribeSession, type Session } from '../services/session';
 
@@ -45,7 +45,10 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   isEdgeMode: boolean;
+  pending2FA: Pending2FAState | null;
   signIn: (username: string, password: string, endpoint?: string) => Promise<void>;
+  verify2FA: (otpCode: string) => Promise<void>;
+  clearPending2FA: () => void;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   checkServerMode: () => Promise<void>;
@@ -58,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEdgeMode, setIsEdgeMode] = useState(false);
+  const [pending2FA, setPending2FA] = useState<Pending2FAState | null>(null);
   const isMounted = useRef(true);
 
   useEffect(() => (
@@ -164,11 +168,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       loading,
       isEdgeMode,
+      pending2FA,
       signIn: async (username: string, password: string, endpoint?: string) => {
         await checkServerMode();
-        const newSession = await signIn(username, password, endpoint);
+        const result = await signIn(username, password, endpoint);
 
-        // NEW: Use basic user data from session immediately if available
+        // Check if 2FA is required
+        if (isPending2FA(result)) {
+          if (isMounted.current) {
+            setPending2FA(result);
+          }
+          return; // Don't set user yet, wait for 2FA verification
+        }
+
+        // Regular login - set user data
+        const newSession = result; // TypeScript now knows this is Session
         if (newSession.user) {
           setUser({
             id: newSession.user.id,
@@ -179,21 +193,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             schoolId: newSession.user.schoolId,
             cateringId: newSession.user.cateringId,
             healthOfficeArea: newSession.user.healthOfficeArea,
-            sekolah: null, // Will be fetched in background
-            catering: null, // Will be fetched in background
+            sekolah: null,
+            catering: null,
           });
         }
 
-        // OPTIMIZED: Fetch full profile in background (non-blocking)
-        // This includes sekolah and catering relationships
+        // Fetch full profile in background
         refreshProfile().catch((err) => {
           console.warn('[auth] gagal mengambil profil lengkap sesudah login', err);
-          // User already set above, so UI is not blocked
         });
+      },
+      verify2FA: async (otpCode: string) => {
+        if (!pending2FA) {
+          throw new Error('No pending 2FA state');
+        }
+
+        const newSession = await verify2FA(pending2FA.tempToken, otpCode);
+
+        if (isMounted.current) {
+          setPending2FA(null);
+
+          if (newSession.user) {
+            setUser({
+              id: newSession.user.id,
+              username: newSession.username,
+              role: newSession.role,
+              fullName: newSession.user.fullName,
+              accountStatus: newSession.account_status,
+              schoolId: newSession.user.schoolId,
+              cateringId: newSession.user.cateringId,
+              healthOfficeArea: newSession.user.healthOfficeArea,
+              sekolah: null,
+              catering: null,
+            });
+          }
+        }
+
+        // Fetch full profile in background
+        refreshProfile().catch((err) => {
+          console.warn('[auth] gagal mengambil profil lengkap sesudah 2FA', err);
+        });
+      },
+      clearPending2FA: () => {
+        setPending2FA(null);
       },
       signOut: async () => {
         await signOut();
         setUser(null);
+        setPending2FA(null);
       },
       refreshProfile: async () => {
         try {
@@ -205,7 +252,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       checkServerMode,
     }),
-    [user, session, loading, isEdgeMode, refreshProfile, checkServerMode]
+    [user, session, loading, isEdgeMode, pending2FA, refreshProfile, checkServerMode]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

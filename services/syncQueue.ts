@@ -76,9 +76,10 @@ export async function processQueue(): Promise<void> {
     );
 
     for (const item of pending) {
+      const parsedBody = parseMaybeJson(item.body);
+      const parsedHeaders = parseMaybeJson<Record<string, string>>(item.headers);
+
       try {
-        const parsedBody = parseMaybeJson(item.body);
-        const parsedHeaders = parseMaybeJson<Record<string, string>>(item.headers);
         await api(item.endpoint, {
           method: item.method,
           body: parsedBody,
@@ -87,6 +88,36 @@ export async function processQueue(): Promise<void> {
         await removeItem(item.id);
       } catch (err) {
         const status = extractStatusCode(err);
+
+        // 401 = token might be expired, retry once (api() handles refresh internally)
+        if (status === 401) {
+          console.log('[syncQueue] token expired, retrying after refresh...');
+          try {
+            // Retry - api() will automatically attempt token refresh on 401
+            await api(item.endpoint, {
+              method: item.method,
+              body: parsedBody,
+              headers: parsedHeaders,
+            });
+            await removeItem(item.id);
+            console.log('[syncQueue] retry succeeded after token refresh');
+            continue;
+          } catch (retryErr) {
+            const retryStatus = extractStatusCode(retryErr);
+            // If still 401 after refresh, user needs to re-login
+            if (retryStatus === 401) {
+              console.warn('[syncQueue] retry failed - user needs to re-authenticate');
+              await markFailed(item.id);
+              continue;
+            }
+            // Other errors during retry
+            console.warn('[syncQueue] retry failed with error', retryErr);
+            await markFailed(item.id);
+            continue;
+          }
+        }
+
+        // Other 4xx client errors = actual validation/permission errors, mark as failed
         if (status && status >= 400 && status < 500) {
           console.warn('[syncQueue] dropping item due to client error', status, err);
           await markFailed(item.id);

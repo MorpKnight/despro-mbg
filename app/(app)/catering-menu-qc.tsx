@@ -11,7 +11,7 @@ export default function CateringMenuQCPage() {
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <PageHeader
         title="Input Menu Harian & QC"
-        backPath={returnTo}
+        showBackButton={false}
         className="mx-6 mt-6 mb-4"
       />
       <MenuQCForm />

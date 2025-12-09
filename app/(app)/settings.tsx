@@ -24,6 +24,7 @@ import { CateringProfile } from '../../components/features/profile/CateringProfi
 import { StudentProfile } from '../../components/features/profile/StudentProfile';
 import { SchoolProfile } from '../../components/features/profile/SchoolProfile';
 import { DinkesProfile } from '../../components/features/profile/DinkesProfile';
+import { SuperAdminProfile } from '../../components/features/profile/SuperAdminProfile';
 
 function InfoRow({ label, value, icon }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap }) {
   return (
@@ -126,11 +127,12 @@ export default function SettingsScreen() {
 
   const placeholderColor = '#9CA3AF';
   const canEditHealthOffice = user?.role === 'admin_dinkes';
-  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin_sekolah';
+  // isAdmin logic simplified: canSeeNetworkSection usage now delegated to components or handled differently
   const canSeeNetworkSection = user?.role === 'admin_sekolah' || user?.role === 'admin_catering';
-  const networkToggleDisabled = !canUseLocal || !isReady || modePending;
-  const isLocalMode = currentMode === 'LOCAL';
-  const canSaveLocalIp = localIpDraft.trim().length > 0;
+  // const networkToggleDisabled = !canUseLocal || !isReady || modePending; // Moved to components
+  // const isLocalMode = currentMode === 'LOCAL'; // Moved to components
+  // const canSaveLocalIp = localIpDraft.trim().length > 0; // Moved to components
+
 
   useEffect(() => {
     if (isEditProfileVisible) {
@@ -541,6 +543,101 @@ export default function SettingsScreen() {
             </View>
             <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 24 }}>
               <DinkesProfile onChangePassword={() => setIsChangePasswordVisible(true)} />
+            </ScrollView>
+          </SafeAreaView>
+
+          {/* Change Password Modal (shared) */}
+          <Modal visible={isChangePasswordVisible} animationType="slide" transparent>
+            <Pressable
+              className="flex-1 bg-black/60 justify-end"
+              onPress={() => setIsChangePasswordVisible(false)}
+            >
+              <Pressable
+                className="bg-white rounded-t-[32px] h-[75%] shadow-2xl"
+                onPress={(e) => e.stopPropagation()}
+              >
+                <View className="flex-row justify-between items-center px-6 py-5 border-b border-gray-100">
+                  <Text className="text-xl font-bold text-gray-900">{t('passwordModal.title')}</Text>
+                  <TouchableOpacity
+                    onPress={() => setIsChangePasswordVisible(false)}
+                    className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center"
+                  >
+                    <Ionicons name="close" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView className="flex-1 px-6 py-6">
+                  <View className="bg-orange-50 p-4 rounded-2xl mb-6 flex-row items-start">
+                    <Ionicons name="shield-checkmark" size={24} color="#EA580C" />
+                    <View className="ml-3 flex-1">
+                      <Text className="text-orange-900 font-bold text-sm mb-1">Keamanan Akun</Text>
+                      <Text className="text-orange-700 text-xs leading-4">{t('passwordModal.hint')}</Text>
+                    </View>
+                  </View>
+
+                  <View className="gap-5">
+                    <View>
+                      <Text className="text-sm font-medium text-gray-700 mb-2">{t('passwordModal.currentLabel')}</Text>
+                      <TextInput
+                        className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-base text-gray-900"
+                        value={currentPassword}
+                        onChangeText={setCurrentPassword}
+                        placeholder={t('passwordModal.currentPlaceholder')}
+                        placeholderTextColor={'#9CA3AF'}
+                        secureTextEntry
+                      />
+                    </View>
+
+                    <View>
+                      <Text className="text-sm font-medium text-gray-700 mb-2">{t('passwordModal.newLabel')}</Text>
+                      <TextInput
+                        className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-base text-gray-900"
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        placeholder={t('passwordModal.newPlaceholder')}
+                        placeholderTextColor={'#9CA3AF'}
+                        secureTextEntry
+                      />
+                    </View>
+
+                    <View>
+                      <Text className="text-sm font-medium text-gray-700 mb-2">{t('passwordModal.confirmLabel')}</Text>
+                      <TextInput
+                        className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-base text-gray-900"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        placeholder={t('passwordModal.confirmPlaceholder')}
+                        placeholderTextColor={'#9CA3AF'}
+                        secureTextEntry
+                      />
+                    </View>
+                  </View>
+                </ScrollView>
+
+                <View className="p-6 border-t border-gray-100 bg-white pb-8">
+                  <Button
+                    title={t('passwordModal.saveButton')}
+                    onPress={handleChangePassword}
+                    loading={passwordLoading}
+                    fullWidth
+                    size="lg"
+                  />
+                </View>
+              </Pressable>
+            </Pressable>
+          </Modal>
+        </>
+      ) : user?.role === 'super_admin' ? (
+        <>
+          <SafeAreaView className="flex-1 bg-[#f5f7fb]" edges={['top']}>
+            <View className="flex-row items-center justify-between px-6 py-4 bg-white border-b border-gray-100">
+              <View>
+                <Text className="text-xl font-bold text-gray-900">Profil Super Admin</Text>
+                <Text className="text-sm text-gray-500">Pusat kendali sistem</Text>
+              </View>
+            </View>
+            <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 24 }}>
+              <SuperAdminProfile onChangePassword={() => setIsChangePasswordVisible(true)} />
             </ScrollView>
           </SafeAreaView>
 

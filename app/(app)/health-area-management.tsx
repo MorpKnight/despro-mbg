@@ -165,7 +165,6 @@ export default function HealthAreaManagementPage() {
         <Text className="text-lg font-semibold text-gray-800 text-center">
           Akses fitur ini khusus untuk Super Admin.
         </Text>
-        <Button title="Kembali" onPress={() => router.back()} className="mt-4" />
       </SafeAreaView>
     );
   }
@@ -176,7 +175,9 @@ export default function HealthAreaManagementPage() {
         <PageHeader
           title="Manajemen Area Dinkes"
           subtitle="Kelola wilayah kerja dinas kesehatan"
-          showBackButton={true}
+          showBackButton={false}
+          onRefresh={() => loadAreas()}
+          isRefreshing={loading}
           rightAction={
             <Button
               title="Tambah"

@@ -4,14 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import Dropdown from '../../components/ui/Dropdown';
 import { fetchSchools } from '../../services/schools';
-import SchoolFoodHistoryPage from './food-history-school';
+import SekolahDashboard from './sekolah-dashboard';
 import PageHeader from '../../components/ui/PageHeader';
 import LoadingState from '../../components/ui/LoadingState';
 
-export default function AdminSchoolFoodHistoryPage() {
+export default function AdminSekolahDashboardPage() {
     const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
 
-    const { data: schools, isLoading } = useQuery({
+    const { data: schools, isLoading: schoolsLoading } = useQuery({
         queryKey: ['schools'],
         queryFn: () => fetchSchools({}),
     });
@@ -21,8 +21,8 @@ export default function AdminSchoolFoodHistoryPage() {
     return (
         <SafeAreaView className="flex-1 bg-[#f5f7fb]">
             <PageHeader
-                title="History Makanan Sekolah (Admin)"
-                subtitle="Pilih sekolah"
+                title="Dashboard Sekolah (Admin)"
+                subtitle="Pilih sekolah untuk melihat dashboard"
                 showBackButton={false}
                 className="mx-6 mt-6"
             />
@@ -39,11 +39,11 @@ export default function AdminSchoolFoodHistoryPage() {
 
             {selectedSchoolId ? (
                 <View className="flex-1">
-                    <SchoolFoodHistoryPage schoolId={selectedSchoolId} />
+                    <SekolahDashboard schoolId={selectedSchoolId} />
                 </View>
             ) : (
                 <View className="flex-1 items-center justify-center">
-                    {isLoading ? <LoadingState /> : (
+                    {schoolsLoading ? <LoadingState /> : (
                         <Text className="text-gray-500">Silakan pilih sekolah terlebih dahulu.</Text>
                     )}
                 </View>

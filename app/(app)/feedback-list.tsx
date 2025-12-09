@@ -181,8 +181,7 @@ export default function FeedbackListPage() {
           <View className="pt-6">
             <PageHeader
               title="Umpan Balik Siswa"
-              showBackButton={true}
-              backPath={returnTo}
+              showBackButton={false}
               onRefresh={handleRefresh}
               isRefreshing={refreshing}
               className="mb-4"

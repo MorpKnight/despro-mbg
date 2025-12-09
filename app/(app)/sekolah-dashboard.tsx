@@ -83,7 +83,11 @@ function statusBadge(status: ReportStatus): { label: string; bubbleClass: string
   }
 }
 
-export default function SekolahDashboard() {
+interface SekolahDashboardProps {
+  schoolId?: string; // Optional: If provided, uses this school (from admin wrapper)
+}
+
+export default function SekolahDashboard({ schoolId: propSchoolId }: SekolahDashboardProps) {
   const { user, isEdgeMode } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -92,11 +96,19 @@ export default function SekolahDashboard() {
   const isSuperAdmin = user?.role === 'super_admin';
   const isSchoolAdmin = user?.role === 'admin_sekolah';
 
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+  // If schoolId is provided via prop (from admin wrapper), use it directly
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(propSchoolId ?? null);
   const [schoolSearchInput, setSchoolSearchInput] = useState('');
   const [debouncedSchoolSearch, setDebouncedSchoolSearch] = useState('');
   const [locationFilter, setLocationFilter] = useState<string>(ALL_LOCATIONS);
   const [schoolPage, setSchoolPage] = useState(0);
+
+  // Sync with prop when it changes
+  useEffect(() => {
+    if (propSchoolId) {
+      setSelectedSchoolId(propSchoolId);
+    }
+  }, [propSchoolId]);
 
   const adminSchoolFromProfile = useMemo<SchoolListItem | null>(() => {
     if (!isSchoolAdmin || !user?.sekolah) return null;

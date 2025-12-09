@@ -110,7 +110,7 @@ export default function EmergencyReportPage() {
       <PageHeader
         title="Laporan Darurat"
         subtitle="Pantau dan tindak lanjuti laporan"
-        backPath={returnTo}
+        showBackButton={false}
         onRefresh={onRefresh}
         isRefreshing={refreshing}
         className="mx-6 mt-6 mb-4"

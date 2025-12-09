@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Modal, Platform, ScrollView, Text, TouchableO
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import PageHeader from '../../components/ui/PageHeader';
 import TextInput from '../../components/ui/TextInput';
 import { useAuth } from '../../hooks/useAuth';
 import { createApiKey, fetchApiKeys, revokeApiKey, type ApiKey } from '../../services/api-keys';
@@ -126,10 +127,9 @@ export default function ApiKeysPage() {
                     <Text className="text-xl font-bold text-gray-900 mt-4 text-center">
                         Fitur Tidak Tersedia
                     </Text>
-                    <Text className="text-gray-500 text-center mt-2 mb-6">
+                    <Text className="text-gray-500 text-center mt-2">
                         Manajemen API Key hanya dapat dilakukan di Server Pusat.
                     </Text>
-                    <Button title="Kembali" onPress={() => router.back()} variant="outline" />
                 </View>
             </SafeAreaView>
         );
@@ -137,24 +137,28 @@ export default function ApiKeysPage() {
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
-            <View className="flex-row items-center px-4 py-3 bg-white border-b border-gray-200">
-                <TouchableOpacity onPress={() => router.back()} className="mr-3">
-                    <Ionicons name="arrow-back" size={24} color="#1F2937" />
-                </TouchableOpacity>
-                <Text className="text-lg font-bold text-gray-900">Manajemen API Key</Text>
-            </View>
+            <View className="flex-1 p-6">
+                <PageHeader
+                    title="Manajemen API Key"
+                    subtitle="Kelola kunci untuk Server Edge (Raspberry Pi) di sekolah"
+                    showBackButton={false}
+                    onRefresh={loadKeys}
+                    isRefreshing={loading}
+                    rightAction={
+                        <Button
+                            title="Buat Baru"
+                            size="sm"
+                            icon={<Ionicons name="add" size={18} color="white" />}
+                            onPress={() => setShowCreateModal(true)}
+                        />
+                    }
+                />
 
-            <ScrollView className="flex-1 p-4">
-                <View className="flex-row justify-between items-center mb-4">
-                    <Text className="text-gray-600">
-                        Kelola kunci akses untuk sinkronisasi server Edge.
+                <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex-row gap-2">
+                    <Ionicons name="information-circle" size={20} color="#2563EB" />
+                    <Text className="text-blue-800 text-sm flex-1">
+                        API Key ini digunakan oleh Server Edge untuk sinkronisasi data (presensi, feedback) ke Server Pusat. Bukan untuk login pengguna.
                     </Text>
-                    <Button
-                        title="Buat Baru"
-                        size="sm"
-                        icon={<Ionicons name="add" size={18} color="white" />}
-                        onPress={() => setShowCreateModal(true)}
-                    />
                 </View>
 
                 {loading ? (
@@ -196,7 +200,7 @@ export default function ApiKeysPage() {
                         ))}
                     </View>
                 )}
-            </ScrollView>
+            </View>
 
             {/* Create Modal */}
             <Modal

@@ -78,7 +78,7 @@ export default function AttendanceScanPage() {
   if (user?.role !== 'admin_sekolah' && user?.role !== 'super_admin') {
     return (
       <SafeAreaView className="flex-1 bg-[#f5f7fb]">
-        <PageHeader title="Scan Kehadiran" backPath={returnTo} className="mx-6 mt-6" />
+        <PageHeader title="Scan Kehadiran" showBackButton={false} className="mx-6 mt-6" />
         <View className="p-6">
           <Card>
             <Text>Akses ditolak.</Text>
@@ -146,7 +146,7 @@ export default function AttendanceScanPage() {
       <PageHeader
         title="Scan Kehadiran"
         subtitle="Pindai QR Code siswa"
-        backPath={returnTo}
+        showBackButton={false}
         className="mx-6 mt-6 mb-4"
       />
 
