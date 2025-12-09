@@ -12,6 +12,9 @@ on:
 env:
   EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://mbg-be.mrt.qzz.io/api/v1' }}
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
