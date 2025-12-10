@@ -1,6 +1,7 @@
 import { api } from './api';
 
 export type ReportStatus = 'menunggu' | 'proses' | 'selesai';
+export type ProcessingStep = 'unprocessed' | 'verifikasi' | 'audit' | 'solusi' | 'completed';
 
 export interface EmergencyFollowUp {
   at: string;
@@ -13,6 +14,7 @@ export interface EmergencyReport {
   id: string;
   date: string;
   status: ReportStatus;
+  processingStep: ProcessingStep;
   title: string;
   description?: string | null;
   symptoms?: string[];
@@ -29,6 +31,7 @@ export interface EmergencyReport {
 type RawEmergencyReport = {
   id: string;
   status: string;
+  processing_step: string;
   title: string;
   description?: string | null;
   gejala?: unknown;
@@ -100,6 +103,7 @@ function mapEmergencyReport(raw: RawEmergencyReport): EmergencyReport {
   return {
     id: raw.id,
     status: normalizeStatus(raw.status),
+    processingStep: (raw.processing_step || 'unprocessed') as ProcessingStep,
     title: raw.title,
     description: raw.description ?? null,
     symptoms: coerceSymptoms(raw.gejala),
@@ -165,5 +169,22 @@ export async function updateEmergencyStatus(
     existing.push({ id, status, note, at: new Date().toISOString() });
     await storage.set(key, existing);
     return null;
+  }
+}
+
+export async function processReportStep(
+  id: string,
+  processingStep: ProcessingStep,
+  notes: string,
+): Promise<EmergencyReport | null> {
+  try {
+    const data = await api(`emergency/reports/${id}/process`, {
+      method: 'POST',
+      body: { processing_step: processingStep, notes },
+    });
+    return mapEmergencyReport(data as RawEmergencyReport);
+  } catch (err) {
+    console.error('[emergency] process step failed', err);
+    throw err;
   }
 }

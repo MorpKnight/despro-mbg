@@ -16,8 +16,14 @@ import {
   fetchDinkesAreas,
   fetchDinkesKpi,
   fetchSatisfactionTrend,
+  fetchCateringRisk,
+  fetchWorkflowTasks,
+  fetchNegativeFeedback,
   type DinkesKpi,
   type SatisfactionTrend,
+  type CateringRiskProfile,
+  type WorkflowTaskCounts,
+  type NegativeFeedbackFeed,
 } from '../../services/analytics';
 import { fetchEmergencyReports, type EmergencyReport, type ReportStatus } from '../../services/emergency';
 
@@ -82,6 +88,9 @@ export default function DinkesDashboard({ healthAreaId: propHealthAreaId }: Dink
   const [debouncedReportSearch, setDebouncedReportSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ReportStatus>('all');
   const [trendError, setTrendError] = useState<string | null>(null);
+  const [cateringRisk, setCateringRisk] = useState<CateringRiskProfile | null>(null);
+  const [workflowTasks, setWorkflowTasks] = useState<WorkflowTaskCounts | null>(null);
+  const [negativeFeedback, setNegativeFeedback] = useState<NegativeFeedbackFeed | null>(null);
 
   // Sync with prop when it changes
   useEffect(() => {
@@ -177,12 +186,15 @@ export default function DinkesDashboard({ healthAreaId: propHealthAreaId }: Dink
     (async () => {
       setLoading(true);
       setTrendError(null);
-      const [kpiRes, reportsRes, trendRes] = await Promise.allSettled([
+      const [kpiRes, reportsRes, trendRes, riskRes, tasksRes, feedbackRes] = await Promise.allSettled([
         fetchDinkesKpi(),
         fetchEmergencyReports(),
         fetchSatisfactionTrend({
           health_office_area_name: selectedArea !== ALL_AREAS ? selectedArea : undefined,
         }),
+        fetchCateringRisk(selectedArea !== ALL_AREAS ? undefined : undefined), // Will auto-filter for Dinkes admin
+        fetchWorkflowTasks(),
+        fetchNegativeFeedback(),
       ]);
 
       if (!active) return;
@@ -214,6 +226,27 @@ export default function DinkesDashboard({ healthAreaId: propHealthAreaId }: Dink
         console.warn('[dinkes-dashboard] gagal memuat tren', trendRes.reason);
       }
 
+      if (riskRes.status === 'fulfilled') {
+        setCateringRisk(riskRes.value as CateringRiskProfile);
+      } else {
+        setCateringRisk(null);
+        console.warn('[dinkes-dashboard] gagal memuat catering risk', riskRes.reason);
+      }
+
+      if (tasksRes.status === 'fulfilled') {
+        setWorkflowTasks(tasksRes.value as WorkflowTaskCounts);
+      } else {
+        setWorkflowTasks(null);
+        console.warn('[dinkes-dashboard] gagal memuat workflow tasks', tasksRes.reason);
+      }
+
+      if (feedbackRes.status === 'fulfilled') {
+        setNegativeFeedback(feedbackRes.value as NegativeFeedbackFeed);
+      } else {
+        setNegativeFeedback(null);
+        console.warn('[dinkes-dashboard] gagal memuat negative feedback', feedbackRes.reason);
+      }
+
       setError(failures.length ? `Sebagian data gagal dimuat (${failures.join(', ')}).` : null);
       setLoading(false);
     })().catch((err) => {
@@ -222,6 +255,9 @@ export default function DinkesDashboard({ healthAreaId: propHealthAreaId }: Dink
       setKpi(null);
       setReports([]);
       setTrend(null);
+      setCateringRisk(null);
+      setWorkflowTasks(null);
+      setNegativeFeedback(null);
       setError('Terjadi kesalahan saat memuat data dashboard.');
       setLoading(false);
     });
@@ -429,6 +465,112 @@ export default function DinkesDashboard({ healthAreaId: propHealthAreaId }: Dink
               caption="Rata-rata kepuasan siswa"
             />
           </View>
+
+          {/* Workflow Tasks Breakdown */}
+          {workflowTasks && (
+            <Card className="mb-6">
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-lg font-bold text-gray-900">Tindak Lanjut Hari Ini</Text>
+                <View className="px-2 py-1 bg-blue-100 rounded-full">
+                  <Text className="text-xs font-bold text-blue-700">{workflowTasks.total_proses} Total</Text>
+                </View>
+              </View>
+              <View className="gap-3">
+                <View className="flex-row items-center justify-between p-3 bg-yellow-50 rounded-xl border border-yellow-200">
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-2 mb-1">
+                      <Ionicons name="checkmark-circle" size={16} color="#F59E0B" />
+                      <Text className="text-sm font-semibold text-gray-700">Perlu Verifikasi</Text>
+                    </View>
+                    <Text className="text-xs text-gray-500">Konfirmasi informasi dari sekolah</Text>
+                  </View>
+                  <Text className="text-2xl font-bold text-yellow-600">{workflowTasks.verifikasi}</Text>
+                </View>
+                <View className="flex-row items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-2 mb-1">
+                      <Ionicons name="search" size={16} color="#8B5CF6" />
+                      <Text className="text-sm font-semibold text-gray-700">Perlu Audit Katering</Text>
+                    </View>
+                    <Text className="text-xs text-gray-500">Kunjungan lapangan diperlukan</Text>
+                  </View>
+                  <Text className="text-2xl font-bold text-purple-600">{workflowTasks.audit}</Text>
+                </View>
+                <View className="flex-row items-center justify-between p-3 bg-cyan-50 rounded-xl border border-cyan-200">
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-2 mb-1">
+                      <Ionicons name="construct" size={16} color="#06B6D4" />
+                      <Text className="text-sm font-semibold text-gray-700">Perlu Solusi Akhir</Text>
+                    </View>
+                    <Text className="text-xs text-gray-500">Rekomendasi & tindak lanjut</Text>
+                  </View>
+                  <Text className="text-2xl font-bold text-cyan-600">{workflowTasks.solusi}</Text>
+                </View>
+              </View>
+            </Card>
+          )}
+
+          {/* Catering Risk Profile */}
+          {cateringRisk && cateringRisk.data.length > 0 && (
+            <Card className="mb-6">
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-lg font-bold text-gray-900">Profil Risiko Katering</Text>
+                <Ionicons name="warning" size={20} color="#EF4444" />
+              </View>
+              <Text className="text-sm text-gray-600 mb-4">Katering dengan insiden terbanyak di wilayah Anda</Text>
+              <View className="gap-3">
+                {cateringRisk.data.slice(0, 5).map((item, idx) => (
+                  <View key={item.catering_id} className="flex-row items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <View className="flex-1 pr-4">
+                      <View className="flex-row items-center gap-2 mb-1">
+                        <View className="w-6 h-6 rounded-full bg-red-100 items-center justify-center">
+                          <Text className="text-xs font-bold text-red-600">{idx + 1}</Text>
+                        </View>
+                        <Text className="text-sm font-semibold text-gray-900">{item.catering_name}</Text>
+                      </View>
+                      <Text className="text-xs text-gray-600">{item.total_schools_affected} sekolah terdampak</Text>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-xl font-bold text-red-600">{item.active_reports_count}</Text>
+                      <Text className="text-xs text-gray-600">laporan</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </Card>
+          )}
+
+          {/* Negative Feedback Early Warning */}
+          {negativeFeedback && negativeFeedback.data.length > 0 && (
+            <Card className="mb-6">
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-lg font-bold text-gray-900">Peringatan Dini</Text>
+                <View className="px-2 py-1 bg-orange-100 rounded-full">
+                  <Text className="text-xs font-bold text-orange-700">Rating {'<'} 3</Text>
+                </View>
+              </View>
+              <Text className="text-sm text-gray-600 mb-4">Ulasan negatif terbaru - potensi masalah</Text>
+              <View className="gap-3">
+                {negativeFeedback.data.slice(0, 5).map((item) => (
+                  <View key={item.feedback_id} className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <View className="flex-row items-start justify-between mb-2">
+                      <View className="flex-1 pr-2">
+                        <Text className="text-sm font-semibold text-gray-900 mb-0.5">{item.menu_name}</Text>
+                        <Text className="text-xs text-gray-600">{item.catering_name} • {item.school_name}</Text>
+                      </View>
+                      <View className="flex-row items-center bg-orange-100 px-2 py-0.5 rounded-full">
+                        <Ionicons name="star" size={12} color="#F59E0B" />
+                        <Text className="text-xs font-bold text-orange-700 ml-1">{item.rating.toFixed(1)}</Text>
+                      </View>
+                    </View>
+                    {item.komentar && (
+                      <Text className="text-xs text-gray-700 italic" numberOfLines={2}>"  {item.komentar} "</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </Card>
+          )}
 
           <Card className="mb-6">
             <View className="flex-row items-center justify-between mb-4">

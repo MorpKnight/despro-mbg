@@ -125,6 +125,15 @@ const menuItems: MenuSection[] = [
                 background: 'bg-sky-50'
             },
             {
+                route: '/(app)/dinkes-associations',
+                label: 'Relasi Sekolah-Catering',
+                icon: 'link-outline',
+                description: 'Lihat asosiasi di wilayah',
+                roles: ['admin_dinkes', 'super_admin'],
+                color: '#7C3AED',
+                background: 'bg-purple-50'
+            },
+            {
                 route: '/(app)/portal-feedback',
                 label: 'Portal Feedback',
                 icon: 'chatbox-outline',

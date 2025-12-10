@@ -85,3 +85,69 @@ export async function fetchDinkesAreas(): Promise<string[]> {
   const data = await api('analytics/dinkes/areas', { method: 'GET' });
   return Array.isArray(data) ? (data as string[]).filter((area) => typeof area === 'string' && area.trim().length > 0) : [];
 }
+
+// New Dashboard Enhancement Interfaces
+export interface CateringRiskItem {
+  catering_id: string;
+  catering_name: string;
+  active_reports_count: number;
+  total_schools_affected: number;
+}
+
+export interface CateringRiskProfile {
+  data: CateringRiskItem[];
+}
+
+export interface WorkflowTaskCounts {
+  verifikasi: number;
+  audit: number;
+  solusi: number;
+  total_proses: number;
+}
+
+export interface NegativeFeedbackItem {
+  feedback_id: string;
+  menu_name: string;
+  catering_name: string;
+  school_name: string;
+  rating: number;
+  komentar: string | null;
+  created_at: string;
+}
+
+export interface NegativeFeedbackFeed {
+  data: NegativeFeedbackItem[];
+}
+
+// New Dashboard Enhancement Fetch Functions
+export async function fetchCateringRisk(areaId?: string, limit: number = 5): Promise<CateringRiskProfile> {
+  const query = new URLSearchParams();
+  if (areaId) query.append('health_office_area_id', areaId);
+  query.append('limit', limit.toString());
+
+  const queryString = query.toString();
+  const path = `analytics/dinkes/catering-risk${queryString ? `?${queryString}` : ''}`;
+  const data = await api(path, { method: 'GET' });
+  return data as CateringRiskProfile;
+}
+
+export async function fetchWorkflowTasks(areaId?: string): Promise<WorkflowTaskCounts> {
+  const query = new URLSearchParams();
+  if (areaId) query.append('health_office_area_id', areaId);
+
+  const queryString = query.toString();
+  const path = `analytics/dinkes/workflow-tasks${queryString ? `?${queryString}` : ''}`;
+  const data = await api(path, { method: 'GET' });
+  return data as WorkflowTaskCounts;
+}
+
+export async function fetchNegativeFeedback(areaId?: string, limit: number = 10): Promise<NegativeFeedbackFeed> {
+  const query = new URLSearchParams();
+  if (areaId) query.append('health_office_area_id', areaId);
+  query.append('limit', limit.toString());
+
+  const queryString = query.toString();
+  const path = `analytics/dinkes/negative-feedback${queryString ? `?${queryString}` : ''}`;
+  const data = await api(path, { method: 'GET' });
+  return data as NegativeFeedbackFeed;
+}
