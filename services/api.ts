@@ -1,25 +1,23 @@
-import { USER_ROLES } from '../constants/roles';
-import { getSession, setSession, type Role, type Session } from './session';
+import { USER_ROLES } from "../constants/roles";
+import { getSession, setSession, type Role, type Session } from "./session";
 import {
   getCentralApiKey,
   getLocalIp,
   getNetworkMode,
   getServerUrl,
-} from './storage';
+} from "./storage";
 
-export interface ApiOptions extends Omit<RequestInit, 'body'> {
+export interface ApiOptions extends Omit<RequestInit, "body"> {
   baseURL?: string;
   body?: any;
   auth?: boolean;
 }
 
-
-
 let refreshPromise: Promise<Session | null> | null = null;
 
 async function performRefresh(
   session: Session,
-  baseURL: string,
+  baseURL: string
 ): Promise<Session | null> {
   if (!session.refresh_token) {
     return null;
@@ -27,11 +25,11 @@ async function performRefresh(
 
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const refreshUrl = baseURL.replace(/\/$/, '') + '/auth/refresh';
+      const refreshUrl = baseURL.replace(/\/$/, "") + "/auth/refresh";
       try {
         const response = await fetch(refreshUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh_token: session.refresh_token }),
         });
         if (!response.ok) {
@@ -49,7 +47,7 @@ async function performRefresh(
         await setSession(nextSession);
         return nextSession;
       } catch (err) {
-        console.warn('[api] refresh token failed', err);
+        console.warn("[api] refresh token failed", err);
         await setSession(null);
         return null;
       }
@@ -62,10 +60,12 @@ async function performRefresh(
 }
 
 function buildUrl(baseURL: string, path: string) {
-  return baseURL.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
+  return baseURL.replace(/\/$/, "") + "/" + path.replace(/^\//, "");
 }
 
-function normalizeHeaders(input: HeadersInit | undefined): Record<string, string> {
+function normalizeHeaders(
+  input: HeadersInit | undefined
+): Record<string, string> {
   if (!input) return {};
   if (input instanceof Headers) {
     const entries: Record<string, string> = {};
@@ -83,14 +83,14 @@ function normalizeHeaders(input: HeadersInit | undefined): Record<string, string
   return { ...(input as Record<string, string>) };
 }
 
-type RequestOptions = Omit<ApiOptions, 'baseURL' | 'body' | 'auth'>;
+type RequestOptions = Omit<ApiOptions, "baseURL" | "body" | "auth">;
 
 async function makeRequest(
   url: string,
   options: RequestOptions,
   token: string | undefined,
   body: any,
-  isFormData: boolean,
+  isFormData: boolean
 ) {
   // --- TAMBAHKAN INI UNTUK DEBUGGING ---
   console.log("------------------------------------------");
@@ -100,23 +100,26 @@ async function makeRequest(
   const { headers, ...rest } = options;
   const finalHeaders = normalizeHeaders(headers);
 
-  if (!isFormData && !('Content-Type' in finalHeaders)) {
-    finalHeaders['Content-Type'] = 'application/json';
+  if (!isFormData) {
+    if (!("Content-Type" in finalHeaders)) {
+      finalHeaders["Content-Type"] = "application/json";
+    }
   }
-  if (!('Accept' in finalHeaders)) {
-    finalHeaders.Accept = 'application/json';
+
+  if (!("Accept" in finalHeaders)) {
+    finalHeaders.Accept = "application/json";
   }
-  if (token && !('Authorization' in finalHeaders)) {
+  if (token && !("Authorization" in finalHeaders)) {
     finalHeaders.Authorization = `Bearer ${token}`;
-    console.log('[api] attached token:', token.slice(0, 10) + '...');
+    console.log("[api] attached token:", token.slice(0, 10) + "...");
   } else {
-    console.warn('[api] no token attached or already present');
+    console.warn("[api] no token attached or already present");
   }
 
   // Inject Central API Key for Edge Mode if configured
   const centralApiKey = await getCentralApiKey();
-  if (centralApiKey && !('X-School-Token' in finalHeaders)) {
-    finalHeaders['X-School-Token'] = centralApiKey;
+  if (centralApiKey && !("X-School-Token" in finalHeaders)) {
+    finalHeaders["X-School-Token"] = centralApiKey;
   }
 
   return fetch(url, {
@@ -135,8 +138,8 @@ function buildLocalBaseUrl(localIp: string | null): string | null {
   if (!localIp) return null;
   const trimmed = localIp.trim();
   if (!trimmed) return null;
-  const sanitized = trimmed.replace(/\/+$/, '');
-  const withoutSuffix = sanitized.replace(/\/api\/v1$/i, '');
+  const sanitized = trimmed.replace(/\/+$/, "");
+  const withoutSuffix = sanitized.replace(/\/api\/v1$/i, "");
   if (/^https?:\/\//i.test(withoutSuffix)) {
     return `${withoutSuffix}/api/v1`;
   }
@@ -145,7 +148,10 @@ function buildLocalBaseUrl(localIp: string | null): string | null {
   return `http://${hostWithPort}/api/v1`;
 }
 
-async function determineBaseUrl(override: string | undefined, role: Role | null): Promise<string> {
+async function determineBaseUrl(
+  override: string | undefined,
+  role: Role | null
+): Promise<string> {
   if (override) {
     return override;
   }
@@ -157,7 +163,7 @@ async function determineBaseUrl(override: string | undefined, role: Role | null)
   }
 
   const [mode, localIp] = await Promise.all([getNetworkMode(), getLocalIp()]);
-  if (mode === 'LOCAL' && roleAllowsLocal) {
+  if (mode === "LOCAL" && roleAllowsLocal) {
     const localBase = buildLocalBaseUrl(localIp);
     if (localBase) {
       return localBase;
@@ -168,21 +174,20 @@ async function determineBaseUrl(override: string | undefined, role: Role | null)
 }
 
 export async function api(path: string, options: ApiOptions = {}) {
-  const {
-    baseURL,
-    body,
-    auth = true,
-    ...requestOptions
-  } = options;
+  const { baseURL, body, auth = true, ...requestOptions } = options;
 
   const session = await getSession();
-  const resolvedBaseURL = await determineBaseUrl(baseURL, session?.role ?? null);
+  const resolvedBaseURL = await determineBaseUrl(
+    baseURL,
+    session?.role ?? null
+  );
   const url = buildUrl(resolvedBaseURL, path);
 
-  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
 
   let requestBody: any = body;
-  if (!isFormData && body && typeof body !== 'string') {
+  if (!isFormData && body && typeof body !== "string") {
     try {
       requestBody = JSON.stringify(body);
     } catch {
@@ -193,31 +198,29 @@ export async function api(path: string, options: ApiOptions = {}) {
   let authSession = auth ? session : null;
 
   const attempt = async (token?: string) =>
-    makeRequest(
-      url,
-      requestOptions,
-      token,
-      requestBody,
-      isFormData,
-    );
+    makeRequest(url, requestOptions, token, requestBody, isFormData);
 
   let response;
   try {
     response = await attempt(authSession?.access_token);
   } catch (err: any) {
     // Check for CORS error - CORS errors typically show up as TypeError or network errors
-    const errorMessage = err?.message || err?.toString() || '';
+    const errorMessage = err?.message || err?.toString() || "";
     if (
-      errorMessage.includes('CORS') || 
-      errorMessage.includes('Access-Control-Allow-Origin') ||
-      errorMessage.includes('blocked by CORS policy') ||
-      (err.name === 'TypeError' && errorMessage.includes('fetch'))
+      errorMessage.includes("CORS") ||
+      errorMessage.includes("Access-Control-Allow-Origin") ||
+      errorMessage.includes("blocked by CORS policy") ||
+      (err.name === "TypeError" && errorMessage.includes("fetch"))
     ) {
-      throw new Error('CORS Error: Backend tidak mengizinkan request dari origin ini. Silakan restart backend server untuk menerapkan konfigurasi CORS yang baru.');
+      throw new Error(
+        "CORS Error: Backend tidak mengizinkan request dari origin ini. Silakan restart backend server untuk menerapkan konfigurasi CORS yang baru."
+      );
     }
     // Check for network error (fetch failure)
-    if (err.message === 'Network request failed' || err.name === 'TypeError') {
-      throw new Error('Gagal terhubung ke Server Sekolah. Pastikan Anda terhubung ke jaringan lokal sekolah.');
+    if (err.message === "Network request failed" || err.name === "TypeError") {
+      throw new Error(
+        "Gagal terhubung ke Server Sekolah. Pastikan Anda terhubung ke jaringan lokal sekolah."
+      );
     }
     throw err;
   }
@@ -233,24 +236,28 @@ export async function api(path: string, options: ApiOptions = {}) {
 
     if (response.status === 401) {
       await setSession(null);
-      const text = await response.text().catch(() => '');
-      throw new Error(`Unauthorized: ${text || 'authentication required'}`);
+      const text = await response.text().catch(() => "");
+      throw new Error(`Unauthorized: ${text || "authentication required"}`);
     }
   }
 
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
+    const text = await response.text().catch(() => "");
     // Try to parse JSON for better error messages
-    if (response.status === 422 || response.status === 500 || response.status === 400) {
+    if (
+      response.status === 422 ||
+      response.status === 500 ||
+      response.status === 400
+    ) {
       try {
         const errorJson = JSON.parse(text);
         if (errorJson.detail) {
           if (Array.isArray(errorJson.detail)) {
-            const details = errorJson.detail.map((e: any) => 
-              `${e.loc?.join('.')}: ${e.msg}`
-            ).join('\n');
+            const details = errorJson.detail
+              .map((e: any) => `${e.loc?.join(".")}: ${e.msg}`)
+              .join("\n");
             throw new Error(`Validation Error:\n${details}`);
-          } else if (typeof errorJson.detail === 'string') {
+          } else if (typeof errorJson.detail === "string") {
             throw new Error(errorJson.detail);
           }
         }
@@ -265,12 +272,10 @@ export async function api(path: string, options: ApiOptions = {}) {
     return null;
   }
 
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
     return response.json();
   }
   const text = await response.text();
   return text;
 }
-
-

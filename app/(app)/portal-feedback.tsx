@@ -25,17 +25,21 @@ export default function PortalFeedback() {
   const [submitting, setSubmitting] = useState(false);
   const { showSnackbar } = useSnackbar();
 
-  const { mutate: sendFeedback } = useOfflineMutation<SubmitFeedbackPayload, FeedbackItem>({
-    mutationFn: (variables) => submitFeedback(variables),
-    endpoint: 'feedback/',
-    method: 'POST',
-    serializeBody: (payload) => {
-      const body: Record<string, any> = { rating: payload.rating };
-      if (payload.comment) body.comment = payload.comment;
-      if (payload.menuId) body.menu_id = payload.menuId;
-      if (payload.photoUrl) body.photo_url = payload.photoUrl;
-      return body;
-    },
+ const { mutate: sendFeedback } = useOfflineMutation({
+  mutationFn: (variables) => submitFeedback(variables),
+  endpoint: "feedback/",
+  method: "POST",
+  serializeBody: (payload) => {
+    const form = new FormData();
+
+    form.append("rating", String(payload.rating));
+
+    if (payload.comment) form.append("comment", payload.comment);
+    if (payload.menuId) form.append("menu_id", String(payload.menuId));
+    if (payload.photoUrl) form.append("photo_url", payload.photoUrl);
+
+    return form;
+  },
     onSuccess: () => showSnackbar({ message: 'Masukan berhasil dikirim.', variant: 'success' }),
     onError: (error) => showSnackbar({
       message: error instanceof Error ? error.message : 'Tidak dapat mengirim masukan',
@@ -55,6 +59,13 @@ export default function PortalFeedback() {
       );
     }
   }, [user]);
+
+  useEffect(() => {
+  if (photoUrl !== null) {
+    console.log("[STATE] photoUrl updated =", photoUrl);
+  }
+}, [photoUrl]);
+
 
   const categories = useMemo(
     () => [
