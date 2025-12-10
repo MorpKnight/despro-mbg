@@ -56,6 +56,29 @@ export async function bulkCreateStudents(data: { students: StudentCreate[] }, sc
     });
 }
 
+// Simplified bulk create - only requires full_name
+export interface BulkSimpleCreate {
+    students: string[];  // List of full_name only
+}
+
+export interface BulkCreateResult {
+    full_name: string;
+    username: string;
+    password: string;
+    success: boolean;
+    error?: string;
+}
+
+export async function bulkCreateStudentsSimple(data: BulkSimpleCreate, schoolId?: string): Promise<BulkCreateResult[]> {
+    const params = new URLSearchParams();
+    if (schoolId) params.append('school_id', schoolId);
+
+    return api(`school-admin/students/bulk-simple?${params.toString()}`, {
+        method: 'POST',
+        body: data,
+    });
+}
+
 export async function updateStudent(id: string, data: StudentUpdate, schoolId?: string): Promise<Student> {
     const params = new URLSearchParams();
     if (schoolId) params.append('school_id', schoolId);
