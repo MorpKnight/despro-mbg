@@ -140,9 +140,29 @@ function buildLocalBaseUrl(localIp: string | null): string | null {
   if (!trimmed) return null;
   const sanitized = trimmed.replace(/\/+$/, "");
   const withoutSuffix = sanitized.replace(/\/api\/v1$/i, "");
+
+  // Heuristic: If it's a domain (not IP/localhost), prefer HTTPS
+  // Check against common local identifiers
+  const isLocalIdentifier = /^(?:localhost|127\.0\.0\.1|10\.0\.2\.2|(?:[0-9]{1,3}\.){3}[0-9]{1,3})$/i.test(
+    withoutSuffix.replace(/^https?:\/\//, "").split(":")[0]
+  );
+
   if (/^https?:\/\//i.test(withoutSuffix)) {
+    // If explicit scheme is provided:
+    // If it is NOT a local identifier (it's a domain) and uses HTTP, upgrade to HTTPS
+    if (!isLocalIdentifier && withoutSuffix.startsWith("http://")) {
+      return `${withoutSuffix.replace("http://", "https://")}/api/v1`;
+    }
     return `${withoutSuffix}/api/v1`;
   }
+
+  if (!isLocalIdentifier) {
+    // It's a domain without scheme (e.g. mbg-be.mrt.qzz.io)
+    // defaulting to HTTPS and NO default port
+    return `https://${withoutSuffix}/api/v1`;
+  }
+
+  // It is a local IP/localhost without scheme
   const needsPort = !/:[0-9]+$/.test(withoutSuffix);
   const hostWithPort = needsPort ? `${withoutSuffix}:8000` : withoutSuffix;
   return `http://${hostWithPort}/api/v1`;

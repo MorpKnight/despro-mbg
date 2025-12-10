@@ -1,4 +1,4 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
@@ -16,7 +16,15 @@ export default function QRScanner({ onScanSuccess, onScanError, paused, cameraEn
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [torch, setTorch] = useState(false);
+  const [facing, setFacing] = useState<CameraType>('back');
   const scanningActive = cameraEnabled && !scanned && !paused;
+
+  // Reset internal scanned state when parent unpauses
+  React.useEffect(() => {
+    if (!paused) {
+      setScanned(false);
+    }
+  }, [paused]);
 
   const handleScan = useCallback(
     async (event: { data: string; type?: string }) => {
@@ -27,10 +35,10 @@ export default function QRScanner({ onScanSuccess, onScanError, paused, cameraEn
         const data = String(event?.data ?? '').trim();
         if (!data) throw new Error('QR kosong');
         // Haptic feedback
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => { });
         onScanSuccess(data);
       } catch (e: any) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => { });
         onScanError?.(e instanceof Error ? e : new Error('Gagal memindai'));
         // Allow re-scan immediately on error
         setScanned(false);
@@ -93,7 +101,7 @@ export default function QRScanner({ onScanSuccess, onScanError, paused, cameraEn
       {cameraEnabled && (
         <CameraView
           style={{ width: '100%', height: '100%' }}
-          facing="back"
+          facing={facing}
           // @ts-ignore expo-camera newer API uses onBarcodeScanned
           onBarcodeScanned={scanningActive ? handleScan : undefined}
           // For older API compatibility, keep alias
@@ -125,6 +133,18 @@ export default function QRScanner({ onScanSuccess, onScanError, paused, cameraEn
               onPress={() => setTorch((t) => !t)}
             >
               <Text className="text-white font-semibold">{torch ? 'Matikan Senter' : 'Nyalakan Senter'}</Text>
+            </Pressable>
+          )}
+
+          {cameraEnabled && (
+            <Pressable
+              accessibilityRole="button"
+              className="px-4 py-2 rounded-card bg-gray-800/70 ml-2"
+              onPress={() => setFacing((current) => (current === 'back' ? 'front' : 'back'))}
+            >
+              <Text className="text-white font-semibold">
+                {facing === 'back' ? 'Kamera Depan' : 'Kamera Belakang'}
+              </Text>
             </Pressable>
           )}
         </View>
