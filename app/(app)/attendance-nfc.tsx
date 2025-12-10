@@ -12,8 +12,10 @@ import { startScan, stopScan, type NFCSource } from '../../lib/nfc';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useOfflineMutation } from '../../hooks/useOfflineMutation';
-import { recordAttendanceViaNfc, type RecordAttendanceResult } from '../../services/attendance';
+import { recordAttendanceViaNfc } from '../../services/attendance';
 import { useSnackbar } from '../../hooks/useSnackbar';
+import { useIsFocused } from '@react-navigation/native';
+
 
 type NFCScan = {
   uid: string;
@@ -38,17 +40,15 @@ export default function AttendanceNFCPage() {
   const [paused, setPaused] = useState(false);
   const [lastScan, setLastScan] = useState<NFCScan | null>(null);
   const [scans, setScans] = useState<NFCScan[]>([]);
-  const [scanMode, setScanMode] = useState<NFCSource>(Platform.OS === 'web' ? 'reader' : 'device');
+  const [scanMode, setScanMode] = useState<NFCSource>(Platform.OS === 'web' ? 'reader' : 'reader');
   const [appActive, setAppActive] = useState(true);
-
-  // ===== confirm popup state =====
-  const [openResetConfirm, setOpenResetConfirm] = useState(false);
+  const isFocused = useIsFocused();
 
   // =========================
   // Electron NFC Hook (status/error)
   // =========================
   const { available, status, error } = useElectronNfc({
-    enabled: Platform.OS === 'web' && scanMode === 'reader' && appActive,
+    enabled: Platform.OS === 'web' && scanMode === 'reader',
   });
 
   const readerName = status?.reader ?? null;
@@ -164,8 +164,10 @@ export default function AttendanceNFCPage() {
     if (Platform.OS !== 'web') return;
     if (scanMode !== 'reader') return;
     if (!appActive) return;
+    if (!isFocused) return;
     if (!readerStatus) return;
 
+  let active = true;
     if (readerStatus === 'connected' && !hasShownFirstConnectRef.current) {
       hasShownFirstConnectRef.current = true;
       showSnackbar({
@@ -173,7 +175,7 @@ export default function AttendanceNFCPage() {
         variant: 'success',
       });
     }
-  }, [readerStatus, readerName, scanMode, appActive]);
+  }, [paused, scanMode, appActive, isFocused, readerStatus]);
 
   // Snackbar for Electron errors
   useEffect(() => {
@@ -209,66 +211,70 @@ export default function AttendanceNFCPage() {
             const ok = tryLockUidForToday(uid);
             if (!ok) {
               showSnackbar({
-                message: 'Siswa ini sudah/ sedang diproses untuk absensi hari ini.',
+                message: 'Siswa ini sudah diproses untuk absensi hari ini.',
                 variant: 'info',
               });
               return;
             }
 
             try {
-              // 1) insert placeholder to UI
-              const scan: NFCScan = { uid, username: null, fullName: null };
+              // 1) submit
+              const result = await submitAttendance({ nfcTagId: uid });
+
+              const isQueued = !!(result as any)?.queued;
+              const record = result?.record;
+
+              // Kalau offline queue TIDAK mengembalikan record,
+              // jangan tampilkan di UI (sesuai requirement kamu).
+              if (!record) {
+                if (isQueued) {
+                  showSnackbar({ message: 'Disimpan ke antrian offline.', variant: 'info' });
+                } else {
+                  showSnackbar({ message: 'Gagal memproses absensi.', variant: 'error' });
+                }
+                return;
+              }
+
+              // 2) mark daily lock
+              markScannedToday(uid);
+
+              // 3) build scan hasil sukses
+              const student = record.student;
+              const username = student?.username ? student.username : null;
+              const fullName = student?.fullName ?? null;
+
+              const scan: NFCScan = { uid, username, fullName };
+
+              // 4) update UI HANYA untuk sukses
               setLastScan(scan);
               setScans((prev) => [scan, ...prev].slice(0, 20));
 
-              // 2) submit
-              const result = await submitAttendance({ nfcTagId: uid });
-
-              // 3) mark daily lock
-              markScannedToday(uid);
-
-              // 4) extract student from typed result (camelCase)
-              const student = result?.record?.student;
-
-              if (student) {
-                const username = student.username ? student.username : null;
-                const fullName = student.fullName ?? null;
-
-                setLastScan((prev) =>
-                  prev && prev.uid === uid ? { ...prev, username, fullName } : prev
-                );
-
-                setScans((prev) =>
-                  prev.map((s) => (s.uid === uid ? { ...s, username, fullName } : s))
-                );
-              }
-
               console.log('NFC attendance recorded', result);
+
               // 5) feedback
-              if (result && (result as any)?.queued) {
+              if (isQueued) {
                 showSnackbar({ message: 'Disimpan ke antrian offline.', variant: 'info' });
               } else {
                 showSnackbar({ message: 'Kehadiran tercatat.', variant: 'success' });
               }
             } catch (err: any) {
-              console.warn('[attendance-nfc] gagal kirim absensi', err);
+              console.warn('[attendance-nfc] gagal kirim absensi', err)
 
-              const raw = String(err?.message || '');
-              const friendly = /409/.test(raw)
-                ? 'Siswa sudah tercatat hadir hari ini.'
-                : raw || 'Gagal memproses absensi.';
-
-              showSnackbar({ message: friendly, variant: 'error' });
+              showSnackbar({ message: "Siswa sudah diproses untuk absensi hari ini.", variant: 'error' });
             } finally {
               releaseInFlight(uid);
             }
+
           });
         } else {
           await stopScan();
         }
       } catch (err) {
         console.error('NFC scan error', err);
-        showSnackbar({ message: 'Terjadi masalah saat pemindaian NFC.', variant: 'error' });
+        showSnackbar({
+          message: 'Terjadi masalah saat pemindaian NFC. Periksa perangkat pembaca atau koneksi, lalu coba lagi.',
+          variant: 'error',
+        });
       }
     };
 
@@ -279,27 +285,6 @@ export default function AttendanceNFCPage() {
       stopScan().catch(() => {});
     };
   }, [paused, scanMode, appActive]);
-
-  // =========================
-  // Reset handler (dipakai modal)
-  // =========================
-  const handleResetToday = async () => {
-    const todayKey = getJakartaDateKey();
-    const storageKey = `mbg:nfc:scanned:${todayKey}`;
-
-    try {
-      await AsyncStorage.removeItem(storageKey);
-    } catch (e) {
-      // ignore
-    }
-
-    scannedTodayRef.current = new Set();
-    inFlightRef.current = new Set();
-    setScannedToday(new Set());
-
-    showSnackbar({ message: 'Daftar scan hari ini di-reset.', variant: 'success' });
-    setOpenResetConfirm(false);
-  };
 
   // =========================
   // Role check
@@ -322,7 +307,6 @@ export default function AttendanceNFCPage() {
   // =========================
   const renderNfcStatusText = () => {
     if (paused) return 'Jeda';
-    if (scanMode === 'device') return 'Aktif (Device)';
 
     if (!available) return 'Reader mode';
     if (!readerStatus) return 'Menunggu reader...';
@@ -346,72 +330,6 @@ export default function AttendanceNFCPage() {
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <Stack.Screen options={{ title: 'Scan Kehadiran NFC' }} />
-
-      {/* ===== Confirm Popup Modal (inline, 1 file) ===== */}
-      <Modal
-        visible={openResetConfirm}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setOpenResetConfirm(false)}
-      >
-        {/* backdrop: klik area gelap untuk tutup */}
-        <Pressable
-          onPress={() => setOpenResetConfirm(false)}
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.35)',
-            padding: 20,
-            justifyContent: 'center',
-          }}
-        >
-          {/* card: stop propagation */}
-          <Pressable
-            onPress={() => {}}
-            style={{
-              backgroundColor: 'white',
-              borderRadius: 12,
-              padding: 16,
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 6 }}>
-              Reset Absensi
-            </Text>
-            <Text style={{ fontSize: 13.5, opacity: 0.75, marginBottom: 14 }}>
-              Yakin ingin mengosongkan daftar scan hari ini?
-            </Text>
-
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
-              <Pressable
-                onPress={() => setOpenResetConfirm(false)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  backgroundColor: '#F3F4F6',
-                }}
-              >
-                <Text style={{ fontWeight: '600', fontSize: 12 }}>Batal</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={handleResetToday}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  backgroundColor: '#DC2626',
-                }}
-              >
-                <Text style={{ fontWeight: '700', fontSize: 12, color: 'white' }}>
-                  Reset
-                </Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       <View className="p-4 gap-3">
         <Card>
           <View className="flex-row items-center justify-between">
@@ -428,12 +346,6 @@ export default function AttendanceNFCPage() {
 
             <View className="flex-row items-center gap-2">
               <Button
-                title="Device"
-                variant={scanMode === 'device' ? 'primary' : 'outline'}
-                size="sm"
-                onPress={() => setScanMode('device')}
-              />
-              <Button
                 title="Reader"
                 variant={scanMode === 'reader' ? 'primary' : 'outline'}
                 size="sm"
@@ -443,14 +355,6 @@ export default function AttendanceNFCPage() {
                 title={paused ? 'Lanjutkan' : 'Jeda'}
                 variant={paused ? 'primary' : 'secondary'}
                 onPress={() => setPaused((p) => !p)}
-              />
-
-              {/* ===== Button Reset: sekarang buka modal ===== */}
-              <Button
-                title="Reset Hari Ini"
-                variant="outline"
-                size="sm"
-                onPress={() => setOpenResetConfirm(true)}
               />
             </View>
           </View>
