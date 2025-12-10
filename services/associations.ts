@@ -24,7 +24,7 @@ export async function fetchAssociations(params?: { sekolah_id?: string; catering
 
     const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
-    return api(`associations${queryString}`, {
+    return api(`associations/${queryString}`, {
         method: 'GET',
     });
 }

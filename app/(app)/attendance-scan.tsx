@@ -1,8 +1,7 @@
 import { useIsFocused } from '@react-navigation/native';
-import { useLocalSearchParams } from 'expo-router';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, AppState, Text, View } from 'react-native';
+import { Alert, AppState, Text, View, TextInput, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { QRScanner } from '../../components/features/attendance';
 import Button from '../../components/ui/Button';
@@ -14,7 +13,6 @@ import { useOffline } from '../../hooks/useOffline';
 import { useOfflineMutation } from '../../hooks/useOfflineMutation';
 import { useSnackbar } from '../../hooks/useSnackbar';
 import { recordAttendance, type RecordAttendanceResult } from '../../services/attendance';
-// No backend yet: we'll only parse and show the QR contents for now
 
 type ParsedQR = {
   raw: string;
@@ -61,6 +59,8 @@ export default function AttendanceScanPage() {
   const [paused, setPaused] = useState(false); // auto-pause after success
   const [cameraOn, setCameraOn] = useState(true); // user toggles camera hardware
   const [appActive, setAppActive] = useState(true);
+  const [manualInput, setManualInput] = useState('');
+  const [scanResult, setScanResult] = useState<string | null>(null);
 
   const { mutate: submitAttendance } = useOfflineMutation<{ studentId: string; method: 'qr' }, RecordAttendanceResult>({
     mutationFn: ({ studentId, method }) => recordAttendance(studentId, method),
@@ -90,8 +90,7 @@ export default function AttendanceScanPage() {
     );
   }
 
-  async function handleSuccess(data: string) {
-    setPaused(true);
+  async function processAttendance(data: string) {
     try {
       const parsed = parseQrPayload(data);
       if (!parsed.id || parsed.id === 'UNKNOWN') {
@@ -113,18 +112,29 @@ export default function AttendanceScanPage() {
           message: 'Kehadiran tercatat di server.',
           variant: 'success',
         });
+
+        // Success - close modal automatically or wait user?
+        // Current logic: Alert user then close. But since we use Modal for input verification...
+        // We should close the Input Modal first, then show Result Alert.
+
+        setScanResult(null); // Close input modal
+        setPaused(true); // Keep paused until alert closed
+
         Alert.alert('Kehadiran Tercatat', `${displayName} tercatat pada ${timeLabel}.`, [
-          { text: 'Scan lagi', onPress: () => setPaused(false) },
-          { text: 'Tutup', style: 'cancel' },
+          { text: 'Scan lagi', onPress: () => { setPaused(false); } },
+          { text: 'Tutup', style: 'cancel' }, // Paused remains true if they just close? Probably fine.
         ]);
         return;
       }
+
+      setScanResult(null);
+      setPaused(true);
 
       Alert.alert(
         'Disimpan Offline',
         `${displayName} akan dikirim otomatis saat koneksi kembali tersedia.`,
         [
-          { text: 'Scan lagi', onPress: () => setPaused(false) },
+          { text: 'Scan lagi', onPress: () => { setPaused(false); } },
           { text: 'Tutup', style: 'cancel' },
         ],
       );
@@ -134,9 +144,18 @@ export default function AttendanceScanPage() {
       const friendly = /409/.test(rawMessage)
         ? 'Siswa sudah tercatat hadir hari ini.'
         : rawMessage || 'QR tidak dapat diproses.';
-      Alert.alert('Gagal Memproses', friendly);
-      setPaused(false);
+
+      setScanResult(null);
+
+      Alert.alert('Gagal Memproses', friendly, [
+        { text: 'OK', onPress: () => setPaused(false) } // Let them try again
+      ]);
     }
+  }
+
+  function handleSuccess(data: string) {
+    setPaused(true);
+    setScanResult(data);
   }
 
   function handleError(err: Error) {
@@ -152,28 +171,131 @@ export default function AttendanceScanPage() {
         className="mx-6 mt-6 mb-4"
       />
 
-      <View className="p-4 gap-3">
-        <Card>
-          <View className="flex-row items-center justify-between">
-            <View>
-              <Text className="font-semibold text-gray-900">Status Pemindaian</Text>
-              <Text className="text-gray-600">
-                {(cameraOn && isFocused && appActive) ? (paused ? 'Jeda' : 'Aktif') : 'Kamera Off'} • {isOnline ? 'Online' : 'Offline'} • {currentMode === 'LOCAL' ? 'Server Lokal' : 'Server Cloud'}
-              </Text>
+      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
+        <View className="p-4 gap-3 flex-1">
+          <Card>
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="font-semibold text-gray-900">Status Pemindaian</Text>
+                <Text className="text-gray-600">
+                  {(cameraOn && isFocused && appActive) ? (paused ? 'Jeda' : 'Aktif') : 'Kamera Off'} • {isOnline ? 'Online' : 'Offline'} • {currentMode === 'LOCAL' ? 'Server Lokal' : 'Server Cloud'}
+                </Text>
+              </View>
+              <Button
+                title={cameraOn ? 'Matikan Kamera' : 'Nyalakan Kamera'}
+                variant={cameraOn ? 'secondary' : 'primary'}
+                onPress={() => {
+                  setCameraOn((on) => !on);
+                  if (!cameraOn) setPaused(false);
+                }}
+              />
             </View>
-            <Button
-              title={cameraOn ? 'Matikan Kamera' : 'Nyalakan Kamera'}
-              variant={cameraOn ? 'secondary' : 'primary'}
-              onPress={() => {
-                setCameraOn((on) => !on);
-                if (!cameraOn) setPaused(false);
-              }}
-            />
-          </View>
-        </Card>
+          </Card>
 
-        <QRScanner onScanSuccess={handleSuccess} onScanError={handleError} paused={paused} cameraEnabled={cameraOn && isFocused && appActive} />
-      </View>
+          <View className="flex-row flex-wrap gap-4 flex-1">
+            {/* Webcam Section */}
+            <View className="flex-1 min-w-[300px]">
+              <QRScanner
+                onScanSuccess={handleSuccess}
+                onScanError={handleError}
+                paused={paused}
+                cameraEnabled={cameraOn && isFocused && appActive}
+                className="h-full"
+              />
+            </View>
+
+            {/* Barcode Scanner / Manual Input Section */}
+            <View className="flex-1 min-w-[300px]">
+              <Card className="h-full justify-center">
+                <Text className="font-semibold text-gray-900 mb-2 text-lg">Barcode Scanner / Manual</Text>
+                <Text className="text-gray-600 mb-4">
+                  Pastikan kursor aktif di kolom bawah ini untuk menggunakan barcode scanner tembak.
+                </Text>
+
+                <TextInput
+                  className="border border-gray-300 rounded-lg px-4 py-3 bg-white text-lg mb-3"
+                  placeholder="Klik di sini lalu scan..."
+                  placeholderTextColor="#9ca3af"
+                  onSubmitEditing={() => {
+                    if (manualInput.trim()) {
+                      handleSuccess(manualInput);
+                      setManualInput('');
+                    }
+                  }}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onChangeText={setManualInput}
+                  value={manualInput}
+                />
+                <Button
+                  title="Proses Input"
+                  onPress={() => {
+                    if (manualInput.trim()) {
+                      handleSuccess(manualInput);
+                      setManualInput('');
+                    }
+                  }}
+                />
+              </Card>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={!!scanResult}
+        onRequestClose={() => {
+          setScanResult(null);
+          setPaused(false);
+        }}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50 p-4">
+          <Card className="w-full max-w-sm">
+            <Text className="text-xl font-bold text-gray-900 mb-2">Hasil Scan / Input</Text>
+
+            {/* Context/Validation Warning */}
+            {(() => {
+              const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(scanResult || '');
+              const isUrl = /^https?:\/\//.test(scanResult || '');
+
+              if (!isUuid) {
+                return (
+                  <View className="bg-amber-50 p-3 rounded-md mb-3 border border-amber-200">
+                    <Text className="text-amber-800 font-semibold text-xs mb-1">⚠️ Format Tidak Valid?</Text>
+                    <Text className="text-amber-700 text-xs">
+                      Data ini tidak terlihat seperti UUID siswa.
+                      {isUrl && '\n\nIni terlihat seperti Link Website (Dynamic QR). Gunakan QR Generator tipe "Text" atau "Static" agar berisi ID langsung.'}
+                    </Text>
+                  </View>
+                );
+              }
+              return <Text className="text-gray-600 mb-4">Pastikan data berikut adalah ID Siswa yang benar:</Text>;
+            })()}
+
+            <View className="bg-gray-100 p-3 rounded-md mb-6 border border-gray-200">
+              <Text className="font-mono text-gray-800 text-center selectable">{scanResult}</Text>
+            </View>
+
+            <View className="flex-col gap-3">
+              <Button
+                title="Proses ke Server"
+                onPress={() => scanResult && processAttendance(scanResult)}
+              />
+              <Button
+                title="Batal / Scan Lagi"
+                variant="secondary"
+                onPress={() => {
+                  setScanResult(null);
+                  setPaused(false);
+                }}
+              />
+            </View>
+          </Card>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
