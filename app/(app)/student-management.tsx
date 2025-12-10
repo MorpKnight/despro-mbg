@@ -526,9 +526,9 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
                     <Text className="text-xs text-gray-400 mt-1">
                       Status: {student.account_status}
                     </Text>
-                    {student.nfc_tag_id && (
+                    {student.nfc_tag && (
                       <Text className="text-xs text-gray-500 mt-1">
-                        NFC: {student.nfc_tag_id}
+                        NFC: {student.nfc_tag}
                       </Text>
                     )}
                   </View>
@@ -544,11 +544,11 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
                       variant="secondary"
                       size="sm"
                       onPress={() =>
-                        student.nfc_tag_id
+                        student.nfc_tag
                           ? handleUnpair(student.id)
                           : handleStartPair(student.id)
                       }
-                      title={student.nfc_tag_id ? "NFC ✓" : "NFC"}
+                      title={student.nfc_tag ? "NFC ✓" : "NFC"}
                     />
                     <Button
                       variant="ghost"

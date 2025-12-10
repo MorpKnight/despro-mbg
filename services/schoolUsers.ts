@@ -7,7 +7,7 @@ export interface Student {
     school_id: string;
     role: 'siswa';
     account_status: string;
-    nfc_tag_id?: string;
+    nfc_tag?: string;  // Changed from nfc_tag_id to match backend
     created_at: string;
 }
 
