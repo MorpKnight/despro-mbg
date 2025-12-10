@@ -131,7 +131,6 @@ export default function AttendanceNFCPage() {
             // 1) lock cepat (anti spam)
             const ok = tryLockUidForToday(uid);
             if (!ok) {
-              // pakai snackbar (lebih enak dari Alert)
               showSnackbar({ message: 'Siswa ini sudah/ sedang diproses untuk absensi hari ini.', variant: 'info' });
               return;
             }
