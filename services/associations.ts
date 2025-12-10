@@ -44,3 +44,25 @@ export async function deleteAssociation(associationId: string): Promise<void> {
         method: 'DELETE',
     });
 }
+
+/**
+ * Fetch associations for Dinkes admin (auto-filtered by logged-in user's area)
+ */
+export async function fetchDinkesAssociations(): Promise<Association[]> {
+    return api('associations/dinkes', {
+        method: 'GET',
+    });
+}
+
+
+export async function fetchAssociationsByArea(healthOfficeAreaId?: string): Promise<Association[]> {
+    const queryParams = new URLSearchParams();
+    if (healthOfficeAreaId) queryParams.append('health_office_area_id', healthOfficeAreaId);
+
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
+    return api(`associations/by-area${queryString}`, {
+        method: 'GET',
+    });
+}
+

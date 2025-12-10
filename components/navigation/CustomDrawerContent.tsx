@@ -89,6 +89,7 @@ const MENU_STRUCTURE: DrawerSection[] = [
       { label: 'Asosiasi Sekolah', icon: 'git-network-outline', route: 'association-management', roles: [USER_ROLES.ADMIN_CATERING] },
       { label: 'Emergency Reports', icon: 'warning-outline', route: 'emergency-report', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
       { label: 'Health Reports', icon: 'document-text-outline', route: 'dinkes-emergency', roles: [USER_ROLES.ADMIN_DINKES, USER_ROLES.SUPER_ADMIN] },
+      { label: 'Relasi Sekolah-Catering', icon: 'link-outline', route: 'dinkes-associations', roles: [USER_ROLES.ADMIN_DINKES, USER_ROLES.SUPER_ADMIN] },
       { label: 'Feedback', icon: 'chatbubbles-outline', route: 'feedback-list', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
       { label: 'My Feedback', icon: 'chatbox-outline', route: 'portal-feedback', roles: [USER_ROLES.SISWA] },
     ],

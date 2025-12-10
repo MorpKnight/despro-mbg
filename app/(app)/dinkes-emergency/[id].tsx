@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
@@ -7,7 +8,8 @@ import Card from '../../../components/ui/Card';
 import PageHeader from '../../../components/ui/PageHeader';
 import TextInput from '../../../components/ui/TextInput';
 import { useAuth } from '../../../hooks/useAuth';
-import { EmergencyReport, ReportStatus, fetchEmergencyReport, updateEmergencyStatus } from '../../../services/emergency';
+import { EmergencyReport, ReportStatus, fetchEmergencyReport, updateEmergencyStatus, processReportStep, ProcessingStep } from '../../../services/emergency';
+import ProcessingWizard from '../../../components/ui/ProcessingWizard';
 
 function StatusPicker({ value, onChange, disabled }: { value: ReportStatus; onChange: (s: ReportStatus) => void; disabled?: boolean }) {
   const options: ReportStatus[] = ['menunggu', 'proses', 'selesai'];
@@ -35,6 +37,7 @@ export default function DinkesEmergencyDetailPage() {
   const [status, setStatus] = useState<ReportStatus>('menunggu');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [wizardVisible, setWizardVisible] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -65,6 +68,16 @@ export default function DinkesEmergencyDetailPage() {
       Alert.alert('Tersimpan', 'Perubahan status tersimpan.');
     } else {
       Alert.alert('Disimpan offline', 'Perubahan diantre dan akan disinkron saat online.');
+    }
+  }
+
+  async function handleProcessStep(step: ProcessingStep, notes: string) {
+    if (!report) return;
+    const updated = await processReportStep(report.id, step, notes);
+    if (updated) {
+      setReport(updated);
+      setStatus(updated.status);
+      Alert.alert('Berhasil', 'Laporan telah diproses.');
     }
   }
 
@@ -122,6 +135,20 @@ export default function DinkesEmergencyDetailPage() {
               </Card>
             )}
 
+            {canEdit && report.status !== 'selesai' && report.processingStep !== 'completed' && (
+              <Card>
+                <Text className="text-lg font-bold text-gray-900 mb-2">Proses Laporan</Text>
+                <Text className="text-sm text-gray-600 mb-3">
+                  Gunakan wizard untuk memproses laporan step-by-step melalui tahapan verifikasi, audit, dan solusi.
+                </Text>
+                <Button
+                  title="Buka Wizard Pemrosesan"
+                  icon={<Ionicons name="git-network" size={20} color="white" />}
+                  onPress={() => setWizardVisible(true)}
+                />
+              </Card>
+            )}
+
             {report.followUps && report.followUps.length > 0 && (
               <Card>
                 <Text className="text-lg font-bold text-gray-900 mb-3">Riwayat Tindak Lanjut</Text>
@@ -138,7 +165,20 @@ export default function DinkesEmergencyDetailPage() {
             )}
           </View>
         </ScrollView>
-      )}
-    </SafeAreaView>
+      )
+      }
+
+      {
+        report && (
+          <ProcessingWizard
+            visible={wizardVisible}
+            currentStep={report.processingStep}
+            reportTitle={report.title}
+            onClose={() => setWizardVisible(false)}
+            onProcess={handleProcessStep}
+          />
+        )
+      }
+    </SafeAreaView >
   );
 }

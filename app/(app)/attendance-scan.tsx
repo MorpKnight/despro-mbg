@@ -1,6 +1,6 @@
 import { useIsFocused } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Text, View, TextInput, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { QRScanner } from '../../components/features/attendance';
@@ -61,6 +61,7 @@ export default function AttendanceScanPage() {
   const [appActive, setAppActive] = useState(true);
   const [manualInput, setManualInput] = useState('');
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const manualInputTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { mutate: submitAttendance } = useOfflineMutation<{ studentId: string; method: 'qr' }, RecordAttendanceResult>({
     mutationFn: ({ studentId, method }) => recordAttendance(studentId, method),
@@ -76,6 +77,26 @@ export default function AttendanceScanPage() {
     });
     return () => sub.remove();
   }, []);
+
+  // Auto-submit barcode scanner input with debounce
+  useEffect(() => {
+    if (manualInput.trim().length > 0) {
+      // Clear existing timer
+      if (manualInputTimerRef.current) {
+        clearTimeout(manualInputTimerRef.current);
+      }
+      // Set new timer to auto-submit after 150ms of no input
+      manualInputTimerRef.current = setTimeout(() => {
+        handleSuccess(manualInput);
+        setManualInput('');
+      }, 150);
+    }
+    return () => {
+      if (manualInputTimerRef.current) {
+        clearTimeout(manualInputTimerRef.current);
+      }
+    };
+  }, [manualInput]);
 
   if (user?.role !== 'admin_sekolah' && user?.role !== 'super_admin') {
     return (
@@ -121,8 +142,7 @@ export default function AttendanceScanPage() {
         setPaused(true); // Keep paused until alert closed
 
         Alert.alert('Kehadiran Tercatat', `${displayName} tercatat pada ${timeLabel}.`, [
-          { text: 'Scan lagi', onPress: () => { setPaused(false); } },
-          { text: 'Tutup', style: 'cancel' }, // Paused remains true if they just close? Probably fine.
+          { text: 'OK', onPress: () => { setPaused(false); } },
         ]);
         return;
       }
@@ -134,8 +154,7 @@ export default function AttendanceScanPage() {
         'Disimpan Offline',
         `${displayName} akan dikirim otomatis saat koneksi kembali tersedia.`,
         [
-          { text: 'Scan lagi', onPress: () => { setPaused(false); } },
-          { text: 'Tutup', style: 'cancel' },
+          { text: 'OK', onPress: () => { setPaused(false); } },
         ],
       );
     } catch (err: any) {
@@ -209,12 +228,13 @@ export default function AttendanceScanPage() {
               <Card className="h-full justify-center">
                 <Text className="font-semibold text-gray-900 mb-2 text-lg">Barcode Scanner / Manual</Text>
                 <Text className="text-gray-600 mb-4">
-                  Pastikan kursor aktif di kolom bawah ini untuk menggunakan barcode scanner tembak.
+                  Siap menerima input dari barcode scanner. Scan langsung akan otomatis diproses.
                 </Text>
 
                 <TextInput
+                  autoFocus={true}
                   className="border border-gray-300 rounded-lg px-4 py-3 bg-white text-lg mb-3"
-                  placeholder="Klik di sini lalu scan..."
+                  placeholder="Scan barcode atau ketik ID siswa..."
                   placeholderTextColor="#9ca3af"
                   onSubmitEditing={() => {
                     if (manualInput.trim()) {
