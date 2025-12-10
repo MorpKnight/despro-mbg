@@ -59,3 +59,18 @@ export async function deleteUser(id: string): Promise<void> {
         method: 'DELETE',
     });
 }
+
+export async function pairNfcTagToStudent(studentId: string, nfcTagId: string): Promise<User> {
+    const data = await api(`admin/users/${studentId}/pair-nfc`, {
+        method: 'PATCH',
+        body: { nfc_tag_id: nfcTagId },
+    });
+    return UserSchema.parse(data);
+}
+
+export async function unpairNfcTagFromStudent(studentId: string): Promise<User> {
+    const data = await api(`admin/users/${studentId}/unpair-nfc`, {
+        method: 'PATCH',
+    });
+    return UserSchema.parse(data);
+}

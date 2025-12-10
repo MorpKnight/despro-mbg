@@ -1,5 +1,6 @@
 import { useIsFocused } from '@react-navigation/native';
 import { useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, AppState, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,6 +56,7 @@ export default function AttendanceScanPage() {
   const { showSnackbar } = useSnackbar();
   const isFocused = useIsFocused();
   const { returnTo } = useLocalSearchParams<{ returnTo: string }>();
+  const router = useRouter();
 
   const [paused, setPaused] = useState(false); // auto-pause after success
   const [cameraOn, setCameraOn] = useState(true); // user toggles camera hardware
@@ -151,6 +153,19 @@ export default function AttendanceScanPage() {
       />
 
       <View className="p-4 gap-3">
+        <Card>
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="font-semibold text-gray-900">Pilihan Pemindaian Lain</Text>
+              <Text className="text-gray-600">Gunakan NFC untuk pemindaian kartu siswa.</Text>
+            </View>
+            <Button
+              title="Scan dengan NFC"
+              variant="secondary"
+              onPress={() => router.push('/(app)/attendance-nfc')}
+            />
+          </View>
+        </Card>
         <Card>
           <View className="flex-row items-center justify-between">
             <View>
