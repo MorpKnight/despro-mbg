@@ -62,6 +62,12 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
   const [pairing, setPairing] = useState(false);
   const [pairingInfo, setPairingInfo] = useState<{ studentId?: string; studentName?: string; nfcTagId?: string } | null>(null);
 
+  // Pesan khusus modal pairing
+  const [pairingMessage, setPairingMessage] = useState<{
+    text: string;
+    variant: 'info' | 'error' | 'success';
+  } | null>(null);
+
   // Prevent double start scan
   const pairingScanActiveRef = useRef(false);
 
@@ -182,7 +188,7 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
         } catch (e) { }
       }
 
-      Alert.alert('Gagal', detailMessage || 'Gagal menambahkan siswa. Pastikan username unik.');
+      showSnackbar({ message: detailMessage || 'Gagal menambahkan siswa.', variant: 'error' });
     },
   });
 
@@ -271,35 +277,62 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
         } catch (e) { }
       }
 
-      Alert.alert('Gagal', detailMessage || 'Gagal menghapus siswa.');
+      showSnackbar({ message: detailMessage || 'Gagal menghapus siswa.', variant: 'error' });
     },
   });
 
-  const pairNfcMutation = useMutation({
-    mutationFn: (data: { studentId: string; nfcTagId: string }) =>
-      pairNfcTagToStudent(data.studentId, data.nfcTagId),
+  // Case ganti kartu 
+  const pairOrReplaceNfcMutation = useMutation({
+    mutationFn: async (data: { studentId: string; nfcTagId: string }) => {
+      const { studentId, nfcTagId } = data;
+
+      try {
+        // 1) coba pair langsung
+        return await pairNfcTagToStudent(studentId, nfcTagId);
+      } catch (err: any) {
+        // 2) kalau error, cek jenis errornya
+        const msg = String(err?.message || '');
+
+        // Deteksi: siswa ini sudah punya tag
+        const isStudentAlreadyHasTagError = (m: string) =>
+          /student.*already.*has.*(nfc|tag)|siswa.*sudah.*punya.*(nfc|tag)/i.test(m);
+
+        // Deteksi: tag ini sudah dipakai siswa lain
+        const isTagAlreadyUsedByOtherError = (m: string) =>
+          /(nfc|tag).*(already|sudah).*(assigned|paired|used|dipakai|terdaftar).*(another|other|lain|siswa)/i.test(m);
+
+        const toUserMessage = (m: string) => {
+          if (isStudentAlreadyHasTagError(m)) {
+            return 'Siswa sudah punya NFC tag. Tag akan diganti dengan yang baru.';
+          }
+          if (isTagAlreadyUsedByOtherError(m)) {
+            return 'NFC tag ini sudah terdaftar pada siswa lain.';
+          }
+          return 'Gagal menyimpan NFC tag. Silakan coba lagi.';
+        };
+
+        // Tampilkan pesan yang sesuai
+        notifyPairing({
+          message: toUserMessage(msg),
+          variant: isStudentAlreadyHasTagError(msg) ? 'info' : 'error',
+        });
+
+        if (!isStudentAlreadyHasTagError(msg)) {
+          throw err;
+        }
+
+        // 3) unpair + pair otomatis
+        await unpairNfcTagFromStudent(studentId);
+        return await pairNfcTagToStudent(studentId, nfcTagId);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['school-students'] });
       setPairing(false);
       setPairingInfo(null);
       pairingScanActiveRef.current = false;
-      showSnackbar({ message: 'NFC tag berhasil dipasangkan ke siswa', variant: 'success' });
-    },
-    onError: (error: any) => {
-      console.error('Pair NFC error:', error);
-      showSnackbar({ message: error?.message || 'Gagal memasangkan NFC tag', variant: 'error' });
-    },
-  });
 
-  const unpairNfcMutation = useMutation({
-    mutationFn: (studentId: string) => unpairNfcTagFromStudent(studentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['school-students'] });
-      showSnackbar({ message: 'NFC tag berhasil dilepas dari siswa', variant: 'success' });
-    },
-    onError: (error: any) => {
-      console.error('Unpair NFC error:', error);
-      showSnackbar({ message: error?.message || 'Gagal melepas NFC tag', variant: 'error' });
+      notifyPairing({ message: 'NFC tag berhasil didaftarkan/diganti', variant: 'success' });
     },
   });
 
@@ -318,6 +351,15 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
     setPassword('');
     setFullName(student.full_name);
     setIsModalVisible(true);
+  };
+
+  // Helper untuk pilih channel pesan
+  const notifyPairing = (args: { message: string; variant: 'info' | 'error' | 'success' }) => {
+    if (pairing) {
+      setPairingMessage({ text: args.message, variant: args.variant });
+      return;
+    }
+    showSnackbar(args);
   };
 
   const closeModal = () => {
@@ -405,8 +447,11 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
   // Cleanup scan ketika pairing modal ditutup
   useEffect(() => {
     if (!pairing) {
+      setPairingMessage(null);
       pairingScanActiveRef.current = false;
       stopScan().catch(() => { });
+    } else {
+      setPairingMessage(null); 
     }
   }, [pairing]);
 
@@ -421,11 +466,12 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
   // Surface error reader ke UI
   useEffect(() => {
     if (!error) return;
-    showSnackbar({
-      message: error.message || 'Terjadi error pada NFC reader.',
+    notifyPairing({
+      message: 'Terjadi error pada NFC reader. Silakan muat ulang aplikasi.',
       variant: 'error',
     });
-  }, [error]);
+  }, [error, pairing]);
+
 
   const handleStartPair = async (studentId: string, studentName: string) => {
     if (pairingScanActiveRef.current) return;
@@ -434,7 +480,7 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
 
     // Guard: web reader harus lewat Electron
     if (Platform.OS === 'web' && !available) {
-      showSnackbar({
+      notifyPairing({
         message: 'Mode reader hanya bisa digunakan saat aplikasi dijalankan lewat Electron.',
         variant: 'error',
       });
@@ -457,26 +503,16 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
       });
     } catch (err) {
       console.error('Scan error:', err);
-      showSnackbar({ message: 'Gagal memindai NFC tag', variant: 'error' });
+      notifyPairing({ message: 'Gagal memindai NFC tag', variant: 'error' });
       pairingScanActiveRef.current = false;
       setPairing(false);
       setPairingInfo(null);
     }
   };
 
+  
   const handleConfirmPair = (studentId: string, nfcTagId: string) => {
-    pairNfcMutation.mutate({ studentId, nfcTagId });
-  };
-
-  const handleUnpair = (studentId: string) => {
-    Alert.alert('Konfirmasi', 'Yakin ingin melepas NFC tag dari siswa ini?', [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Lepas',
-        style: 'destructive',
-        onPress: () => unpairNfcMutation.mutate(studentId)
-      },
-    ]);
+    pairOrReplaceNfcMutation.mutate({ studentId, nfcTagId });
   };
 
   // ========= Render =========
@@ -543,12 +579,8 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
                     <Button
                       variant="secondary"
                       size="sm"
-                      onPress={() =>
-                        student.nfc_tag
-                          ? handleUnpair(student.id)
-                          : handleStartPair(student.id, student.full_name)
-                      }
-                      title={student.nfc_tag ? "NFC Tag Paired" : "Register NFC Tag"}
+                      onPress={() => handleStartPair(student.id, student.full_name)}
+                      title={student.nfc_tag ? "Ganti NFC Tag" : "Daftar NFC Tag"}
                     />
                     <Button
                       variant="ghost"
@@ -686,7 +718,30 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
                 Siswa: <Text className="font-semibold">{pairingInfo.studentName}</Text>
               </Text>
             )}
-
+            {/* Pesan khusus modal */}
+            {pairingMessage && (
+              <View
+                className={`mb-3 rounded-lg px-3 py-2 ${
+                  pairingMessage.variant === 'error'
+                    ? 'bg-red-50'
+                    : pairingMessage.variant === 'success'
+                    ? 'bg-green-50'
+                    : 'bg-gray-100'
+                }`}
+              >
+                <Text
+                  className={`text-xs ${
+                    pairingMessage.variant === 'error'
+                      ? 'text-red-700'
+                      : pairingMessage.variant === 'success'
+                      ? 'text-green-700'
+                      : 'text-gray-700'
+                  }`}
+                >
+                  {pairingMessage.text}
+                </Text>
+              </View>
+            )}
             {!pairingInfo?.nfcTagId ? (
               <View>
                 <Text className="text-gray-600 mb-2">Menunggu NFC tag...</Text>
@@ -733,8 +788,8 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
                   />
                   <Button
                     onPress={() => handleConfirmPair(pairingInfo.studentId!, pairingInfo.nfcTagId!)}
-                    disabled={pairNfcMutation.isPending}
-                    title={pairNfcMutation.isPending ? 'Menyimpan...' : 'Pasangkan'}
+                    disabled={pairOrReplaceNfcMutation.isPending}
+                    title={pairOrReplaceNfcMutation.isPending ? 'Menyimpan...' : 'Simpan Tag'}  
                   />
                 </View>
               </View>
