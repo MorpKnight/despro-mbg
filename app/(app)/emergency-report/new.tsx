@@ -132,7 +132,14 @@ export default function CreateEmergencyReport() {
                                 render={({ field: { value, onChange, onBlur } }) => (
                                     <TextInput
                                         value={value?.toString()}
-                                        onChangeText={onChange}
+                                        onChangeText={(text) => {
+                                            // Konversi string ke number, atau null jika kosong
+                                            const numValue = text.trim() === '' ? null : Number(text);
+                                            // Hanya update jika valid number atau null
+                                            if (text.trim() === '' || !isNaN(numValue as number)) {
+                                                onChange(numValue);
+                                            }
+                                        }}
                                         onBlur={onBlur}
                                         placeholder="0"
                                         keyboardType="numeric"
