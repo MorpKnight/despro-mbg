@@ -548,7 +548,7 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
                           ? handleUnpair(student.id)
                           : handleStartPair(student.id, student.full_name)
                       }
-                      title={student.nfc_tag_id ? "NFC Tag Paired" : "Register NFC Tag"}
+                      title={student.nfc_tag ? "NFC Tag Paired" : "Register NFC Tag"}
                     />
                     <Button
                       variant="ghost"
