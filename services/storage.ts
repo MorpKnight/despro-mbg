@@ -49,7 +49,18 @@ const ALLOW_LOCALHOST_ON_WEB = process.env.EXPO_PUBLIC_ALLOW_LOCALHOST === 'true
 
 function appendApiSuffix(input: string): string {
   const trimmed = input.trim();
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  // Check if URL already has a scheme
+  const hasScheme = /^https?:\/\//i.test(trimmed);
+  let withScheme = hasScheme ? trimmed : `https://${trimmed}`;
+
+  // Helper to check for localhost
+  const isLocalhost = (url: string) => /^(?:https?:\/\/)?(?:localhost|127\.0\.0\.1|10\.0\.2\.2)(?::\d+)?(\/|$)/i.test(url);
+
+  // Force https for non-localhost URLs (fix for deployed server)
+  if (!isLocalhost(withScheme)) {
+    withScheme = withScheme.replace(/^http:\/\//i, 'https://');
+  }
+
   const withoutTrailingSlash = withScheme.replace(/\/+$/, '');
   if (withoutTrailingSlash.toLowerCase().endsWith('/api/v1')) {
     return withoutTrailingSlash;
