@@ -224,7 +224,7 @@ export default function AttendanceNFCPage() {
     lastErrorAtRef.current = now;
 
     showSnackbar({
-      message: error.message || 'Terjadi error pada NFC reader.',
+      message: 'Terjadi error pada NFC reader.',
       variant: 'error',
     });
   }, [error, scanMode, appActive]);
@@ -245,10 +245,6 @@ export default function AttendanceNFCPage() {
 
             const ok = tryLockUidForToday(uid);
             if (!ok) {
-              showSnackbar({
-                message: 'Siswa sudah diproses untuk absensi hari ini.',
-                variant: 'info',
-              });
               return;
             }
 
@@ -293,7 +289,7 @@ export default function AttendanceNFCPage() {
             } catch (err: any) {
               console.warn('[attendance-nfc] gagal kirim absensi', err)
 
-              showSnackbar({ message: "Siswa sudah diproses untuk absensi hari ini.", variant: 'error' });
+              showSnackbar({ message: "Siswa sudah diproses untuk absensi hari ini.", variant: 'info' });
             } finally {
               releaseInFlight(uid);
             }

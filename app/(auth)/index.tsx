@@ -51,23 +51,33 @@ export default function AuthIndex() {
   }
 
   const heroContent = (
-    <>
-      <View className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-3xl items-center justify-center mb-8 border border-white/20">
-        <Image
-          source={require("../../assets/images/logo.png")}
-          style={{ width: 50, height: 50 }}
-          resizeMode="contain"
-        />
+    <View className="px-1 max-w-lg flex h-full justify-center">
+      {/* Row: Logo + App Name */}
+      <View className="flex-row items-center gap-4 mb-6">
+        <View className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-3xl items-center justify-center border border-white/20">
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={{ width: 50, height: 50 }}
+            resizeMode="contain"
+          />
+        </View>
+
+        <Text className="text-white text-5xl font-extrabold tracking-tight">
+          MBGlance
+        </Text>
       </View>
-      <Text className="text-white text-5xl font-bold leading-tight mb-6">
+
+      {/* Tagline */}
+      <Text className="text-white/90 text-4xl font-bold leading-tight mb-4">
         Monitoring Gizi,{'\n'}Masa Depan Bangsa
       </Text>
+
+      {/* Deskripsi */}
       <Text className="text-blue-100 text-xl leading-relaxed">
         Platform terintegrasi untuk memantau distribusi dan kualitas Makan Bergizi Gratis di seluruh sekolah.
       </Text>
-    </>
+    </View>
   );
-
   return (
     <AuthLayout
       heroContent={heroContent}
