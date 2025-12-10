@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, Text, TouchableOpacity, View, Platform } from "react-native";
 import { cdnUploadFile } from "../../services/cdnService";
 
 interface ImageUploadProps {
   label?: string;
-  onUploaded: (url: string) => void; 
+  onUploaded: (url: string) => void;
   disabled?: boolean;
 }
 
@@ -31,27 +31,38 @@ export default function ImageUpload({ label, onUploaded, disabled = false }: Ima
 
   const uploadImage = async () => {
     if (!image) return;
+
     try {
       setIsUploading(true);
-
-      const response = await fetch(image);
-      const blob = await response.blob();
       const filename = `upload_${Date.now()}.jpg`;
 
-      // cdnUploadFile now returns the raw URL string directly
-      const metadata = await cdnUploadFile(blob as any, filename); 
-      
-      // since metadata IS the URL string, assign it directly
-      const url = metadata; 
+      let fileData: any;
 
-      if (!url || typeof url !== 'string') {
-        console.error("CDN service did not return a valid URL string:", url);
-        throw new Error("Invalid URL returned from CDN");
+      if (Platform.OS === "android") {
+        console.log("[UPLOAD] Using Android URI:", image);
+
+        // Android MUST upload using URI
+        fileData = {
+          uri: image,
+          type: "image/jpeg",
+          name: filename,
+        };
+      } else {
+        console.log("[UPLOAD] Converting image to Blob (iOS/Web)");
+
+        const response = await fetch(image);
+        const blob = await response.blob();
+        console.log("[UPLOAD] Blob size:", blob.size);
+
+        fileData = blob;
       }
 
-      setUploadedUrl(url); 
-      console.log("Uploaded URL:", url); 
+      const url = await cdnUploadFile(fileData, filename);
+
+      setUploadedUrl(url);
       onUploaded(url);
+      console.log("Uploaded URL:", url);
+
     } catch (err) {
       console.error("Upload failed:", err);
     } finally {
@@ -63,7 +74,7 @@ export default function ImageUpload({ label, onUploaded, disabled = false }: Ima
     <View className="gap-2">
       {label && <Text className="text-sm font-semibold text-gray-700">{label}</Text>}
 
-      {/* Preview area */}
+      {/* Preview */}
       <TouchableOpacity
         className={`border-2 rounded-xl h-48 justify-center items-center ${
           image ? "border-blue-400" : "border-gray-300"
@@ -72,7 +83,11 @@ export default function ImageUpload({ label, onUploaded, disabled = false }: Ima
         activeOpacity={0.7}
       >
         {image ? (
-          <Image source={{ uri: image }} className="w-full h-full rounded-xl" resizeMode="cover" />
+          <Image
+            source={{ uri: image }}
+            className="w-full h-full rounded-xl"
+            resizeMode="cover"
+          />
         ) : (
           <View className="items-center">
             <Ionicons name="image" size={40} color="#9CA3AF" />
@@ -81,7 +96,7 @@ export default function ImageUpload({ label, onUploaded, disabled = false }: Ima
         )}
       </TouchableOpacity>
 
-      {/* Upload button */}
+      {/* Upload Button */}
       <TouchableOpacity
         disabled={!image || disabled || isUploading}
         onPress={uploadImage}
