@@ -13,24 +13,50 @@ export function useElectronNfc(options: UseElectronNfcOptions = {}) {
   const [status, setStatus] = useState<NfcStatusPayload | null>(null);
   const [error, setError] = useState<NfcErrorPayload | null>(null);
 
-  const initializedRef = useRef(false);
+  // untuk "soft cleanup"
+  const activeRef = useRef(true);
 
   const available = useMemo(() => {
     return isWeb && typeof window !== "undefined" && !!window.nfcAPI;
   }, [isWeb]);
 
   useEffect(() => {
+    activeRef.current = true;
+
     if (!enabled) return;
     if (!isWeb) return;
     if (typeof window === "undefined") return;
     if (!window.nfcAPI) return;
-    if (initializedRef.current) return;
 
-    initializedRef.current = true;
+    // reset state tiap enable supaya UI fresh
+    setError(null);
 
-    window.nfcAPI.onScan((data) => setLastScan(data));
-    window.nfcAPI.onStatus?.((s) => setStatus(s));
-    window.nfcAPI.onError?.((e) => setError(e));
+    const onScan = (data: NfcScanPayload) => {
+      if (!activeRef.current) return;
+      setLastScan(data);
+    };
+
+    const onStatus = (s: NfcStatusPayload) => {
+      if (!activeRef.current) return;
+      setStatus(s);
+    };
+
+    const onError = (e: NfcErrorPayload) => {
+      if (!activeRef.current) return;
+      setError(e);
+    };
+
+    // NOTE:
+    // preload versi kamu kemungkinan belum punya unsubscribe,
+    // jadi kita daftar listener sederhana.
+    window.nfcAPI.onScan(onScan);
+    window.nfcAPI.onStatus?.(onStatus);
+    window.nfcAPI.onError?.(onError);
+
+    return () => {
+      // "soft stop"
+      activeRef.current = false;
+    };
   }, [enabled, isWeb]);
 
   return {
