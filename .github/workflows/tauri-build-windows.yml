@@ -9,12 +9,15 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
-env:
-  EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://mbg-be.mrt.qzz.io/api/v1' }}
+permissions:
+  contents: write
 
 jobs:
   build-windows:
     runs-on: windows-latest
+
+    env:
+      EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://mbg-be.mrt.qzz.io/api/v1' }}
 
     steps:
       - name: Checkout repository
@@ -27,9 +30,7 @@ jobs:
           cache: "npm"
 
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -43,6 +44,17 @@ jobs:
         run: npx expo export -p web
         env:
           EXPO_PUBLIC_API_URL: ${{ env.EXPO_PUBLIC_API_URL }}
+
+      - name: Generate Tauri icons
+        run: |
+          # Create icons directory
+          New-Item -ItemType Directory -Force -Path src-tauri/icons
+          # Generate icons from logo (ImageMagick is available on Windows runners)
+          magick assets/images/icon.png -resize 256x256 -background white -gravity center -extent 256x256 src-tauri/icons/icon.png
+          magick src-tauri/icons/icon.png src-tauri/icons/icon.ico
+          magick src-tauri/icons/icon.png -resize 32x32 src-tauri/icons/32x32.png
+          magick src-tauri/icons/icon.png -resize 128x128 src-tauri/icons/128x128.png
+          magick src-tauri/icons/icon.png -resize 256x256 src-tauri/icons/128x128@2x.png
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
