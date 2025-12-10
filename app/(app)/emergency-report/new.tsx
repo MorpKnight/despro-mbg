@@ -31,6 +31,7 @@ export default function CreateEmergencyReport() {
     const {
         control,
         handleSubmit,
+        reset, // ← Tambahkan reset
         formState: { errors, isValid },
     } = useForm<EmergencyReportFormValues>({
         resolver: zodResolver(EmergencyReportSchema),
@@ -63,6 +64,16 @@ export default function CreateEmergencyReport() {
                 }),
             });
             showSnackbar({ message: 'Laporan darurat berhasil dikirim.', variant: 'success' });
+            
+            // Reset form sebelum navigate
+            reset({
+                title: '',
+                description: '',
+                students_affected_count: 0,
+                students_affected_description: '',
+                gejala: '',
+            });
+            
             router.replace('/(app)/emergency-report');
         } catch (error) {
             console.error('Failed to submit emergency report', error);
