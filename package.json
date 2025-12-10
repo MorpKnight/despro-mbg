@@ -9,7 +9,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "electron:build-linux": "npx expo export -p web && electron-builder --linux --x64",
+    "electron:build-windows": "npx expo export -p web && electron-builder --windows --x64",
+    "electron:build-mac": "npx expo export -p web && electron-builder --mac --x64"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -91,8 +94,28 @@
       "main": "main.js"
     },
     "linux": {
-      "target": "AppImage",
-      "category": "Education"
+      "target": [
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Education",
+      "icon": "assets/images/icon.png"
     },
     "win": {
       "target": [
