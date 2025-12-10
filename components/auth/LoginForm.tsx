@@ -7,6 +7,8 @@ import Icon from "../../components/ui/Icon";
 import TextInput from "../../components/ui/TextInput";
 import { useAuth } from "../../hooks/useAuth";
 import { Platform } from "react-native";
+import { api } from "@/services/api";
+import { registerForPushNotificationsAsync } from "@/services/notifications";
 interface LoginFormProps {
     onShowSettings: () => void;
 }
@@ -34,6 +36,27 @@ export const LoginForm = ({ onShowSettings }: LoginFormProps) => {
                 return;
             }
             await signIn(username.trim(), password, loginType === 'student' ? 'auth/login/student' : 'auth/login');
+            if (Platform.OS === "ios" || Platform.OS === "android") {
+                    try {
+                      const expoPushToken =
+                        await registerForPushNotificationsAsync();
+                      if (expoPushToken) {
+                        await api("profile/push-token", {
+                          method: "PATCH",
+                          body: JSON.stringify({
+                            token: expoPushToken,
+                          }),
+                        });
+                        console.log("Push token registered:", expoPushToken);
+                      } else {
+                        console.log("No expo push token available. Skipping.");
+                      }
+                    } catch (err) {
+                      console.log("Failed to register token:", err);
+                    }
+                  } else {
+                    console.log("Skipping push token registration on web/PC");
+                  }
         } catch (e: any) {
             setError(e?.message || "Gagal masuk");
         }
