@@ -73,8 +73,8 @@ export const LoginForm = ({ onShowSettings }: LoginFormProps) => {
                     <Text className={`font-semibold text-base ${loginType === 'staff' ? 'text-blue-600' : 'text-gray-500'}`}>Staf / Admin</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                    className={`flex-1 py-3.5 rounded-xl items-center transition-all ${loginType === 'student' ? 'bg-white shadow-md' : ''}`}
-                    onPress={() => setLoginType('student')}
+             className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "student" ? "bg-blue-200" : ""}`}
+  onPress={() => setLoginType("student")}
                 >
                     <Text className={`font-semibold text-base ${loginType === 'student' ? 'text-blue-600' : 'text-gray-500'}`}>Siswa</Text>
                 </TouchableOpacity>
