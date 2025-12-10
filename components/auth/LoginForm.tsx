@@ -1,12 +1,12 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import Button from "../../components/ui/Button";
 import Icon from "../../components/ui/Icon";
 import TextInput from "../../components/ui/TextInput";
 import { useAuth } from "../../hooks/useAuth";
-
+import { Platform } from "react-native";
 interface LoginFormProps {
     onShowSettings: () => void;
 }
@@ -49,7 +49,11 @@ export const LoginForm = ({ onShowSettings }: LoginFormProps) => {
     ];
 
     return (
-        <View>
+        
+         <KeyboardAvoidingView
+           behavior={Platform.OS === "android" ? "padding" : "height"}
+          className="flex-1 justify-center p-6"
+        >
             <View className="mb-8">
                 <View className="flex-row justify-between items-center mb-3">
                     <Text className="text-4xl font-extrabold text-gray-900">
@@ -73,8 +77,8 @@ export const LoginForm = ({ onShowSettings }: LoginFormProps) => {
                     <Text className={`font-semibold text-base ${loginType === 'staff' ? 'text-blue-600' : 'text-gray-500'}`}>Staf / Admin</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                    className={`flex-1 py-3.5 rounded-xl items-center transition-all ${loginType === 'student' ? 'bg-white shadow-md' : ''}`}
-                    onPress={() => setLoginType('student')}
+             className={`flex-1 py-2.5 rounded-lg items-center ${loginType === "student" ? "bg-blue-200" : ""}`}
+  onPress={() => setLoginType("student")}
                 >
                     <Text className={`font-semibold text-base ${loginType === 'student' ? 'text-blue-600' : 'text-gray-500'}`}>Siswa</Text>
                 </TouchableOpacity>
@@ -138,7 +142,7 @@ export const LoginForm = ({ onShowSettings }: LoginFormProps) => {
                     className="w-full h-14 mt-2 shadow-xl shadow-blue-600/25 rounded-xl"
                     title={loading ? "Memproses..." : "Masuk"}
                     onPress={handleLogin}
-                    disabled={!username.trim() || !password || loading}
+                    disabled={loading}
                     size="lg"
                 />
             </View>
@@ -174,6 +178,6 @@ export const LoginForm = ({ onShowSettings }: LoginFormProps) => {
                     </Text>
                 </Text>
             </View>
-        </View>
+        </KeyboardAvoidingView>
     );
 };
