@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, FlatList, Platform, Text, View, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useOfflineMutation } from '../../hooks/useOfflineMutation';
 import { recordAttendanceViaNfc } from '../../services/attendance';
 import { useSnackbar } from '../../hooks/useSnackbar';
+import PageHeader from '@/components/ui/PageHeader';
 import { useIsFocused } from '@react-navigation/native';
 
 
@@ -40,15 +41,26 @@ export default function AttendanceNFCPage() {
   const [paused, setPaused] = useState(false);
   const [lastScan, setLastScan] = useState<NFCScan | null>(null);
   const [scans, setScans] = useState<NFCScan[]>([]);
-  const [scanMode, setScanMode] = useState<NFCSource>(Platform.OS === 'web' ? 'reader' : 'reader');
+  // detect whether the Electron preload exposed `nfcAPI`
+  const isNfcApiAvailable = typeof globalThis !== 'undefined' && !!(globalThis as any).nfcAPI;
+
+  const [scanMode, setScanMode] = useState<NFCSource>(
+    isNfcApiAvailable ? 'reader' : Platform.OS === 'web' ? 'reader' : 'device'
+  );
   const [appActive, setAppActive] = useState(true);
   const isFocused = useIsFocused();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
 
   // =========================
   // Electron NFC Hook (status/error)
   // =========================
   const { available, status, error } = useElectronNfc({
-    enabled: Platform.OS === 'web' && scanMode === 'reader',
+    enabled: isNfcApiAvailable && scanMode === 'reader' && appActive,
   });
 
   const readerName = status?.reader ?? null;
@@ -58,6 +70,29 @@ export default function AttendanceNFCPage() {
   const hasShownFirstConnectRef = useRef(false);
   // throttle error
   const lastErrorAtRef = useRef(0);
+
+  useEffect(() => {
+    if (scanMode === 'reader') return;
+    if (Platform.OS !== 'web') return;
+
+    let mounted = true;
+
+    const checkAndSwitch = () => {
+      if (!mounted) return;
+      if ((globalThis as any).nfcAPI) {
+        setScanMode('reader');
+      }
+    };
+
+    // run once immediately then poll
+    checkAndSwitch();
+    const id = setInterval(checkAndSwitch, 500);
+
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [scanMode]);
 
   // =========================
   // Offline-aware mutation
@@ -211,7 +246,7 @@ export default function AttendanceNFCPage() {
             const ok = tryLockUidForToday(uid);
             if (!ok) {
               showSnackbar({
-                message: 'Siswa ini sudah diproses untuk absensi hari ini.',
+                message: 'Siswa sudah diproses untuk absensi hari ini.',
                 variant: 'info',
               });
               return;
@@ -224,8 +259,6 @@ export default function AttendanceNFCPage() {
               const isQueued = !!(result as any)?.queued;
               const record = result?.record;
 
-              // Kalau offline queue TIDAK mengembalikan record,
-              // jangan tampilkan di UI (sesuai requirement kamu).
               if (!record) {
                 if (isQueued) {
                   showSnackbar({ message: 'Disimpan ke antrian offline.', variant: 'info' });
@@ -245,7 +278,7 @@ export default function AttendanceNFCPage() {
 
               const scan: NFCScan = { uid, username, fullName };
 
-              // 4) update UI HANYA untuk sukses
+              // 4) update UI hanya jika sukses
               setLastScan(scan);
               setScans((prev) => [scan, ...prev].slice(0, 20));
 
@@ -323,13 +356,20 @@ export default function AttendanceNFCPage() {
     return scan.uid;
   };
 
-
   // =========================
   // Render
   // =========================
   return (
     <SafeAreaView className="flex-1 bg-[#f5f7fb]">
       <Stack.Screen options={{ title: 'Scan Kehadiran NFC' }} />
+      <PageHeader
+        title="Scan Kehadiran"
+        subtitle="Rekam kehadiran siswa dengan kartu NFC"
+        showBackButton={false}
+        onRefresh={onRefresh}
+        isRefreshing={refreshing}
+        className="mx-6 mt-6 mb-4"
+      />
       <View className="p-4 gap-3">
         <Card>
           <View className="flex-row items-center justify-between">
