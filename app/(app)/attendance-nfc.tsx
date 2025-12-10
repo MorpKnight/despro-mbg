@@ -14,6 +14,8 @@ import { useSnackbar } from '../../hooks/useSnackbar';
 
 type NFCScan = {
   uid: string;
+  username?: string | null;
+  fullName?: string | null;
 };
 
 function getJakartaDateKey() {
@@ -136,7 +138,7 @@ export default function AttendanceNFCPage() {
             }
 
             try {
-              // 2) baru update UI history setelah lolos lock
+              // 2) buat entri UI history sementara (akan di-update jika server mengembalikan info siswa)
               const scan: NFCScan = { uid };
               setLastScan(scan);
               setScans((prev) => [scan, ...prev].slice(0, 20));
@@ -147,7 +149,17 @@ export default function AttendanceNFCPage() {
               // 4) tandai "sudah scan hari ini"
               markScannedToday(uid);
 
-              if (result) {
+              // Jika server mengembalikan record dengan info student, simpan username/fullName ke history
+              const student = result?.record?.student;
+              if (student) {
+                const username = student.username ?? '';
+                const fullName = student.fullName ?? null;
+
+                setLastScan((prev) => (prev && prev.uid === uid ? { ...prev, username, fullName } : prev));
+                setScans((prev) => prev.map((s) => (s.uid === uid ? { ...s, username, fullName } : s)));
+              }
+
+              if (result && !result.queued) {
                 showSnackbar({ message: 'Kehadiran tercatat di server.', variant: 'success' });
               } else {
                 showSnackbar({ message: 'Disimpan ke antrian offline.', variant: 'info' });
@@ -322,7 +334,14 @@ export default function AttendanceNFCPage() {
         {lastScan ? (
           <Card>
             <Text className="font-semibold text-gray-900">Scan Terakhir</Text>
-            <Text className="text-lg mt-1">{lastScan.uid}</Text>
+            <Text className="text-lg mt-1">{lastScan.username}</Text>
+            {lastScan.fullName ? (
+              <Text className="text-gray-700">
+                {lastScan.fullName} {lastScan.username ? `(${lastScan.username})` : ''}
+              </Text>
+            ) : (
+              <Text className="text-gray-500">-</Text>
+            )}
           </Card>
         ) : (
           <Text className="text-center text-gray-500 mt-4">
@@ -337,6 +356,14 @@ export default function AttendanceNFCPage() {
           renderItem={({ item }) => (
             <Card className="mb-2">
               <Text className="text-gray-900">{item.uid}</Text>
+              <Text className="text-gray-900">{item.username ? item.username : '-'}</Text>
+              {item.fullName ? (
+                <Text className="text-gray-700">{item.fullName} {item.username ? `(${item.username})` : ''}</Text>
+              ) : ( 
+                <Text className="text-gray-500">-</Text>
+              )}
+              {scannedToday.has(item.uid) && (<Text className="text-green-600 mt-1">Sudah scan hari ini</Text>
+              )}
             </Card>
           )}
         />
