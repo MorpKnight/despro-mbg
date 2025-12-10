@@ -36,12 +36,21 @@ const menuItems: MenuSection[] = [
             },
             {
                 route: '/(app)/attendance-scan',
-                label: 'Scan Kehadiran',
+                label: 'Scan QR Kehadiran',
                 icon: 'qr-code-outline',
                 description: 'Scan QR code siswa',
                 roles: ['admin_sekolah', 'super_admin'],
                 color: '#4F46E5',
                 background: 'bg-indigo-50'
+            },
+            {
+                route: '/(app)/attendance-nfc',
+                label: 'Scan NFC Kehadiran',
+                icon: 'wifi-outline',
+                description: 'Scan kartu NFC siswa',
+                roles: ['admin_sekolah', 'super_admin'],
+                color: '#06B6D4',
+                background: 'bg-cyan-50'
             },
             {
                 route: '/(app)/assisted-attendance',
