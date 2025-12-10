@@ -145,8 +145,8 @@ export default function AppLayout() {
         <Drawer.Screen name="admin-dinkes-dashboard" options={{ title: 'Dashboard Admin Dinkes', drawerItemStyle: { display: 'none' } }} />
 
         {/* Attendance Screens */}
-        <Drawer.Screen name="attendance-scan" options={{ title: 'Pindai Kehadiran', drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="attendance-nfc" options={{ title: 'Kehadiran NFC', drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="attendance-scan" options={{ title: 'Scan QR Kehadiran' }} />
+        <Drawer.Screen name="attendance-nfc" options={{ title: 'Scan NFC Kehadiran' }} />
         <Drawer.Screen name="attendance-history" options={{ title: 'Riwayat Kehadiran', drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="student-attendance" options={{ title: 'Kehadiran Siswa', drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="my-attendance" options={{ title: 'Kehadiran Saya', drawerItemStyle: { display: 'none' } }} />

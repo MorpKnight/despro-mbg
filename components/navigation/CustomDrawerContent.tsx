@@ -81,7 +81,8 @@ const MENU_STRUCTURE: DrawerSection[] = [
   {
     title: 'Operations',
     items: [
-      { label: 'Attendance Scan', icon: 'qr-code-outline', route: 'attendance-scan', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
+      { label: 'Scan QR Kehadiran', icon: 'qr-code-outline', route: 'attendance-scan', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
+      { label: 'Scan NFC Kehadiran', icon: 'wifi-outline', route: 'attendance-nfc', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
       { label: 'Daily Attendance', icon: 'calendar-outline', route: 'student-attendance', roles: [USER_ROLES.ADMIN_SEKOLAH, USER_ROLES.SUPER_ADMIN] },
       { label: 'Menu QC', icon: 'clipboard-outline', route: 'catering-menu-qc', roles: [USER_ROLES.ADMIN_CATERING, USER_ROLES.SUPER_ADMIN] },
       { label: 'Food History', icon: 'fast-food-outline', route: 'food-history-catering', roles: [USER_ROLES.ADMIN_CATERING] },
