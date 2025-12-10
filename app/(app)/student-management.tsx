@@ -59,7 +59,7 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
 
   // Pairing state
   const [pairing, setPairing] = useState(false);
-  const [pairingInfo, setPairingInfo] = useState<{ studentId?: string; nfcTagId?: string } | null>(null);
+  const [pairingInfo, setPairingInfo] = useState<{ studentId?: string; studentName?: string; nfcTagId?: string } | null>(null);
 
   // Prevent double start scan
   const pairingScanActiveRef = useRef(false);
@@ -397,7 +397,7 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
     });
   }, [error]);
 
-  const handleStartPair = async (studentId: string) => {
+  const handleStartPair = async (studentId: string, studentName: string) => {
     if (pairingScanActiveRef.current) return;
 
     const source: NFCSource = Platform.OS === 'web' ? 'reader' : 'device';
@@ -412,14 +412,14 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
     }
 
     setPairing(true);
-    setPairingInfo({ studentId });
+    setPairingInfo({ studentId, studentName });
     pairingScanActiveRef.current = true;
 
     try {
       await startScan(source, (uid: string) => {
         console.log('NFC tag scanned:', uid);
 
-        setPairingInfo({ studentId, nfcTagId: uid });
+        setPairingInfo({ studentId, studentName, nfcTagId: uid });
 
         // stop scan setelah dapat 1 tag
         stopScan().catch(() => {});
@@ -516,9 +516,9 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
                       onPress={() =>
                         student.nfc_tag_id
                           ? handleUnpair(student.id)
-                          : handleStartPair(student.id)
+                          : handleStartPair(student.id, student.full_name)
                       }
-                      title={student.nfc_tag_id ? "NFC ✓" : "NFC"}
+                      title={student.nfc_tag_id ? "NFC Tag Paired" : "Register NFC Tag"}
                     />
                     <Button
                       variant="ghost"
@@ -620,7 +620,12 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
       <Modal visible={pairing && !!pairingInfo} animationType="fade" transparent>
         <View className="flex-1 bg-black/50 justify-center items-center px-6">
           <View className="bg-white p-6 rounded-2xl w-full max-w-md">
-            <Text className="text-xl font-bold mb-4">Pasangkan NFC Tag</Text>
+            <Text className="text-xl font-bold mb-2">Pasangkan NFC Tag</Text>
+            {pairingInfo?.studentName && (
+              <Text className="text-gray-600 mb-4">
+                Siswa: <Text className="font-semibold">{pairingInfo.studentName}</Text>
+              </Text>
+            )}
 
             {!pairingInfo?.nfcTagId ? (
               <View>

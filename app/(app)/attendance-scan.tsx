@@ -156,19 +156,6 @@ export default function AttendanceScanPage() {
         <Card>
           <View className="flex-row items-center justify-between">
             <View>
-              <Text className="font-semibold text-gray-900">Pilihan Pemindaian Lain</Text>
-              <Text className="text-gray-600">Gunakan NFC untuk pemindaian kartu siswa.</Text>
-            </View>
-            <Button
-              title="Scan dengan NFC"
-              variant="secondary"
-              onPress={() => router.push('/(app)/attendance-nfc')}
-            />
-          </View>
-        </Card>
-        <Card>
-          <View className="flex-row items-center justify-between">
-            <View>
               <Text className="font-semibold text-gray-900">Status Pemindaian</Text>
               <Text className="text-gray-600">
                 {(cameraOn && isFocused && appActive) ? (paused ? 'Jeda' : 'Aktif') : 'Kamera Off'} • {isOnline ? 'Online' : 'Offline'} • {currentMode === 'LOCAL' ? 'Server Lokal' : 'Server Cloud'}

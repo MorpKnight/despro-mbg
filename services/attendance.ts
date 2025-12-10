@@ -47,7 +47,7 @@ interface RawAttendanceStudent {
   username?: string;
 }
 
-interface RawAttendanceRecord {
+interface RawAttendanceRecord { 
   id?: string;
   student_id?: string;
   method?: string;
