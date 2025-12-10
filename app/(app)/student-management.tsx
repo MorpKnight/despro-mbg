@@ -16,22 +16,22 @@ import { readString } from 'react-native-csv';
 import * as DocumentPicker from 'expo-document-picker';
 import {
     createStudent,
-    bulkCreateStudents,
+    bulkCreateStudentsSimple,
     deleteStudent,
     fetchSchoolStudents,
     updateStudent,
     type Student,
-    type StudentCreate
+    type StudentCreate,
+    type BulkCreateResult
 } from '../../services/schoolUsers';
 
 interface Props {
     schoolId?: string; // Optional: If provided, manages students for this school (Super Admin mode)
 }
 
-type CsvRow = {
-    username: string;
+// CSV row type for simplified bulk import (only full_name)
+type SimpleCsvRow = {
     full_name: string;
-    password?: string;
 };
 
 export default function StudentManagementPage({ schoolId: propSchoolId }: Props) {
@@ -43,7 +43,8 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [fileName, setFileName] = useState<string>('');
-    const [parsedRows, setParsedRows] = useState<CsvRow[]>([]);
+    const [parsedNames, setParsedNames] = useState<string[]>([]);
+    const [bulkResults, setBulkResults] = useState<BulkCreateResult[]>([]);
 
     // Use schoolId from prop if provided (Super Admin mode), otherwise use schoolId from logged-in user
     const schoolId = useMemo(() => {
@@ -61,9 +62,41 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
         enabled: !!schoolId, // Only fetch if schoolId is available
     });
 
+    // Parse CSV - now only expects full_name column
     const parseCsv = (csvText: string) => {
         const result = readString(csvText, { header: true, skipEmptyLines: true });
-        setParsedRows(result.data as CsvRow[]);
+        const names = (result.data as SimpleCsvRow[])
+            .map(row => row.full_name?.trim())
+            .filter(name => name && name.length > 0);
+        setParsedNames(names);
+    };
+
+    // Download template CSV
+    const downloadTemplate = () => {
+        const csvContent = 'full_name\nBudi Santoso\nSiti Rahayu\nAndi Wijaya';
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'template_siswa.csv';
+        link.click();
+    };
+
+    // Download result CSV with credentials
+    const downloadResultCsv = (results: BulkCreateResult[]) => {
+        const successResults = results.filter(r => r.success);
+        if (successResults.length === 0) return;
+
+        const csvHeader = 'full_name,username,password';
+        const csvRows = successResults.map(r =>
+            `"${r.full_name}","${r.username}","${r.password}"`
+        );
+        const csvContent = [csvHeader, ...csvRows].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'kredensial_siswa.csv';
+        link.click();
     };
 
     const pickCsvFile = async () => {
@@ -81,7 +114,7 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
             parseCsv(fileContent);
             setFileName(name);
 
-            console.log("CSV file parsed:", parsedRows);
+            console.log("CSV file parsed:", parsedNames);
 
         } catch (err) {
             console.error(err);
@@ -89,24 +122,8 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
     };
 
     const uploadCsv = async () => {
-        if (!parsedRows || parsedRows.length === 0) { return; }
-
-        // Validasi: username, full_name, dan password harus ada
-        const formatted: StudentCreate[] = parsedRows
-            .filter(row => row.username && row.full_name && row.password)
-            .map(row => ({
-                username: row.username,
-                full_name: row.full_name,
-                password: row.password!,
-                role: 'siswa',
-            }));
-
-        if (formatted.length === 0) {
-            console.error("Error: Tidak ada baris valid untuk diupload. Pastikan kolom username, full_name, dan password diisi semua.");
-            return;
-        }
-
-        bulkCreateMutation.mutate({ students: formatted });
+        if (!parsedNames || parsedNames.length === 0) { return; }
+        bulkSimpleMutation.mutate({ students: parsedNames });
     };
 
     const createMutation = useMutation({
@@ -144,16 +161,32 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
         },
     });
 
-    const bulkCreateMutation = useMutation({
-        mutationFn: (data: { students: StudentCreate[] }) => bulkCreateStudents(data, schoolId),
-        onSuccess: () => {
+    // Simplified bulk create mutation
+    const bulkSimpleMutation = useMutation({
+        mutationFn: (data: { students: string[] }) => bulkCreateStudentsSimple(data, schoolId),
+        onSuccess: (results) => {
             queryClient.invalidateQueries({ queryKey: ['school-students'] });
-            setParsedRows([]);
+            setBulkResults(results);
+            setParsedNames([]);
+            setFileName('');
+
+            const successCount = results.filter(r => r.success).length;
+            const failCount = results.filter(r => !r.success).length;
+
+            // Auto download result CSV
+            if (successCount > 0) {
+                downloadResultCsv(results);
+            }
+
             closeModal();
-            console.log('Bulk create success');
+            Alert.alert(
+                'Berhasil',
+                `${successCount} siswa berhasil ditambahkan${failCount > 0 ? `, ${failCount} gagal` : ''}. File kredensial telah diunduh.`
+            );
         },
         onError: (error) => {
-            console.error('Bulk create error', error);
+            console.error('Bulk simple create error', error);
+            Alert.alert('Gagal', 'Gagal menambahkan siswa. Silakan coba lagi.');
         },
     });
 
@@ -426,33 +459,59 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
                             {/* Bulk import CSV hanya untuk create (bukan edit) */}
                             {!editingStudent && (
                                 <View className="mt-6 border-t pt-4">
-                                    <Text className="text-gray-600 text-center mb-2">
+                                    <Text className="text-gray-600 text-center mb-3">
                                         atau impor banyak siswa dari CSV
                                     </Text>
 
+                                    {/* Step 1: Download Template */}
+                                    <Button
+                                        variant="outline"
+                                        title="📥 Download Template CSV"
+                                        onPress={downloadTemplate}
+                                        className="mb-2"
+                                    />
+
+                                    {/* Step 2: Pick & Upload CSV */}
                                     <Button
                                         variant="secondary"
                                         title={
-                                            parsedRows.length > 0
-                                                ? `Upload CSV (${fileName})`
-                                                : "Pilih File CSV"
+                                            parsedNames.length > 0
+                                                ? `📤 Upload ${parsedNames.length} Siswa`
+                                                : "📂 Pilih File CSV"
                                         }
                                         onPress={() => {
-                                            if (parsedRows.length > 0) {
-                                                // file sudah dipilih → upload
+                                            if (parsedNames.length > 0) {
                                                 uploadCsv();
                                             } else {
-                                                // belum pilih file → pick
                                                 pickCsvFile();
                                             }
                                         }}
-                                        disabled={bulkCreateMutation.isPending}
+                                        disabled={bulkSimpleMutation.isPending}
                                     />
 
-                                    {/* Tampilkan nama file kalau sudah dipilih */}
-                                    {fileName.length > 0 && parsedRows.length > 0 && (
-                                        <Text className="text-center text-gray-600 mt-2">
-                                            File dipilih: {fileName}
+                                    {/* Show selected file info */}
+                                    {fileName.length > 0 && parsedNames.length > 0 && (
+                                        <View className="mt-2">
+                                            <Text className="text-center text-gray-600">
+                                                File: {fileName} ({parsedNames.length} nama)
+                                            </Text>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                title="Ganti file"
+                                                onPress={() => {
+                                                    setFileName('');
+                                                    setParsedNames([]);
+                                                    pickCsvFile();
+                                                }}
+                                                className="mt-1"
+                                            />
+                                        </View>
+                                    )}
+
+                                    {bulkSimpleMutation.isPending && (
+                                        <Text className="text-center text-blue-600 mt-2">
+                                            Memproses... Username & password sedang di-generate
                                         </Text>
                                     )}
                                 </View>
