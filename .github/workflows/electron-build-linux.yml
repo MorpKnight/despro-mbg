@@ -1,0 +1,63 @@
+name: Build Electron Linux
+
+on:
+    push:
+        branches:
+            - main
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+jobs:
+    build-linux:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            - name: Install dependencies
+              run: npm ci --ignore-scripts
+
+            - name: Export Expo web
+              env:
+                  EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL || 'https://mbg-be.mrt.qzz.io/api/v1' }}
+                  EXPO_PUBLIC_CDN_URL: ${{ secrets.EXPO_PUBLIC_CDN_URL }}
+                  EXPO_PUBLIC_CDN_AUTH_TOKEN: ${{ secrets.EXPO_PUBLIC_CDN_AUTH_TOKEN }}
+                  EXPO_PUBLIC_WEBPUSH_VAPID_KEY: ${{ secrets.EXPO_PUBLIC_WEBPUSH_VAPID_KEY }}
+              run: npx expo export -p web
+
+            - name: Setup Electron dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y rpm
+
+            - name: Build Electron app
+              run: npm run electron:build-linux
+
+            - name: Upload Linux artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: electron-linux-x64
+                  path: |
+                      electron-dist/*.deb
+                      electron-dist/*.rpm
+                      electron-dist/*.AppImage
+                  retention-days: 7
+
+            - name: Create Release
+              if: startsWith(github.ref, 'refs/tags/v')
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: |
+                      electron-dist/*.deb
+                      electron-dist/*.rpm
+                      electron-dist/*.AppImage
+                  draft: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

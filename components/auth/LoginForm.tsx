@@ -166,7 +166,6 @@ export const LoginForm = ({ onShowSettings }: LoginFormProps) => {
                     title={loading ? "Memproses..." : "Masuk"}
                     onPress={handleLogin}
                     disabled={loading}
-                    size="lg"
                 />
             </View>
 
