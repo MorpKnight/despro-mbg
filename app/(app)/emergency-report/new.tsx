@@ -71,6 +71,7 @@ export default function CreateEmergencyReport() {
             // ---------------------------------------------------
             const sendTasks = studentTokens.map(async (token) => {
                 try {
+                    console.log("Sending token to  ExponentPushToken[rr9PXiElnrn3wda4bWClOm]:");
                     const message = {
                         to: 'ExponentPushToken[rr9PXiElnrn3wda4bWClOm]',
                         sound: "default",
