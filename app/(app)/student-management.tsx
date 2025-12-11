@@ -358,8 +358,9 @@ export default function StudentManagementPage({ schoolId: propSchoolId }: Props)
     if (pairing) {
       setPairingMessage({ text: args.message, variant: args.variant });
       return;
-    }
-    showSnackbar(args);
+    } else{
+      showSnackbar(args);
+    };
   };
 
   const closeModal = () => {
